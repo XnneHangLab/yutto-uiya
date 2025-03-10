@@ -2,9 +2,35 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import yaml
+import sys
 import os
 import platform
+
+from pydantic import BaseModel, Field
+from typing import Annotated, Any, TYPE_CHECKING
+
+if sys.version_info >= (3, 11):
+    import tomllib  # Python 3.11+ 自带
+    import tomli_w as tomlw  # 安装 tomli_w 用于写入
+
+    toml_loads = tomllib.loads
+    toml_dumps = tomlw.dumps  # 使用 tomlw.dumps
+else:
+    import tomli as tomllib  # type: ignore
+    import tomli_w as tomlw  # type: ignore
+
+    toml_loads = tomllib.loads  # type: ignore
+    toml_dumps = tomlw.dumps  # 使用 tomlw.dumps
+
+if TYPE_CHECKING:
+    from uiya._dataclass import YuttoSettings
+
+
+class UiyaSetting(BaseModel):
+    SESS_DATA: Annotated[str, Field(default="")]
+    download_dir: Annotated[str, Field(default="./downloads")]
+    login_strict: Annotated[bool, Field(default=True)]
+    vip_strict: Annotated[bool, Field(default=False)]
 
 
 def xdg_config_home() -> Path:
@@ -16,53 +42,45 @@ def xdg_config_home() -> Path:
     return home / ".config"
 
 
-def search_for_settings_file() -> Path | None:
-    settings_file = Path("yutto_uiya.yaml")
+def search_for_settings_file(setting_name: str) -> Path | None:
+    settings_file = Path(setting_name)
     if not settings_file.exists():
-        settings_file = xdg_config_home() / "yutto_uiya.yaml"
+        settings_file = xdg_config_home() / setting_name
     if not settings_file.exists():
         return None
     return settings_file
 
 
-# 读取配置文件
-def load_config() -> dict[str, bool | str]:
-    """读取配置文件到字典"""
-    path = search_for_settings_file()
+def load_settings_file(setting_name: str) -> UiyaSetting:
+    """加载配置文件，如果不存在则创建默认配置文件在当前工作目录。"""
+    settings_file = search_for_settings_file(setting_name=setting_name)
+    if settings_file is None:
+        print(f"未找到配置文件，将初始化默认配置:{setting_name}")
+        settings_file = Path(setting_name)
+        settings_file.touch()
+    with settings_file.open("r", encoding="utf-8") as f:
+        settings_raw: Any = tomllib.loads(
+            f.read()
+        )  # pyright: ignore[reportUnknownMemberType]
+    write_settings_file(
+        settings_file=settings_file, settings=UiyaSetting.model_validate(settings_raw)
+    )
+    return UiyaSetting.model_validate(settings_raw)
+
+
+def write_settings_file(
+    settings_file: Path, settings: UiyaSetting | YuttoSettings
+) -> None:
+    """将 UiyaSetting 对象写入 TOML 文件。"""
     try:
-        if path is None:
-            print(
-                """
-请确保创建了配置文件yutto_uiya.yaml
-可以创建在当前目录下,或者:
-对于windows用户,创建在C:/User/你的用户名/.config/yutto.yaml,
-对于非windows用户，创建在~/.config/yutto_uiya.yaml.
-
-默认配置:
-
-SESS_DATA: "" # SESSDATA,用来伪装登陆信息,需要更高分辨率或者下载大会员视频，则需要填写，并且需要开通大会员。
-download_dir: "./downloads" # 下载后保存的路径
-login_strict: true  # 仅当SESSDATA不为空时生效，严格校验登陆信息是否有效
-                    # 如果SESSDATA填写错误，会导致校验失败。
-vip_strict: false   # 仅当SESSDATA不为空时生效，严格校验大会员，
-                    # 如果不是大会员，请设置false,否则会无法下载。
-                    # 如果是大会员，请设置true,否则有时候会被当成普通用户拦截。
-
-具体参见: https://github.com/MrXnneHang/yutto-uiya
-"""
-            )
-            raise FileNotFoundError("配置文件不存在")
-        else:
-            with path.open(encoding="utf-8") as f:
-                return yaml.load(f, Loader=yaml.FullLoader)
-    except FileNotFoundError:
-        # 打印错误信息
-        print(f"配置文件 {path} 不存在")
-        return {}
+        with settings_file.open("w", encoding="utf-8") as f:
+            toml_string = toml_dumps(settings.model_dump())  # type: ignore
+            f.write(toml_string)
+    except Exception as e:
+        print(f"写入配置文件失败: {e}")
 
 
-def write_config(path: str, data: dict[str, bool | str]) -> None:
-    """写入配置文件"""
-    with Path(path).open("w", encoding="utf-8") as f:
-        yaml.dump(data, f)
-    print(f"配置文件 {path} 写入成功")
+# 示例用法
+if __name__ == "__main__":
+    # 加载配置
+    uiya_settings = load_settings_file("uiya.toml")
