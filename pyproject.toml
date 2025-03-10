@@ -1,6 +1,6 @@
 [project]
 name = "yutto-uiya"
-version = "1.0.2"
+version = "1.0.3"
 description = ""
 readme = "README.md"
 requires-python = ">=3.10"
