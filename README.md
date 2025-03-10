@@ -56,12 +56,10 @@ sudo apt install ffmpeg # linux
 然后你可以直接从我的仓库安装。<br>
 
 ```shell
-# python >=3.10
-git clone https://github.com/MrXnneHang/yutto-uiya.git
 # 用 uv 安装, 更快。
-uv pip install git+https://github.com/MrXnneHang/yutto-uiya.git@gradio-webui
+uv pip install git+https://github.com/MrXnneHang/yutto-uiya.git
 # 或者用 pip 安装
-pip install git+https://github.com/MrXnneHang/yutto-uiya.git@gradio-webui
+pip install git+https://github.com/MrXnneHang/yutto-uiya.git
 ```
 
 ## 启动:<br>
