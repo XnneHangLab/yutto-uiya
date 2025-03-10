@@ -1,0 +1,4 @@
+SESS_DATA = "test_writing_settings"
+download_dir = "./downloads"
+login_strict = true
+vip_strict = false
