@@ -6,11 +6,10 @@ from uiya.utils.subproc import run_command
 
 # 视频默认参数
 status: CommandStatus = {
-    "resource_type": "video",
+    "target_type": "video",
     "batch_download": False,
     "support_select": False,
     "url": "https://example.com/video123",  # adjustable
-    "SESS_DATA": "",
     "selected_p": None,  # adjustable/Optional
     "require_video": True,  # adjustable
     "require_audio": True,  # adjustable
@@ -44,7 +43,7 @@ def user_video(
     """
 
     # 任务默认参数
-    status.update({"resource_type": "video"})
+    status.update({"target_type": "video"})
     status.update({"batch_download": False})
     status.update({"support_select": False})
 
@@ -57,9 +56,6 @@ def user_video(
     status.update({"debug_mode": debug_mode})
     status.update({"video_quality": video_quality})
     status.update({"audio_quality": audio_quality})
-    if SESS_DATA != "":
-        status.update({"SESS_DATA": SESS_DATA})
-
     command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
     command = command_generator.gen_args()
 
@@ -96,7 +92,7 @@ def user_video_list(
     """
 
     # 任务默认参数
-    status.update({"resource_type": "video_list"})
+    status.update({"target_type": "video_list"})
     status.update({"batch_download": True})
     status.update({"support_select": True})
 
@@ -110,8 +106,6 @@ def user_video_list(
     status.update({"debug_mode": debug_mode})
     status.update({"video_quality": video_quality})
     status.update({"audio_quality": audio_quality})
-    if SESS_DATA != "":
-        status.update({"SESS_DATA": SESS_DATA})
 
     command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
     command = command_generator.gen_args()
@@ -145,7 +139,7 @@ def user_collection_video(
     """
 
     # 任务默认参数
-    status.update({"resource_type": "collection"})
+    status.update({"target_type": "collection"})
     status.update({"batch_download": True})
     status.update({"support_select": False})
 
@@ -158,8 +152,6 @@ def user_collection_video(
     status.update({"debug_mode": debug_mode})
     status.update({"video_quality": video_quality})
     status.update({"audio_quality": audio_quality})
-    if SESS_DATA != "":
-        status.update({"SESS_DATA": SESS_DATA})
 
     command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
     command = command_generator.gen_args()
@@ -193,7 +185,7 @@ def user_favorlist_video(
     """
 
     # 任务默认参数
-    status.update({"resource_type": "favor"})
+    status.update({"target_type": "favor"})
     status.update({"batch_download": True})
     status.update({"support_select": False})
 
@@ -206,8 +198,6 @@ def user_favorlist_video(
     status.update({"debug_mode": debug_mode})
     status.update({"video_quality": video_quality})
     status.update({"audio_quality": audio_quality})
-    if SESS_DATA != "":
-        status.update({"SESS_DATA": SESS_DATA})
 
     command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
     command = command_generator.gen_args()
@@ -243,7 +233,7 @@ def user_space_video(
     """
 
     # 任务默认参数
-    status.update({"resource_type": "space"})
+    status.update({"target_type": "space"})
     status.update({"batch_download": True})
     status.update({"support_select": False})
 
@@ -256,8 +246,6 @@ def user_space_video(
     status.update({"debug_mode": debug_mode})
     status.update({"video_quality": video_quality})
     status.update({"audio_quality": audio_quality})
-    if SESS_DATA != "":
-        status.update({"SESS_DATA": SESS_DATA})
 
     command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
     command = command_generator.gen_args()

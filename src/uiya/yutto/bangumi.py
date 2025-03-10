@@ -6,11 +6,10 @@ from uiya.utils.subproc import run_command
 
 # 番剧默认参数
 status: CommandStatus = {
-    "resource_type": "bangumi",
+    "target_type": "bangumi",
     "batch_download": True,
     "support_select": True,
     "url": "https://example.com/video123",  # adjustable
-    "SESS_DATA": "",  # Optional
     "selected_p": None,  # adjustable/Optional
     "require_video": True,  # adjustable
     "require_audio": True,  # adjustable
@@ -49,7 +48,7 @@ def bangumi_batch_download(
     """
 
     # 任务默认参数
-    status.update({"resource_type": "bangumi"})
+    status.update({"target_type": "bangumi"})
     status.update({"batch_download": True})
     status.update({"support_select": True})
 
@@ -63,9 +62,6 @@ def bangumi_batch_download(
     status.update({"debug_mode": debug_mode})
     status.update({"video_quality": video_quality})
     status.update({"audio_quality": audio_quality})
-    if SESS_DATA != "":
-        status.update({"SESS_DATA": SESS_DATA})
-
     command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
     command = command_generator.gen_args()
 
