@@ -156,9 +156,9 @@ vip_strict: false # 仅当SESSDATA不为空时生效，严格校验大会员，
 ```shell
 # python >=3.10
 # 用 pip
-pip install git+https://github.com/MrXnneHang/yutto-uiya@gradio-webui
+pip install git+https://github.com/MrXnneHang/yutto-uiya
 # 用 uv, 更快
-uv pip install git+https://github.com/MrXnneHang/yutto-uiya@gradio-webui
+uv pip install git+https://github.com/MrXnneHang/yutto-uiya
 ```
 但你需要关注配置文件相关的部分。<br>
 - 优化代码结构。
