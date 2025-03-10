@@ -7,7 +7,11 @@ requires-python = ">=3.10"
 dependencies = [
     "gradio==5.16.1",
     "pyaml==25.1.0",
-    "socksio==1.0.0",
+    "pydantic==2.10.6",
+    #"socksio==1.0.0",
+    "httpx[http2,socks]>=0.28.1",
+    "tomli==2.0.2; python_version < '3.11'",
+    "tomli_w==1.2.0",
     "yutto",
 ]
 authors = [{ name = "MrXnneHang", email = "XnneHang@gmail.com" }]
