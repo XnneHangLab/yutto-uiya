@@ -44,6 +44,8 @@ yutto_uiya.yaml # 配置文件，存放在 workdir 或者 user_home/.config/ 下
 ```
 ## 如何部署它:
 
+### ffmpeg:
+
 你需要`ffmpeg`，我正在研究如何为`windows`用户指定相对路径里的`ffmpeg`。或者在每次使用的时候`export`本地的`ffmpeg`到环境变量。<br>
 
 对于`mac/linux`用户:<br>
@@ -52,6 +54,29 @@ yutto_uiya.yaml # 配置文件，存放在 workdir 或者 user_home/.config/ 下
 brew install ffmpeg # mac
 sudo apt install ffmpeg # linux
 ```
+
+对于 `windows` 用户:<br>
+
+[https://www.ffmpeg.org/download.html](https://www.ffmpeg.org/download.html)
+
+
+### Rust tool chain
+
+你需要 `rust` 工具链:<br>
+
+对于 `mac/linux` 用户:<br>
+
+```shell
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+安装完成后需要 source.<br>
+
+对于 `windows` 用户:<br>
+
+参见: [https://www.rust-lang.org/tools/install](https://www.rust-lang.org/tools/install)<br>
+
+### 从仓库安装
 
 然后你可以直接从我的仓库安装。<br>
 
@@ -151,13 +176,7 @@ vip_strict: false # 仅当SESSDATA不为空时生效，严格校验大会员，
   当画面和音频同时选择的时候，会把画面和音频合并成一个视频。<br>
   画面单独选择的时候，会生成无声mp4。音频单独选择，会单独音频的m4a。<br>
 - **你可以直接从我的仓库安装。**<br>
-```shell
-# python >=3.10
-# 用 pip
-pip install git+https://github.com/MrXnneHang/yutto-uiya
-# 用 uv, 更快
-uv pip install git+https://github.com/MrXnneHang/yutto-uiya
-```
-但你需要关注配置文件相关的部分。<br>
-- 优化代码结构。
-  感谢`yutto`仓库，抄作业成功 =-=。
+
+## 2025.3.11 v1.0.3 更新:
+
+- 修复无法单独下载`弹幕+封面`的问题。
