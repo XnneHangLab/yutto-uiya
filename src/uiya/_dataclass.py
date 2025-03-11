@@ -53,7 +53,8 @@ class YuttoResourceSettings(BaseModel):
     require_danmaku: Annotated[bool, Field(True)]
     require_subtitle: Annotated[bool, Field(True)]
     require_metadata: Annotated[bool, Field(False)]
-    require_cover: Annotated[bool, Field(True)]
+    require_cover: Annotated[bool, Field(False)]
+    save_cover: Annotated[bool, Field(False)]
 
 
 class YuttoSettings(BaseModel):
@@ -127,6 +128,7 @@ class CommandGenerator:
                 require_subtitle=False,
                 require_metadata=False,
                 require_cover=self.require_cover,
+                save_cover=self.require_cover,
             )
 
         # =================== BASIC SETTING

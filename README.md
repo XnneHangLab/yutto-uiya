@@ -74,7 +74,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 对于 `windows` 用户:<br>
 
-参见: [https://www.rust-lang.org/tools/install](https://www.rust-lang.org/tools/install)<br>
+[https://www.rust-lang.org/tools/install](https://www.rust-lang.org/tools/install)<br>
 
 ### 从仓库安装
 
