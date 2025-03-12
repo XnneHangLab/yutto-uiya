@@ -1,5 +1,0 @@
-selenium==4.29.0
-webdriver_manager==4.0.2
-bs4==0.0.2
-pyaml==25.1.0
-lxml==5.3.1
