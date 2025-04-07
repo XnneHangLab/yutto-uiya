@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from uiya._typing import AudioQuality, VideoQuality
+from typing import TYPE_CHECKING
+
 from uiya.utils.config import load_settings_file
 from uiya.yutto.bangumi import bangumi_batch_download
 from uiya.yutto.user_videos import (
@@ -9,6 +10,9 @@ from uiya.yutto.user_videos import (
     user_video,
     user_video_list,
 )
+
+if TYPE_CHECKING:
+    from uiya._typing import AudioQuality, VideoQuality
 
 Config = load_settings_file("uiya.toml")
 

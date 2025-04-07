@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 from typing import Literal, TypedDict
 
 TargetType = Literal["bangumi", "video", "video_list", "collection", "favor", "space"]
@@ -18,9 +17,7 @@ VideoQuality = Literal[
     "8K 超高清",
 ]
 
-AudioQuality = Literal[
-    "64kbps", "128kbps", "320kbps", "杜比全景声", "杜比音效", "Hi-Res"
-]
+AudioQuality = Literal["64kbps", "128kbps", "320kbps", "杜比全景声", "杜比音效", "Hi-Res"]
 
 
 class CommandStatus(TypedDict):

@@ -1,8 +1,13 @@
 from __future__ import annotations
 
-from uiya._typing import AudioQuality, CommandStatus, VideoQuality
+from typing import TYPE_CHECKING
+
 from uiya._dataclass import CommandGenerator
 from uiya.utils.subproc import run_command
+
+if TYPE_CHECKING:
+    from uiya._typing import AudioQuality, CommandStatus, VideoQuality
+
 
 # 视频默认参数
 status: CommandStatus = {

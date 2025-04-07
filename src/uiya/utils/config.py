@@ -1,26 +1,22 @@
 from __future__ import annotations
 
-from pathlib import Path
-
-import sys
 import os
 import platform
+import tomllib  # Python 3.11+ 自带
+from pathlib import Path
+from typing import TYPE_CHECKING, Annotated, Any
 
+import tomli_w as tomlw  # 安装 tomli_w 用于写入
 from pydantic import BaseModel, Field
-from typing import Annotated, Any, TYPE_CHECKING
 
-if sys.version_info >= (3, 11):
-    import tomllib  # Python 3.11+ 自带
-    import tomli_w as tomlw  # 安装 tomli_w 用于写入
+toml_loads = tomllib.loads
+toml_dumps = tomlw.dumps  # 使用 tomlw.dumps
+# else:
+#     import tomli as tomllib  # type: ignore
+#     import tomli_w as tomlw  # type: ignore
 
-    toml_loads = tomllib.loads
-    toml_dumps = tomlw.dumps  # 使用 tomlw.dumps
-else:
-    import tomli as tomllib  # type: ignore
-    import tomli_w as tomlw  # type: ignore
-
-    toml_loads = tomllib.loads  # type: ignore
-    toml_dumps = tomlw.dumps  # 使用 tomlw.dumps
+#     toml_loads = tomllib.loads  # type: ignore
+#     toml_dumps = tomlw.dumps  # 使用 tomlw.dumps
 
 if TYPE_CHECKING:
     from uiya._dataclass import YuttoSettings
@@ -59,18 +55,12 @@ def load_settings_file(setting_name: str) -> UiyaSetting:
         settings_file = Path(setting_name)
         settings_file.touch()
     with settings_file.open("r", encoding="utf-8") as f:
-        settings_raw: Any = tomllib.loads(
-            f.read()
-        )  # pyright: ignore[reportUnknownMemberType]
-    write_settings_file(
-        settings_file=settings_file, settings=UiyaSetting.model_validate(settings_raw)
-    )
+        settings_raw: Any = tomllib.loads(f.read())  # pyright: ignore[reportUnknownMemberType]
+    write_settings_file(settings_file=settings_file, settings=UiyaSetting.model_validate(settings_raw))
     return UiyaSetting.model_validate(settings_raw)
 
 
-def write_settings_file(
-    settings_file: Path, settings: UiyaSetting | YuttoSettings
-) -> None:
+def write_settings_file(settings_file: Path, settings: UiyaSetting | YuttoSettings) -> None:
     """将 UiyaSetting 对象写入 TOML 文件。"""
     try:
         with settings_file.open("w", encoding="utf-8") as f:

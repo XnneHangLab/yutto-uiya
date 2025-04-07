@@ -1,15 +1,20 @@
-from dataclasses import dataclass, field
-from uiya.utils.config import load_settings_file, write_settings_file, UiyaSetting
-from uiya._typing import (
-    TargetType,
-    VideoQuality,
-    AudioQuality,
-    CommandStatus,
-)
-from pydantic import BaseModel, Field
-from typing import Annotated
-from pathlib import Path
+from __future__ import annotations
 
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import TYPE_CHECKING, Annotated
+
+from pydantic import BaseModel, Field
+
+from uiya.utils.config import UiyaSetting, load_settings_file, write_settings_file
+
+if TYPE_CHECKING:
+    from uiya._typing import (
+        AudioQuality,
+        CommandStatus,
+        TargetType,
+        VideoQuality,
+    )
 
 video_quality_mapping: dict[VideoQuality, int] = {
     "360p 流畅": 16,
@@ -84,17 +89,13 @@ class CommandGenerator:
     audio_quality: AudioQuality = "320kbps"
     # ==========
 
-    uiya_setting: UiyaSetting = field(
-        default_factory=lambda: load_settings_file("uiya.toml")
-    )
+    uiya_setting: UiyaSetting = field(default_factory=lambda: load_settings_file("uiya.toml"))
 
     def __post_init__(self):
         pass
 
     @classmethod
-    def from_status(
-        cls, status: CommandStatus
-    ) -> "CommandGenerator":  # 用 "" 来延后类型检查到运行时，绝了。
+    def from_status(cls, status: CommandStatus) -> CommandGenerator:  # type: ignore
         """从 CommandStatus 创建 CommandGenerator 实例"""
         return cls(**status)  # type: ignore
 
@@ -112,12 +113,7 @@ class CommandGenerator:
 
         # ================== RESOURCES
         # [] [] [], no resource required
-        if (
-            not self.require_video
-            and not self.require_audio
-            and not self.require_danmaku
-            and not self.require_cover
-        ):
+        if not self.require_video and not self.require_audio and not self.require_danmaku and not self.require_cover:
             raise ValueError("No resource required")
 
         else:

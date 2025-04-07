@@ -1,4 +1,0 @@
-// https://docs.renovatebot.com/configuration-options/
-{
-  extends: ["github>SigureMo/renovate-config"],
-}
