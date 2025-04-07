@@ -1,0 +1,4 @@
+SESS_DATA = ""
+download_dir = "./downloads"
+login_strict = true
+vip_strict = false
