@@ -18,42 +18,6 @@ video_quality_choice: list[str] = list(VideoQuality.__args__)  # type: ignore
 audio_quality_choice: list[str] = list(AudioQuality.__args__)  # type: ignore
 
 
-def main() -> None:
-    """Main function to create the Streamlit UI."""
-    settings = load_settings_file("uiya.toml", UiyaSetting)
-    if not settings.as_package:
-        style()
-    TabContainer = st.container()
-    with TabContainer:
-        tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
-            ["用户视频", "收藏夹", "合集", "番剧", "常见问题", "关于 yutto-uiya"]
-        )
-
-        with tab1:
-            st.header("用户视频下载")
-            user_video_subtab = st.radio("选择下载模式", ["单个视频", "视频列表（多个视频）"], horizontal=True)
-
-            if user_video_subtab == "单个视频":
-                single_video_tab()
-            else:
-                video_list_tab()
-
-        with tab2:
-            favorite_tab()
-
-        with tab3:
-            collection_tab()
-
-        with tab4:
-            bangumi_tab()
-
-        with tab5:
-            faq_tab()
-
-        with tab6:
-            about_tab()
-
-
 def single_video_tab() -> None:
     SingleUser = st.container(border=True)
     with SingleUser:
@@ -444,5 +408,33 @@ def about_tab() -> None:
         """)
 
 
-if __name__ == "__main__":
-    main()
+settings = load_settings_file("uiya.toml", UiyaSetting)
+if not settings.as_package:
+    style()
+TabContainer = st.container()
+with TabContainer:
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["用户视频", "收藏夹", "合集", "番剧", "常见问题", "关于 yutto-uiya"])
+
+    with tab1:
+        st.header("用户视频下载")
+        user_video_subtab = st.radio("选择下载模式", ["单个视频", "视频列表（多个视频）"], horizontal=True)
+
+        if user_video_subtab == "单个视频":
+            single_video_tab()
+        else:
+            video_list_tab()
+
+    with tab2:
+        favorite_tab()
+
+    with tab3:
+        collection_tab()
+
+    with tab4:
+        bangumi_tab()
+
+    with tab5:
+        faq_tab()
+
+    with tab6:
+        about_tab()
