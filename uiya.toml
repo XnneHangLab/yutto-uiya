@@ -1,4 +1,0 @@
-SESS_DATA = "test_writing_settings"
-download_dir = "./downloads"
-login_strict = false
-vip_strict = false
