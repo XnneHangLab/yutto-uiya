@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import TYPE_CHECKING, Annotated
 
 from pydantic import BaseModel, Field
 
-from uiya.utils.config import UiyaSetting, load_settings_file, write_settings_file
+from uiya.utils.config import UiyaSetting, load_settings_file, search_for_settings_file, write_settings_file
 
 if TYPE_CHECKING:
     from uiya._typing import (
@@ -71,7 +70,7 @@ class YuttoSettings(BaseModel):
 class CommandGenerator:
     """Command Generator"""
 
-    # ========= 这些从 UI 中获取
+    # ========= 这些从 UI 中获取，用户实时选择。
     target_type: TargetType
     url: str
     batch_download: bool
@@ -87,9 +86,9 @@ class CommandGenerator:
 
     video_quality: VideoQuality = "360p 流畅"
     audio_quality: AudioQuality = "320kbps"
-    # ==========
 
-    uiya_setting: UiyaSetting = field(default_factory=lambda: load_settings_file("uiya.toml"))
+    # ========== 这些是从 uiya.toml 中读取，或者作为UI设置中保持的值
+    uiya_setting: UiyaSetting = field(default_factory=lambda: load_settings_file("uiya.toml", UiyaSetting))
 
     def __post_init__(self):
         pass
@@ -140,8 +139,8 @@ class CommandGenerator:
 
         # =================== GENERATE yutto.toml
         YuttoSetting = YuttoSettings(basic=BasicSetting, resource=ResourceSetting)  # type: ignore
-        yutto_setting_path = Path("yutto.toml")
-        write_settings_file(yutto_setting_path, YuttoSetting)
+        write_settings_file("yutto.toml", YuttoSetting)
+        yutto_setting_path = search_for_settings_file("yutto.toml")
         toml_args = ["--config", str(yutto_setting_path)]
         self.args.extend(toml_args)
         # =================== BATCH DOWNLOAD
