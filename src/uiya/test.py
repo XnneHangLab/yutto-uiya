@@ -9,7 +9,9 @@ if TYPE_CHECKING:
 
 
 def main():
-    status:CommandStatus = {
+
+    print("================= Testing CommandGenerater =================")
+    status: CommandStatus = {
         "target_type": "video",
         "batch_download": False,
         "support_select": False,
@@ -24,29 +26,10 @@ def main():
         "audio_quality": "320kbps",  # adjustable
     }
 
-
-    command_generator = CommandGenerator(
-        target_type="video",
-        url="https://example.com/video123",
-        batch_download=False,
-        support_select=False,
-        selected_p=None,
-        require_video=True,
-        require_audio=True,
-        require_danmaku=False,
-        require_cover=False,
-        debug_mode=False,
-        video_quality="360p 流畅",
-        audio_quality="320kbps",
-    )
-
+    command_generator = CommandGenerator.from_status(status)
     # 打印实例的属性
     print(command_generator)
 
-
-    command= command_generator.from_status(status)
-
-    print(command)
 
 if __name__ == "__main__":
     main()
