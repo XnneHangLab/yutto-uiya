@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 
 
 class UiyaSetting(BaseModel):
+    as_package: Annotated[bool, Field(default=False)]
     SESS_DATA: Annotated[str, Field(default="")]
     download_dir: Annotated[str, Field(default="./downloads")]
     login_strict: Annotated[bool, Field(default=True)]

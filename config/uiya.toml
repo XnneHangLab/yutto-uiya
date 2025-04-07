@@ -1,3 +1,4 @@
+as_package = false
 SESS_DATA = ""
 download_dir = "./downloads"
 login_strict = true
