@@ -39,29 +39,44 @@ def xdg_config_home() -> Path:
 
 
 def search_for_settings_file(setting_name: str) -> Path | None:
-    settings_file = Path(setting_name)
-    if not settings_file.exists():
+    config_dir = Path("config")
+    settings_file = config_dir / setting_name
+    if not settings_file.exists():  # 当前目录没找到
         settings_file = xdg_config_home() / setting_name
-    if not settings_file.exists():
+    if not settings_file.exists():  # XDG_CONFIG_HOME 也没找到
         return None
     return settings_file
 
 
-def load_settings_file(setting_name: str) -> UiyaSetting:
+def load_settings_file(
+    setting_name: str,
+    setting: (type[UiyaSetting]),
+) -> UiyaSetting:
     """加载配置文件，如果不存在则创建默认配置文件在当前工作目录。"""
     settings_file = search_for_settings_file(setting_name=setting_name)
     if settings_file is None:
-        print(f"未找到配置文件，将初始化默认配置:{setting_name}")
-        settings_file = Path(setting_name)
+        config_dir = Path("config")
+        if not config_dir.exists():
+            config_dir.mkdir()
+        settings_file = config_dir / setting_name
+        print(f"未找到配置文件，将初始化默认配置:{str(settings_file)}")
         settings_file.touch()
     with settings_file.open("r", encoding="utf-8") as f:
-        settings_raw: Any = tomllib.loads(f.read())  # pyright: ignore[reportUnknownMemberType]
-    write_settings_file(settings_file=settings_file, settings=UiyaSetting.model_validate(settings_raw))
-    return UiyaSetting.model_validate(settings_raw)
+        settings_raw: Any = tomllib.loads(f.read())
+    validated_settings = setting.model_validate(settings_raw)
+    write_settings_file(settings_name=setting_name, settings=validated_settings)
+    return validated_settings
 
 
-def write_settings_file(settings_file: Path, settings: UiyaSetting | YuttoSettings) -> None:
-    """将 UiyaSetting 对象写入 TOML 文件。"""
+def write_settings_file(
+    settings_name: str,
+    settings: UiyaSetting | YuttoSettings,
+) -> None:
+    """将 Setting 对象写入 TOML 文件。"""
+    settings_file = search_for_settings_file(setting_name=settings_name)
+    if settings_file is None:
+        settings_file = Path("config") / settings_name
+        settings_file.touch()
     try:
         with settings_file.open("w", encoding="utf-8") as f:
             toml_string = toml_dumps(settings.model_dump())  # type: ignore
@@ -73,4 +88,4 @@ def write_settings_file(settings_file: Path, settings: UiyaSetting | YuttoSettin
 # 示例用法
 if __name__ == "__main__":
     # 加载配置
-    uiya_settings = load_settings_file("uiya.toml")
+    uiya_settings = load_settings_file("uiya.toml", UiyaSetting)

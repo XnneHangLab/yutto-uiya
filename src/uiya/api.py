@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from uiya._dataclass import UiyaSetting
 from uiya.utils.config import load_settings_file
 from uiya.yutto.bangumi import bangumi_batch_download
 from uiya.yutto.user_videos import (
@@ -14,7 +15,7 @@ from uiya.yutto.user_videos import (
 if TYPE_CHECKING:
     from uiya._typing import AudioQuality, VideoQuality
 
-Config = load_settings_file("uiya.toml")
+Config: UiyaSetting = load_settings_file("uiya.toml", UiyaSetting)
 
 
 def entry_user_video(
