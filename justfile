@@ -26,4 +26,4 @@ ci-lint:
   just lint
 
 ci-test:
-  uv run test
+  just test
