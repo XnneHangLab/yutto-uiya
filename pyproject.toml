@@ -12,6 +12,7 @@ dependencies = [
     "tomli_w==1.2.0",
     "yutto==2.0.2",
     "streamlit==1.43.2",
+    "pexpect==4.9.0",
 ]
 authors = [{ name = "MrXnneHang", email = "XnneHang@gmail.com" }]
 keywords = []
