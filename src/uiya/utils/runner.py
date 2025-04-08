@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import sys
 import time
-from typing import Optional
 
 import pexpect
 import streamlit as st
 
 from uiya.utils.TextHelper import clean_ouput
 
+# TODO child 的类型不明确，可能需要找时间修复
 
 def run_command(command: list[str], key_name: str) -> int | None:
     """
@@ -39,11 +39,11 @@ def run_command(command: list[str], key_name: str) -> int | None:
     command_str: str = " ".join(command)
     print(f"执行命令: {command_str}", file=sys.stderr)
 
-    child: pexpect.spawn | None = None
+    child: pexpect.spawn | None = None # type: ignore[assignment]
 
     try:
         # 启动进程
-        child = pexpect.spawn(command[0], args=command[1:], encoding="utf-8")
+        child = pexpect.spawn(command[0], args=command[1:], encoding="utf-8") # type: ignore[assignment]
 
         # 读取并处理输出
         buffer: list[str] = []
@@ -55,7 +55,7 @@ def run_command(command: list[str], key_name: str) -> int | None:
                 index: int = child.expect([".", pexpect.EOF, pexpect.TIMEOUT], timeout=0.1)
 
                 if index == 0:  # 读取到一个字符
-                    char: str = child.after
+                    char: str = str(child.after) # type: ignore[assignment]
                     buffer.append(char)
 
                     # 输出到终端
@@ -70,7 +70,7 @@ def run_command(command: list[str], key_name: str) -> int | None:
 
                     if update_condition:
                         output = clean_ouput("".join(buffer))
-                        print(["".join(buffer)])
+                        # print(["".join(buffer)])
                         st.session_state[output_key] += output
                         buffer = []
                         last_update_time = current_time
@@ -78,9 +78,9 @@ def run_command(command: list[str], key_name: str) -> int | None:
                         output_placeholder.code(st.session_state[output_key], language="bash")
 
                 elif index == 1:  # EOF，进程结束
-                    if child.before:
-                        buffer.append(child.before)
-                        sys.stdout.write(child.before)
+                    if child.before: # type: ignore[assignment]
+                        buffer.append(child.before) # type: ignore[assignment]
+                        sys.stdout.write(child.before) # type: ignore[assignment]
                         sys.stdout.flush()
 
                     if buffer:
@@ -118,4 +118,4 @@ def run_command(command: list[str], key_name: str) -> int | None:
     finally:
         st.session_state.is_running = False
 
-    return child.exitstatus if child and hasattr(child, "exitstatus") else None
+    return child.exitstatus if child and hasattr(child, "exitstatus") else None # type: ignore[assignment]
