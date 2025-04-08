@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from uiya._dataclass import CommandGenerator
 from uiya.utils.subproc import run_command
+from uiya.utils.TextHelper import process_expection
 
 if TYPE_CHECKING:
     from uiya._typing import AudioQuality, CommandStatus, VideoQuality
@@ -72,4 +73,4 @@ def bangumi_batch_download(
 
     exception = run_command(command)
 
-    return exception
+    return process_expection(exception.stdout)

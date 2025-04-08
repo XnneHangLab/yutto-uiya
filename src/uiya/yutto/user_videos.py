@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from uiya._dataclass import CommandGenerator
 from uiya.utils.subproc import run_command
+from uiya.utils.TextHelper import process_expection
 
 if TYPE_CHECKING:
     from uiya._typing import AudioQuality, CommandStatus, VideoQuality
@@ -66,7 +67,7 @@ def user_video(
 
     exception = run_command(command)
 
-    return exception
+    return process_expection(exception.stdout)
 
 
 # TODO: 似乎这个p参数不能指定要下载的视频，只会默认下载第一个视频
@@ -117,7 +118,7 @@ def user_video_list(
 
     exception = run_command(command)
 
-    return exception
+    return process_expection(exception.stdout)
 
 
 # 合集下载,不支持选集
@@ -163,7 +164,7 @@ def user_collection_video(
 
     exception = run_command(command)
 
-    return exception
+    return process_expection(exception.stdout)
 
 
 # 收藏夹下载,不支持选集
@@ -209,7 +210,7 @@ def user_favorlist_video(
 
     exception = run_command(command)
 
-    return exception
+    return process_expection(exception.stdout)
 
 
 # TODO: 似乎不清楚怎么调用，缺少了page参数，问一下作者
@@ -256,4 +257,4 @@ def user_space_video(
     command = command_generator.gen_args()
     exception = run_command(command)
 
-    return exception
+    return process_expection(exception.stdout)
