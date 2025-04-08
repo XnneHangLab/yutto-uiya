@@ -24,3 +24,6 @@ ci-fmt-check:
 
 ci-lint:
   just lint
+
+ci-test:
+  uv run test
