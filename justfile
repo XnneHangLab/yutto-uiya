@@ -13,7 +13,7 @@ lint:
   prettier --ignore-path .prettierignore --write '**/*.md'
 
 test:
-  uv run test
+  uv run pytest
 
 # CI specific
 ci-install:
