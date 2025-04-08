@@ -35,3 +35,34 @@ class CommandStatus(TypedDict):
     debug_mode: bool
     video_quality: VideoQuality
     audio_quality: AudioQuality
+
+
+video_status: CommandStatus = {
+    "target_type": "video",
+    "batch_download": False,
+    "support_select": False,
+    "url": "https://example.com/video123",
+    "selected_p": None,
+    "require_video": True,
+    "require_audio": True,
+    "require_danmaku": False,
+    "require_cover": False,
+    "debug_mode": False,
+    "video_quality": "360p 流畅",
+    "audio_quality": "320kbps",
+}
+
+bangumi_status: CommandStatus = {
+    "target_type": "bangumi",
+    "batch_download": True,
+    "support_select": True,
+    "url": "https://example.com/video123",
+    "selected_p": None,
+    "require_video": True,
+    "require_audio": True,
+    "require_danmaku": False,
+    "require_cover": False,
+    "debug_mode": False,
+    "video_quality": "360p 流畅",
+    "audio_quality": "320kbps",
+}

@@ -108,7 +108,7 @@ class CommandGenerator:
             raise ValueError("Invalid URL")
 
         else:
-            self.args = ["yutto", self.url]
+            self.args = ["uv", "run", "yutto", self.url]
 
         # ================== RESOURCES
         # [] [] [], no resource required
