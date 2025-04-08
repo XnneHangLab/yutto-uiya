@@ -1,54 +1,75 @@
 import sys
 import streamlit as st
 import pexpect
+import time
+from typing import Optional
 
-def run_command(command: list[str], key_name: str = "cmd_output"):
+def run_command(command: list[str], key_name: str = "cmd_output") -> int | None:
     """
     使用 pexpect 运行命令并实时更新 Streamlit 界面，同时保留终端原始输出
 
     Args:
         command: 要执行的命令及其参数列表
         key_name: 用于 Streamlit 组件的唯一 key 值
+
+    Returns:
+        命令执行的退出状态码，如果无法获取则返回 None
     """
-    # 初始化输出
-    if "output" not in st.session_state:
-        st.session_state.output = ""
+    # 为这个特定命令创建唯一的输出键名
+    output_key: str = f"{key_name}_content"
+
+    # 初始化或清空输出
+    if output_key not in st.session_state:
+        st.session_state[output_key] = ""
     else:
-        st.session_state.output = ""  # 清空现有输出
+        st.session_state[output_key] = ""
 
-    # 创建可更新的输出区域
-    output_area = st.empty()
-    output_area.text_area("输出:", st.session_state.output, height=400, key=key_name+"_area_init")
+    # 创建占位符用于更新
+    output_placeholder = st.empty()
 
-    command_str = " ".join(command)
+    # 显示初始空输出
+    output_placeholder.code(st.session_state[output_key], language="bash")
+
+    command_str: str = " ".join(command)
     print(f"执行命令: {command_str}", file=sys.stderr)
+
+    child: Optional[pexpect.spawn] = None
 
     try:
         # 启动进程
         child = pexpect.spawn(command[0], args=command[1:], encoding="utf-8")
 
-        # 读取并处理输出，直到进程结束
-        buffer = []
-        area_index = 0
+        # 读取并处理输出
+        buffer: list[str] = []
+        last_update_time: float = time.time()
+
         while True:
             try:
-                # 尝试读取一个字符
-                index = child.expect([".", pexpect.EOF, pexpect.TIMEOUT], timeout=0.1)
+                # 尝试读取字符
+                index: int = child.expect([".", pexpect.EOF, pexpect.TIMEOUT], timeout=0.1)
 
                 if index == 0:  # 读取到一个字符
-                    char = child.after
+                    char: str = child.after
                     buffer.append(char)
 
-                    # 实时输出到终端
+                    # 输出到终端
                     sys.stdout.write(char)
                     sys.stdout.flush()
 
-                    # 如果是换行符或缓冲区较大，更新 Streamlit 界面
-                    if char == "\n" or len(buffer) > 50:
-                        st.session_state.output += "".join(buffer)
-                        output_area.text_area("输出:", st.session_state.output, height=400, key=key_name+"_area_"+str(area_index))
-                        area_index+= 1  # 增加索引，避免重复输出
+                    # 定期更新界面
+                    current_time: float = time.time()
+                    update_condition: bool = (
+                        char == "\n" or
+                        len(buffer) > 50 or
+                        (current_time - last_update_time) > 0.5
+                    )
+
+                    if update_condition:
+                        st.session_state[output_key] += "".join(buffer)
                         buffer = []
+                        last_update_time = current_time
+                        # 使用 .code() 而不是 text_area，避免key问题
+                        output_placeholder.code(st.session_state[output_key], language="bash")
 
                 elif index == 1:  # EOF，进程结束
                     if child.before:
@@ -57,36 +78,35 @@ def run_command(command: list[str], key_name: str = "cmd_output"):
                         sys.stdout.flush()
 
                     if buffer:
-                        st.session_state.output += "".join(buffer)
-                        output_area.text_area("输出:", st.session_state.output, height=400, key=key_name+"_area_"+str(area_index))
-                        area_index+= 1  # 增加索引，避免重复输出
+                        st.session_state[output_key] += "".join(buffer)
+                        output_placeholder.code(st.session_state[output_key], language="bash")
                     break
 
-                elif index == 2:  # 超时，但进程可能仍在运行
-                    if buffer:
-                        st.session_state.output += "".join(buffer)
-                        output_area.text_area("输出:", st.session_state.output, height=400, key=key_name+"_area_"+str(area_index))
-                        area_index+= 1  # 增加索引，避免重复输出
+                elif index == 2:  # 超时
+                    current_time: float = time.time()
+                    if buffer and (current_time - last_update_time) > 0.5:
+                        st.session_state[output_key] += "".join(buffer)
                         buffer = []
+                        last_update_time = current_time
+                        output_placeholder.code(st.session_state[output_key], language="bash")
                     continue
 
             except Exception as e:
-                error_msg = f"\n读取过程中发生错误: {e}\n"
-                st.session_state.output += error_msg
+                error_msg: str = f"\n读取过程中发生错误: {e}\n"
+                st.session_state[output_key] += error_msg
                 print(error_msg, file=sys.stderr)
-                output_area.text_area("输出:", st.session_state.output, height=400, key=key_name+"_area_"+str(area_index))
-                area_index+= 1  # 增加索引，避免重复输出
+                output_placeholder.code(st.session_state[output_key], language="bash")
                 break
 
         # 获取退出状态
         child.close()
 
     except Exception as e:
-        error_msg = f"\n发生错误: {e}\n"
-        st.session_state.output += error_msg
+        error_msg: str = f"\n发生错误: {e}\n"
+        st.session_state[output_key] += error_msg
         print(error_msg, file=sys.stderr)
-        output_area.text_area("输出:", st.session_state.output, height=400, key=key_name)
+        output_placeholder.code(st.session_state[output_key], language="bash")
 
     finally:
         st.session_state.is_running = False
-        return child.exitstatus if hasattr(child, 'exitstatus') else None
+        return child.exitstatus if child and hasattr(child, 'exitstatus') else None
