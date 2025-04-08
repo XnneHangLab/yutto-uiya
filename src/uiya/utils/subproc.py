@@ -1,110 +1,92 @@
-from __future__ import annotations
-
 import sys
-import threading
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
-
+import streamlit as st
 import pexpect
 
-
-def run_command_async(command: list[str],
-                     update_callback: Callable[[str], None] | None = None,
-                     on_complete: Callable[[], None] | None = None) -> threading.Thread:
+def run_command(command: list[str], key_name: str = "cmd_output"):
     """
-    在单独的线程中异步执行命令，不会阻塞主线程。
+    使用 pexpect 运行命令并实时更新 Streamlit 界面，同时保留终端原始输出
 
     Args:
         command: 要执行的命令及其参数列表
-        update_callback: 每行输出的回调函数，用于更新Streamlit
-        on_complete: 命令完成时调用的回调函数
-
-    Returns:
-        执行命令的线程对象
+        key_name: 用于 Streamlit 组件的唯一 key 值
     """
-    def _run_in_thread():
-        try:
-            run_command(command, update_callback)
-        finally:
-            if on_complete:
-                on_complete()
+    # 初始化输出
+    if "output" not in st.session_state:
+        st.session_state.output = ""
+    else:
+        st.session_state.output = ""  # 清空现有输出
 
-    thread = threading.Thread(target=_run_in_thread)
-    thread.daemon = True
-    thread.start()
-    return thread
+    # 创建可更新的输出区域
+    output_area = st.empty()
+    output_area.text_area("输出:", st.session_state.output, height=400, key=key_name+"_area_init")
 
-
-def run_command(command: list[str], update_callback: Callable[[str], None] | None = None):
-    """
-    使用pexpect运行shell命令，保留所有ANSI转义序列和进度条更新。
-    每当遇到换行符时，会调用回调函数更新Streamlit应用。
-
-    Args:
-        command: 要执行的命令及其参数列表
-        update_callback: 接收当前行文本的回调函数，用于更新Streamlit
-    """
     command_str = " ".join(command)
     print(f"执行命令: {command_str}", file=sys.stderr)
-
-    # 当前行缓冲区
-    current_line = []
 
     try:
         # 启动进程
         child = pexpect.spawn(command[0], args=command[1:], encoding="utf-8")
 
         # 读取并处理输出，直到进程结束
+        buffer = []
+        area_index = 0
         while True:
             try:
                 # 尝试读取一个字符
                 index = child.expect([".", pexpect.EOF, pexpect.TIMEOUT], timeout=0.1)
 
                 if index == 0:  # 读取到一个字符
-                    # 获取最后匹配的字符
                     char = child.after
-
-                    # 将字符添加到当前行缓冲区
-                    current_line.append(char)
+                    buffer.append(char)
 
                     # 实时输出到终端
                     sys.stdout.write(char)
                     sys.stdout.flush()
 
-                    # 如果是换行符，调用回调函数更新Streamlit
-                    if char == "\n" and update_callback is not None:
-                        line_text = "".join(current_line)
-                        update_callback(line_text)
-                        current_line = []  # 重置当前行缓冲区
+                    # 如果是换行符或缓冲区较大，更新 Streamlit 界面
+                    if char == "\n" or len(buffer) > 50:
+                        st.session_state.output += "".join(buffer)
+                        output_area.text_area("输出:", st.session_state.output, height=400, key=key_name+"_area_"+str(area_index))
+                        area_index+= 1  # 增加索引，避免重复输出
+                        buffer = []
 
                 elif index == 1:  # EOF，进程结束
-                    # 确保获取剩余输出
                     if child.before:
-                        current_line.append(child.before)
+                        buffer.append(child.before)
                         sys.stdout.write(child.before)
                         sys.stdout.flush()
 
-                    # 如果当前行还有内容，发送最后一次更新
-                    if current_line and update_callback is not None:
-                        line_text = "".join(current_line)
-                        update_callback(line_text)
-
+                    if buffer:
+                        st.session_state.output += "".join(buffer)
+                        output_area.text_area("输出:", st.session_state.output, height=400, key=key_name+"_area_"+str(area_index))
+                        area_index+= 1  # 增加索引，避免重复输出
                     break
 
                 elif index == 2:  # 超时，但进程可能仍在运行
+                    if buffer:
+                        st.session_state.output += "".join(buffer)
+                        output_area.text_area("输出:", st.session_state.output, height=400, key=key_name+"_area_"+str(area_index))
+                        area_index+= 1  # 增加索引，避免重复输出
+                        buffer = []
                     continue
 
             except Exception as e:
-                print(f"读取过程中发生错误: {e}", file=sys.stderr)
+                error_msg = f"\n读取过程中发生错误: {e}\n"
+                st.session_state.output += error_msg
+                print(error_msg, file=sys.stderr)
+                output_area.text_area("输出:", st.session_state.output, height=400, key=key_name+"_area_"+str(area_index))
+                area_index+= 1  # 增加索引，避免重复输出
                 break
 
         # 获取退出状态
         child.close()
 
-    except FileNotFoundError as e:
-        print(f"命令未找到错误: {e}", file=sys.stderr)
-
     except Exception as e:
-        print(f"发生未知错误: {e}", file=sys.stderr)
+        error_msg = f"\n发生错误: {e}\n"
+        st.session_state.output += error_msg
+        print(error_msg, file=sys.stderr)
+        output_area.text_area("输出:", st.session_state.output, height=400, key=key_name)
+
+    finally:
+        st.session_state.is_running = False
+        return child.exitstatus if hasattr(child, 'exitstatus') else None
