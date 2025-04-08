@@ -2,27 +2,32 @@ from __future__ import annotations
 
 import streamlit as st
 
-from uiya._typing import AudioQuality, VideoQuality
-from uiya.api import (
-    entry_bangumi,
-    entry_collection,
-    entry_favorlist,
-    entry_user_video,
-    entry_user_video_list,
-)
+from uiya._dataclass import CommandGenerator
+from uiya._typing import AudioQuality, VideoQuality, bangumi_status, video_status
 from uiya.styles.global_style import style
 from uiya.utils.config import UiyaSetting, get_setting_title, load_settings_file, write_settings_file
-
-# Get video and audio quality choices
-video_quality_choice: list[str] = list(VideoQuality.__args__)  # type: ignore
-audio_quality_choice: list[str] = list(AudioQuality.__args__)  # type: ignore
+from uiya.utils.subproc import run_command
 
 if "save" in st.session_state:
     st.toast("参数已成功保存", icon=":material/verified:")
     del st.session_state["save"]
 
 
-def single_video_tab() -> None:
+# Get video and audio quality choices
+video_quality_choice: list[str] = list(VideoQuality.__args__)  # type: ignore
+audio_quality_choice: list[str] = list(AudioQuality.__args__)  # type: ignore
+
+
+if "is_running" not in st.session_state:
+    st.session_state.is_running = False
+
+if "save" in st.session_state:
+    st.toast("参数已成功保存", icon=":material/verified:")
+    del st.session_state["save"]
+
+
+# 在你的应用中使用
+def single_video_tab():
     SingleUser = st.container(border=True)
     with SingleUser:
         st.markdown("""
@@ -67,23 +72,38 @@ def single_video_tab() -> None:
                 index=2,
                 help="选择你想要的音频质量(视频具有该资源并且你有访问权限,否则自动降级)",
             )  # type: ignore
+        # 初始化运行状态
+        if "is_running" not in st.session_state:
+            st.session_state.is_running = False
 
-        if st.button("开始下载", key="single_video_download", use_container_width=True):
-            if url:
-                with st.spinner("正在下载..."):
-                    result = entry_user_video(
-                        url,
-                        require_video,
-                        require_audio,
-                        require_danmaku,
-                        require_cover,
-                        video_quality,
-                        audio_quality,
-                        debug_mode,
-                    )
-                    st.text_area("结果", value=result, height=200)
-            else:
-                st.error("请输入视频URL")
+        # 禁用按钮如果已经在运行
+        run_btn = st.button(
+            "开始下载", key="single_video_button", disabled=st.session_state.is_running, use_container_width=True
+        )
+
+        if run_btn and not st.session_state.is_running:
+            st.session_state.is_running = True
+
+            status = video_status
+            # 任务默认参数
+            status.update({"target_type": "video"})
+            status.update({"batch_download": False})
+            status.update({"support_select": False})
+
+            # 用户自定义参数,由 UI 传入
+            status.update({"url": url})
+            status.update({"require_video": require_video})
+            status.update({"require_audio": require_audio})
+            status.update({"require_danmaku": require_danmaku})
+            status.update({"require_cover": require_cover})
+            status.update({"debug_mode": debug_mode})
+            status.update({"video_quality": video_quality})
+            status.update({"audio_quality": audio_quality})
+            command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
+            command = command_generator.gen_args()
+
+            # 使用特定的key名称
+            run_command(command, key_name="single_video_output")
 
 
 def video_list_tab() -> None:
@@ -137,23 +157,36 @@ def video_list_tab() -> None:
                 help="选择你想要的音频质量(视频具有该资源并且你有访问权限,否则自动降级)",
             )  # type: ignore
 
-        if st.button("开始下载", key="video_list_download", use_container_width=True):
-            if url:
-                with st.spinner("正在下载..."):
-                    result = entry_user_video_list(
-                        url,
-                        select_p,
-                        require_video,
-                        require_audio,
-                        require_danmaku,
-                        require_cover,
-                        video_quality,
-                        audio_quality,
-                        debug_mode,
-                    )
-                    st.text_area("结果", value=result, height=200)
-            else:
-                st.error("请输入视频URL")
+        # 禁用按钮如果已经在运行
+        run_btn = st.button(
+            "开始下载", key="video_list_button", disabled=st.session_state.is_running, use_container_width=True
+        )
+
+        if run_btn and not st.session_state.is_running:
+            st.session_state.is_running = True
+
+            status = video_status
+            # 任务默认参数
+            status.update({"target_type": "video_list"})
+            status.update({"batch_download": True})
+            status.update({"support_select": True})
+
+            # 用户自定义参数,由 UI 传入
+            status.update({"url": url})
+            status.update({"selected_p": select_p})
+            status.update({"require_video": require_video})
+            status.update({"require_audio": require_audio})
+            status.update({"require_danmaku": require_danmaku})
+            status.update({"require_cover": require_cover})
+            status.update({"debug_mode": debug_mode})
+            status.update({"video_quality": video_quality})
+            status.update({"audio_quality": audio_quality})
+
+            command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
+            command = command_generator.gen_args()
+
+            # 使用特定的key名称
+            run_command(command, key_name="video_list_output")
 
 
 def favorite_tab() -> None:
@@ -205,22 +238,34 @@ def favorite_tab() -> None:
                 help="选择你想要的音频质量(视频具有该资源并且你有访问权限,否则自动降级)",
             )  # type: ignore
 
-        if st.button("开始下载", key="favorite_download", use_container_width=True):
-            if url:
-                with st.spinner("正在下载..."):
-                    result = entry_favorlist(
-                        url,
-                        require_audio,
-                        require_video,
-                        require_danmaku,
-                        require_cover,
-                        video_quality,
-                        audio_quality,
-                        debug_mode,
-                    )
-                    st.text_area("结果", value=result, height=200)
-            else:
-                st.error("请输入收藏夹URL")
+        run_btn = st.button(
+            "开始下载", key="favor_list_button", disabled=st.session_state.is_running, use_container_width=True
+        )
+
+        if run_btn and not st.session_state.is_running:
+            st.session_state.is_running = True
+
+            status = video_status
+            # 任务默认参数
+            status.update({"target_type": "favor"})
+            status.update({"batch_download": True})
+            status.update({"support_select": False})
+
+            # 用户自定义参数,由 UI 传入
+            status.update({"url": url})
+            status.update({"require_video": require_video})
+            status.update({"require_audio": require_audio})
+            status.update({"require_danmaku": require_danmaku})
+            status.update({"require_cover": require_cover})
+            status.update({"debug_mode": debug_mode})
+            status.update({"video_quality": video_quality})
+            status.update({"audio_quality": audio_quality})
+
+            command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
+            command = command_generator.gen_args()
+
+            # 使用特定的key名称
+            run_command(command, key_name="favor_list_output")
 
 
 def collection_tab() -> None:
@@ -272,22 +317,34 @@ def collection_tab() -> None:
                 help="选择你想要的音频质量(视频具有该资源并且你有访问权限,否则自动降级)",
             )  # type: ignore
 
-        if st.button("开始下载", key="collection_download", use_container_width=True):
-            if url:
-                with st.spinner("正在下载..."):
-                    result = entry_collection(
-                        url,
-                        require_video,
-                        require_audio,
-                        require_danmaku,
-                        require_cover,
-                        video_quality,
-                        audio_quality,
-                        debug_mode,
-                    )
-                    st.text_area("结果", value=result, height=200)
-            else:
-                st.error("请输入合集URL")
+        run_btn = st.button(
+            "开始下载", key="collection_button", disabled=st.session_state.is_running, use_container_width=True
+        )
+
+        if run_btn and not st.session_state.is_running:
+            st.session_state.is_running = True
+
+            status = video_status
+            # 任务默认参数
+            status.update({"target_type": "collection"})
+            status.update({"batch_download": True})
+            status.update({"support_select": False})
+
+            # 用户自定义参数,由 UI 传入
+            status.update({"url": url})
+            status.update({"require_video": require_video})
+            status.update({"require_audio": require_audio})
+            status.update({"require_danmaku": require_danmaku})
+            status.update({"require_cover": require_cover})
+            status.update({"debug_mode": debug_mode})
+            status.update({"video_quality": video_quality})
+            status.update({"audio_quality": audio_quality})
+
+            command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
+            command = command_generator.gen_args()
+
+            # 使用特定的key名称
+            run_command(command, key_name="collection_output")
 
 
 def bangumi_tab() -> None:
@@ -344,23 +401,33 @@ def bangumi_tab() -> None:
                 help="选择你想要的音频质量(视频具有该资源并且你有访问权限,否则自动降级)",
             )  # type: ignore
 
-        if st.button("开始下载", key="bangumi_download", use_container_width=True):
-            if url:
-                with st.spinner("正在下载..."):
-                    result = entry_bangumi(
-                        url,
-                        select_p,
-                        require_video,
-                        require_audio,
-                        require_danmaku,
-                        require_cover,
-                        video_quality,
-                        audio_quality,
-                        debug_mode,
-                    )
-                    st.text_area("结果", value=result, height=200)
-            else:
-                st.error("请输入番剧URL")
+        run_btn = st.button(
+            "开始下载", key="bangumi_button", disabled=st.session_state.is_running, use_container_width=True
+        )
+        if run_btn and not st.session_state.is_running:
+            st.session_state.is_running = True
+
+            status = bangumi_status
+            # 任务默认参数
+            status.update({"target_type": "bangumi"})
+            status.update({"batch_download": True})
+            status.update({"support_select": True})
+
+            # 用户自定义参数,由 UI 传入
+            status.update({"url": url})
+            status.update({"selected_p": select_p})
+            status.update({"require_video": require_video})
+            status.update({"require_audio": require_audio})
+            status.update({"require_danmaku": require_danmaku})
+            status.update({"require_cover": require_cover})
+            status.update({"debug_mode": debug_mode})
+            status.update({"video_quality": video_quality})
+            status.update({"audio_quality": audio_quality})
+            command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
+            command = command_generator.gen_args()
+
+            # 使用特定的key名称
+            run_command(command, key_name="bangumi_output")
 
 
 def setting_tab() -> None:

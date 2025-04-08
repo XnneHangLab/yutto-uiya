@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 import sys
-import streamlit as st
-import pexpect
 import time
 from typing import Optional
+
+import pexpect
+import streamlit as st
+
 
 def run_command(command: list[str], key_name: str = "cmd_output") -> int | None:
     """
@@ -58,11 +62,7 @@ def run_command(command: list[str], key_name: str = "cmd_output") -> int | None:
 
                     # 定期更新界面
                     current_time: float = time.time()
-                    update_condition: bool = (
-                        char == "\n" or
-                        len(buffer) > 50 or
-                        (current_time - last_update_time) > 0.5
-                    )
+                    update_condition: bool = char == "\n" or len(buffer) > 50 or (current_time - last_update_time) > 0.5
 
                     if update_condition:
                         st.session_state[output_key] += "".join(buffer)
@@ -109,4 +109,4 @@ def run_command(command: list[str], key_name: str = "cmd_output") -> int | None:
 
     finally:
         st.session_state.is_running = False
-        return child.exitstatus if child and hasattr(child, 'exitstatus') else None
+        return child.exitstatus if child and hasattr(child, "exitstatus") else None
