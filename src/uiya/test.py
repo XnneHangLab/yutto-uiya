@@ -52,6 +52,8 @@ def main():
     command_args = command_generator.gen_args()
     print(command_args)
 
+    print("================= Testing CommandGenerater url_check=================")
+
 
 if __name__ == "__main__":
     main()
