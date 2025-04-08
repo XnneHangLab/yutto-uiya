@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from uiya._dataclass import CommandGenerator
+from uiya.utils.config import UiyaSetting, load_settings_file
 
 if TYPE_CHECKING:
     from uiya._typing import CommandStatus
@@ -52,7 +53,11 @@ def main():
     command_args = command_generator.gen_args()
     print(command_args)
 
-    print("================= Testing CommandGenerater url_check=================")
+    print("================= Testing get_zh_option_list=================")
+    settings = load_settings_file("uiya.toml", UiyaSetting)
+    print(settings)
+    settings.get_zh_option_list("login_strict")
+    settings.get_index("vip_strict")
 
 
 if __name__ == "__main__":
