@@ -7,8 +7,10 @@ from typing import Optional
 import pexpect
 import streamlit as st
 
+from uiya.utils.TextHelper import clean_ouput
 
-def run_command(command: list[str], key_name: str = "cmd_output") -> int | None:
+
+def run_command(command: list[str], key_name: str) -> int | None:
     """
     使用 pexpect 运行命令并实时更新 Streamlit 界面，同时保留终端原始输出
 
@@ -37,7 +39,7 @@ def run_command(command: list[str], key_name: str = "cmd_output") -> int | None:
     command_str: str = " ".join(command)
     print(f"执行命令: {command_str}", file=sys.stderr)
 
-    child: Optional[pexpect.spawn] = None
+    child: pexpect.spawn | None = None
 
     try:
         # 启动进程
@@ -62,10 +64,14 @@ def run_command(command: list[str], key_name: str = "cmd_output") -> int | None:
 
                     # 定期更新界面
                     current_time: float = time.time()
-                    update_condition: bool = char == "\n" or len(buffer) > 50 or (current_time - last_update_time) > 0.5
+                    update_condition: bool = (
+                        char == "\n" or "/s\x1b[0m" in "".join(buffer) or "/⚡\x1b[0m" in "".join(buffer)
+                    )
 
                     if update_condition:
-                        st.session_state[output_key] += "".join(buffer)
+                        output = clean_ouput("".join(buffer))
+                        print(["".join(buffer)])
+                        st.session_state[output_key] += output
                         buffer = []
                         last_update_time = current_time
                         # 使用 .code() 而不是 text_area，避免key问题
@@ -78,14 +84,16 @@ def run_command(command: list[str], key_name: str = "cmd_output") -> int | None:
                         sys.stdout.flush()
 
                     if buffer:
-                        st.session_state[output_key] += "".join(buffer)
+                        output = clean_ouput("".join(buffer))
+                        st.session_state[output_key] += output
                         output_placeholder.code(st.session_state[output_key], language="bash")
                     break
 
                 elif index == 2:  # 超时
                     current_time: float = time.time()
                     if buffer and (current_time - last_update_time) > 0.5:
-                        st.session_state[output_key] += "".join(buffer)
+                        output = clean_ouput("".join(buffer))
+                        st.session_state[output_key] += output
                         buffer = []
                         last_update_time = current_time
                         output_placeholder.code(st.session_state[output_key], language="bash")
@@ -109,4 +117,5 @@ def run_command(command: list[str], key_name: str = "cmd_output") -> int | None:
 
     finally:
         st.session_state.is_running = False
-        return child.exitstatus if child and hasattr(child, "exitstatus") else None
+
+    return child.exitstatus if child and hasattr(child, "exitstatus") else None
