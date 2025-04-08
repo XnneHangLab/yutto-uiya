@@ -132,8 +132,8 @@ class CommandGenerator:
             video_quality=video_quality_mapping[self.video_quality],
             audio_quality=audio_quality_mapping[self.audio_quality],
             sessdata=self.uiya_setting.SESS_DATA,
-            vip_strict=self.uiya_setting.vip_strict,
-            login_strict=self.uiya_setting.login_strict,
+            vip_strict=True if self.uiya_setting.vip_strict == "open" else False,
+            login_strict=True if self.uiya_setting.login_strict == "open" else False,
             dir=self.uiya_setting.download_dir,
         )
 

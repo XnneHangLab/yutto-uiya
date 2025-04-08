@@ -11,11 +11,15 @@ from uiya.api import (
     entry_user_video_list,
 )
 from uiya.styles.global_style import style
-from uiya.utils.config import UiyaSetting, load_settings_file
+from uiya.utils.config import UiyaSetting, get_setting_title, load_settings_file, write_settings_file
 
 # Get video and audio quality choices
 video_quality_choice: list[str] = list(VideoQuality.__args__)  # type: ignore
 audio_quality_choice: list[str] = list(AudioQuality.__args__)  # type: ignore
+
+if "save" in st.session_state:
+    st.toast("参数已成功保存", icon=":material/verified:")
+    del st.session_state["save"]
 
 
 def single_video_tab() -> None:
@@ -359,35 +363,55 @@ def bangumi_tab() -> None:
                 st.error("请输入番剧URL")
 
 
-def faq_tab() -> None:
+def setting_tab() -> None:
     """UI for FAQ section."""
-    FAQContainer = st.container(border=True)
-    with FAQContainer:
-        st.markdown("""
-        ## 常见问题和反馈:
+    settings: UiyaSetting = load_settings_file("uiya.toml", UiyaSetting)
+    Save = st.container()
+    Setting = st.container(border=True)
 
-        ### 1.为什么不能下其他清晰度的视频？
-        如果你已经下载了某个视频，并且想要下载它其他的清晰度，应该需要你手动删除先前的下载记录（把`./download`下方的相关的视频或者文件夹整个删掉即可。）
+    with Setting:
+        sess_data = st.text_input(
+            get_setting_title("SESS_DATA", UiyaSetting),
+            value=settings.SESS_DATA,
+            help="如果需要下载大会员视频，必须填写该项。否则无法下载大会员视频。",
+        )
+        login_strict = st.selectbox(
+            get_setting_title("login_strict", UiyaSetting),
+            settings.get_zh_option_list("login_strict"),
+            index=settings.get_index("login_strict"),
+        )
+        st.caption("如果你要使用 sess_data 登陆，建议开启")
+        vip_strict = st.selectbox(
+            get_setting_title("vip_strict", UiyaSetting),
+            settings.get_zh_option_list("vip_strict"),
+            index=settings.get_index("vip_strict"),
+        )
+        st.caption("如果你填入大会员的 sess_data,建议开启")
+        download_dir = st.text_input(
+            get_setting_title("download_dir", UiyaSetting),
+            value=settings.download_dir,
+            help="下载目录",
+        )
 
-        ### 2.为什么无法下载高清晰度视频？和番剧？
-        你需要先获取SESS_DATA并且填入`./configs/args.yaml`.
-
-        如果你是大会员，你还有应该保证设置`args.yaml`中的`vip_strict`和`login_strict`同时为true,否则容易被当作普通用户。
-
-        如果你是普通用户，你应该保证`login_strict`为true,`vip_strict`为false.否则会因为大会员校验失败而无法下载视频。
-
-        如果填写了`SESS_DATA`那么总是应该保证`login_strict`为true,它会校验你的`SESS_DATA`是否有效。
-
-        ### 3.yutto is not accessible
-        参见视频:[yutto is not accessible 解决方法 | yutto-uiya v1.0.1](https://www.bilibili.com/video/BV1c1zqYLEAE/)
-
-        ## 我应该在哪里反映我碰到的相关问题？
-        你应该首先查阅该页面，然后查看终端的信息看自己是否能够解决。如果依然不能解决，那么请到:
-
-        [一目生的个人空间](https://space.bilibili.com/556737824?spm_id_from=333.788.0.0)
-
-        你可以私信我或者在我相关视频底下留言。
-        """)
+    with Save:
+        col1, col2 = st.columns([0.75, 0.25])
+        st.markdown("")
+        with col2:
+            st.markdown("")
+            st.markdown("")
+            if st.button("**保存更改**", use_container_width=True, type="primary"):
+                settings.zh_set_value("SESS_DATA", sess_data)
+                settings.zh_set_value("login_strict", login_strict)
+                settings.zh_set_value("vip_strict", vip_strict)
+                settings.zh_set_value("download_dir", download_dir)
+                write_settings_file("uiya.toml", settings)
+                st.session_state.save = True
+                st.rerun()
+        with col1:
+            st.markdown("")
+            st.markdown("")
+            st.markdown("### 参数设置")
+            st.caption("Changing Parameter Settings")
 
 
 def about_tab() -> None:
@@ -408,12 +432,12 @@ def about_tab() -> None:
         """)
 
 
-settings = load_settings_file("uiya.toml", UiyaSetting)
+settings: UiyaSetting = load_settings_file("uiya.toml", UiyaSetting)
 if not settings.as_package:
     style()
 TabContainer = st.container()
 with TabContainer:
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["用户视频", "收藏夹", "合集", "番剧", "常见问题", "关于 yutto-uiya"])
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["用户视频", "收藏夹", "合集", "番剧", "设置", "关于 yutto-uiya"])
 
     with tab1:
         st.header("用户视频下载")
@@ -434,7 +458,7 @@ with TabContainer:
         bangumi_tab()
 
     with tab5:
-        faq_tab()
+        setting_tab()
 
     with tab6:
         about_tab()

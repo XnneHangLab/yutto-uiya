@@ -34,9 +34,6 @@ Documentation = "https://github.com/MrXnneHang/yutto-uiya"
 Repository = "https://github.com/MrXnneHang/yutto-uiya"
 Issues = "https://github.com/MrXnneHang/yutto-uiya/issues"
 
-[project.scripts]
-test = "uiya.test:main"
-
 [dependency-groups]
 dev = [
   "pyright>=1.1.391",
