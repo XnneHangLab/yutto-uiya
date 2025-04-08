@@ -37,9 +37,6 @@ def run_command(command: list[str], key_name: str) -> int | None:
     # 显示初始空输出
     output_placeholder.code(st.session_state[output_key], language="bash")
 
-    command_str: str = " ".join(command)
-    print(f"执行命令: {command_str}", file=sys.stderr)
-
     child: pexpect.spawn | None = None  # type: ignore[assignment]
 
     try:
@@ -71,7 +68,7 @@ def run_command(command: list[str], key_name: str) -> int | None:
 
                     if update_condition:
                         output = clean_ouput("".join(buffer))
-                        print(["".join(buffer)])
+                        # print(["".join(buffer)])
                         st.session_state[output_key] += output
                         buffer = []
                         last_update_time = current_time
@@ -103,7 +100,7 @@ def run_command(command: list[str], key_name: str) -> int | None:
             except Exception as e:
                 error_msg: str = f"\n读取过程中发生错误: {e}\n"
                 st.session_state[output_key] += error_msg
-                print(error_msg, file=sys.stderr)
+                # print(error_msg, file=sys.stderr)
                 output_placeholder.code(st.session_state[output_key], language="bash")
                 break
 
@@ -113,7 +110,7 @@ def run_command(command: list[str], key_name: str) -> int | None:
     except Exception as e:
         error_msg: str = f"\n发生错误: {e}\n"
         st.session_state[output_key] += error_msg
-        print(error_msg, file=sys.stderr)
+        # print(error_msg, file=sys.stderr)
         output_placeholder.code(st.session_state[output_key], language="bash")
 
     finally:
