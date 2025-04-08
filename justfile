@@ -14,6 +14,7 @@ lint:
 
 test:
   uv run pytest
+  just clean
 
 # CI specific
 ci-install:
