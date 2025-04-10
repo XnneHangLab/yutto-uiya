@@ -67,4 +67,4 @@ bangumi_status: CommandStatus = {
     "audio_quality": "320kbps",
 }
 
-SupportOS = Literal["windows","linux","macos"]
+SupportOS = Literal["windows", "linux", "macos"]

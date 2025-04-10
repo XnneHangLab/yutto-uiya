@@ -1,26 +1,30 @@
 from __future__ import annotations
 
+import platform
 import sys
 import time
-import streamlit as st
-import platform
-from uiya.utils.TextHelper import clean_ouput
-from uiya._typing import SupportOS
+from typing import TYPE_CHECKING
 
+import streamlit as st
+
+from uiya.utils.TextHelper import clean_ouput
+
+if TYPE_CHECKING:
+    from uiya._typing import SupportOS
 # 防止被小写 windows 坑到
 if platform.system() == "Windows":
-    OS:SupportOS = "windows"
+    os: SupportOS = "windows"
 elif platform.system() == "Linux":
-    OS:SupportOS = "linux"
+    os: SupportOS = "linux"
 elif platform.system() == "Darwin":
-    OS:SupportOS = "macos"
+    os: SupportOS = "macos"
 else:
     raise ValueError("Unsupported OS")
 
-if OS == "windows":
-    import wexpect as pexpect
+if os == "windows":
+    import wexpect as pexpect  # type:ignore [import-error]
 else:
-    import pexpect
+    import pexpect  # type:ignore [import-error]
 
 # TODO child 的类型不明确，可能需要找时间修复
 
@@ -53,8 +57,10 @@ def run_command(command: list[str], key_name: str) -> int | None:
 
     child = None
     try:
-        child = pexpect.spawn(
-            command[0], args=command[1:], encoding="utf-8",
+        child = pexpect.spawn(  # type: ignore[assignment]
+            command[0],
+            args=command[1:],
+            encoding="utf-8",
         )
         # 读取并处理输出
         buffer: list[str] = []
@@ -63,31 +69,37 @@ def run_command(command: list[str], key_name: str) -> int | None:
         while True:
             try:
                 # 尝试读取字符
-                index: int = child.expect([".", pexpect.EOF, pexpect.TIMEOUT], timeout=0.1)
+                index: int = child.expect([".", pexpect.EOF, pexpect.TIMEOUT], timeout=0.1)  # type: ignore[assignment]
 
                 if index == 0:  # 读取到一个字符
                     char: str = str(child.after)  # type: ignore[assignment]
                     buffer.append(char)
 
                     # 如果是unix-like,直接输出到终端，如果是windows,则需要先处理一下。
-                    if OS != "windows":
+                    if os != "windows":
                         sys.stdout.write(char)
                     sys.stdout.flush()
 
                     # 定期更新界面
                     current_time: float = time.time()
-                    if OS != "windows":
+                    if os != "windows":
                         update_condition: bool = (
                             char == "\n" or "/s\x1b[0m" in "".join(buffer) or "/⚡\x1b[0m" in "".join(buffer)
                         )
                     else:
-                        update_condition: bool = (char == "\n")  or "加载中……" in "".join(buffer) or "INFO " in "".join(buffer) or "WARN" in "".join(buffer) or "ERROR" in "".join(buffer)
+                        update_condition: bool = (
+                            (char == "\n")
+                            or "加载中……" in "".join(buffer)
+                            or "INFO " in "".join(buffer)
+                            or "WARN" in "".join(buffer)
+                            or "ERROR" in "".join(buffer)
+                        )
 
                     if update_condition:
                         output_text += "".join(buffer)
                         output = clean_ouput("".join(buffer))
-                        if OS == "windows":
-                            if output: # if != ""
+                        if os == "windows":
+                            if output:  # if != ""
                                 print(output)
                         st.session_state[output_key] += output
                         buffer = []

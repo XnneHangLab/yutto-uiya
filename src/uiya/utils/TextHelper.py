@@ -1,27 +1,26 @@
 from __future__ import annotations
 
 import platform
+
 from uiya._dictionary import emoji
 
 
 def clean_ouput(output: str):
     if platform.system() == "Windows":
-        output = output.replace("\r\n","")
-        output = output.replace("\r","")
-        output = output.replace("\n","")
-        output = output.replace("INFO","")
-        output = output.replace("WARN","")
-        output = output.replace("ERROR","")
-        
+        output = output.replace("\r\n", "")
+        output = output.replace("\r", "")
+        output = output.replace("\n", "")
+        output = output.replace("INFO", "")
+        output = output.replace("WARN", "")
+        output = output.replace("ERROR", "")
+
         # 忽略空行
-        if output.replace(" ","") == "":
-            output = ""        
+        if output.replace(" ", "") == "":
+            output = ""
         else:
             output = output + "\n"
         # print([output])
 
-        
-    
     else:
         # ignore emoji
         for ignore_value in emoji:
