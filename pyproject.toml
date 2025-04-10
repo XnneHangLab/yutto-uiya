@@ -1,18 +1,19 @@
 [project]
 name = "yutto-uiya"
-version = "1.0.4"
+version = "1.1.2"
 description = ""
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "pyaml==25.1.0",
-    "pydantic==2.10.6",
-    #"socksio==1.0.0",
-    "httpx[http2,socks]>=0.28.1",
+    "pydantic>=2.10.6",
     "tomli_w==1.2.0",
-    "yutto==2.0.2",
     "streamlit==1.43.2",
-    "pexpect==4.9.0",
+
+    # special
+    "yutto==2.0.3",
+    "httpx[http2,socks]>=0.28.1",
+    "pexpect==4.9.0;sys_platform!='win32'",
+    "wexpect-uv;sys_platform=='win32'",
 ]
 authors = [{ name = "MrXnneHang", email = "XnneHang@gmail.com" }]
 keywords = []
@@ -43,6 +44,8 @@ dev = [
   "pytest-rerunfailures>=15.0",
 ]
 
+[tool.uv.sources]
+wexpect-uv = { git = "https://github.com/XnneHangLab/wexpect-uv.git" , rev = "dev" }
 
 [tool.pyright]
 include = ["src/uiya"]
