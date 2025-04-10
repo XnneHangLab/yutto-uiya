@@ -2,11 +2,25 @@ from __future__ import annotations
 
 import sys
 import time
-
-import pexpect
 import streamlit as st
-
+import platform
 from uiya.utils.TextHelper import clean_ouput
+from uiya._typing import SupportOS
+
+# 防止被小写 windows 坑到
+if platform.system() == "Windows":
+    OS:SupportOS = "windows"
+elif platform.system() == "Linux":
+    OS:SupportOS = "linux"
+elif platform.system() == "Darwin":
+    OS:SupportOS = "macos"
+else:
+    raise ValueError("Unsupported OS")
+
+if OS == "windows":
+    import wexpect as pexpect
+else:
+    import pexpect
 
 # TODO child 的类型不明确，可能需要找时间修复
 
@@ -37,16 +51,15 @@ def run_command(command: list[str], key_name: str) -> int | None:
     # 显示初始空输出
     output_placeholder.code(st.session_state[output_key], language="bash")
 
-    child: pexpect.spawn | None = None  # type: ignore[assignment]
-
+    child = None
     try:
-        # 启动进程
-        child = pexpect.spawn(command[0], args=command[1:], encoding="utf-8")  # type: ignore[assignment]
-
+        child = pexpect.spawn(
+            command[0], args=command[1:], encoding="utf-8",
+        )
         # 读取并处理输出
         buffer: list[str] = []
         last_update_time: float = time.time()
-
+        output_text = ""
         while True:
             try:
                 # 尝试读取字符
@@ -56,19 +69,26 @@ def run_command(command: list[str], key_name: str) -> int | None:
                     char: str = str(child.after)  # type: ignore[assignment]
                     buffer.append(char)
 
-                    # 输出到终端
-                    sys.stdout.write(char)
+                    # 如果是unix-like,直接输出到终端，如果是windows,则需要先处理一下。
+                    if OS != "windows":
+                        sys.stdout.write(char)
                     sys.stdout.flush()
 
                     # 定期更新界面
                     current_time: float = time.time()
-                    update_condition: bool = (
-                        char == "\n" or "/s\x1b[0m" in "".join(buffer) or "/⚡\x1b[0m" in "".join(buffer)
-                    )
+                    if OS != "windows":
+                        update_condition: bool = (
+                            char == "\n" or "/s\x1b[0m" in "".join(buffer) or "/⚡\x1b[0m" in "".join(buffer)
+                        )
+                    else:
+                        update_condition: bool = (char == "\n")  or "加载中……" in "".join(buffer) or "INFO " in "".join(buffer) or "WARN" in "".join(buffer) or "ERROR" in "".join(buffer)
 
                     if update_condition:
+                        output_text += "".join(buffer)
                         output = clean_ouput("".join(buffer))
-                        # print(["".join(buffer)])
+                        if OS == "windows":
+                            if output: # if != ""
+                                print(output)
                         st.session_state[output_key] += output
                         buffer = []
                         last_update_time = current_time
@@ -82,6 +102,8 @@ def run_command(command: list[str], key_name: str) -> int | None:
                         sys.stdout.flush()
 
                     if buffer:
+                        # 匹配解析时输出的 `投稿视频 ...``
+                        output_text += "".join(buffer)
                         output = clean_ouput("".join(buffer))
                         st.session_state[output_key] += output
                         output_placeholder.code(st.session_state[output_key], language="bash")
@@ -90,6 +112,7 @@ def run_command(command: list[str], key_name: str) -> int | None:
                 elif index == 2:  # 超时
                     current_time: float = time.time()
                     if buffer and (current_time - last_update_time) > 0.5:
+                        output_text += "".join(buffer)
                         output = clean_ouput("".join(buffer))
                         st.session_state[output_key] += output
                         buffer = []
@@ -100,9 +123,12 @@ def run_command(command: list[str], key_name: str) -> int | None:
             except Exception as e:
                 error_msg: str = f"\n读取过程中发生错误: {e}\n"
                 st.session_state[output_key] += error_msg
-                # print(error_msg, file=sys.stderr)
+                print(error_msg, file=sys.stderr)
                 output_placeholder.code(st.session_state[output_key], language="bash")
                 break
+
+        # 未经处理的原始字符集
+        # print([output_text])
 
         # 获取退出状态
         child.close()
@@ -110,7 +136,7 @@ def run_command(command: list[str], key_name: str) -> int | None:
     except Exception as e:
         error_msg: str = f"\n发生错误: {e}\n"
         st.session_state[output_key] += error_msg
-        # print(error_msg, file=sys.stderr)
+        print(error_msg, file=sys.stderr)
         output_placeholder.code(st.session_state[output_key], language="bash")
 
     finally:

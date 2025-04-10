@@ -101,7 +101,6 @@ def single_video_tab():
             status.update({"audio_quality": audio_quality})
             command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
             command = command_generator.gen_args()
-
             # 使用特定的key名称
             run_command(command, key_name="single_video_output")
 

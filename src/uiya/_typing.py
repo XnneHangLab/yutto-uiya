@@ -66,3 +66,5 @@ bangumi_status: CommandStatus = {
     "video_quality": "360p 流畅",
     "audio_quality": "320kbps",
 }
+
+SupportOS = Literal["windows","linux","macos"]
