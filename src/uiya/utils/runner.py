@@ -143,7 +143,7 @@ def run_command(command: list[str], key_name: str) -> int | None:
         # print([output_text])
 
         # 获取退出状态
-        child.close() # type:ignore
+        child.close()  # type:ignore
 
     except Exception as e:
         error_msg: str = f"\n发生错误: {e}\n"
