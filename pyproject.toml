@@ -13,7 +13,7 @@ dependencies = [
     "yutto==2.0.3",
     "httpx[http2,socks]>=0.28.1",
     "pexpect==4.9.0;sys_platform!='win32'",
-    "wexpect-uv;sys_platform=='win32'",
+    "wexpect-uv==0.0.1;sys_platform=='win32'",
 ]
 authors = [{ name = "MrXnneHang", email = "XnneHang@gmail.com" }]
 keywords = []
@@ -43,9 +43,6 @@ dev = [
   "pytest>=8.3.4",
   "pytest-rerunfailures>=15.0",
 ]
-
-[tool.uv.sources]
-wexpect-uv = { git = "https://github.com/XnneHangLab/wexpect-uv.git" , rev = "dev" }
 
 [tool.pyright]
 include = ["src/uiya"]
