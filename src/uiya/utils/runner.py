@@ -93,7 +93,7 @@ def run_command(command: list[str], key_name: str) -> int | None:
                             or "INFO " in "".join(buffer)
                             or "WARN" in "".join(buffer)
                             or "ERROR" in "".join(buffer)
-                            or "⚡" in "".join(buffer)
+                            or "⚡  " in "".join(buffer)
                         )
 
                     if update_condition:
@@ -141,7 +141,7 @@ def run_command(command: list[str], key_name: str) -> int | None:
                 break
 
         # 未经处理的原始字符集
-        # print([output_text])
+        print([output_text])
 
         # 获取退出状态
         child.close()  # type:ignore
