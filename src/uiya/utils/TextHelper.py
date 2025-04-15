@@ -7,6 +7,8 @@ from uiya._dictionary import emoji
 
 def clean_ouput(output: str):
     if platform.system() == "Windows":
+        for ignore_value in emoji:
+            output = output.replace(ignore_value, "")
         output = output.replace("\r\n", "")
         output = output.replace("\r", "")
         output = output.replace("\n", "")

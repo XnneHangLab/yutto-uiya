@@ -10,6 +10,8 @@ fmt:
 lint:
   uv run pyright src/uiya
   uv run ruff check .
+
+fmt-docs:
   prettier --ignore-path .prettierignore --write '**/*.md'
 
 test:
