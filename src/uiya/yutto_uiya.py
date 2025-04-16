@@ -6,7 +6,7 @@ from uiya._dataclass import CommandGenerator
 from uiya._typing import AudioQuality, VideoQuality, bangumi_status, video_status
 from uiya.styles.global_style import style
 from uiya.utils.config import UiyaSetting, get_setting_title, load_settings_file, write_settings_file
-from uiya.utils.runner import run_command
+from uiya.utils.runner import parse_status, run_command
 
 if "save" in st.session_state:
     st.toast("参数已成功保存", icon=":material/verified:")
@@ -99,10 +99,15 @@ def single_video_tab():
             status.update({"debug_mode": debug_mode})
             status.update({"video_quality": video_quality})
             status.update({"audio_quality": audio_quality})
-            command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
-            command = command_generator.gen_args()
-            # 使用特定的key名称
-            run_command(command, key_name="single_video_output")
+
+            output_placeholder = st.empty()
+            if parse_status(status, key_name="single_video_parse", output_placeholder=output_placeholder):  # 解析状态
+                command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
+                command = command_generator.gen_args()
+                # 使用特定的key名称
+                run_command(command, key_name="single_video_output", output_placeholder=output_placeholder)
+            else:
+                st.session_state.is_running = False
 
 
 def video_list_tab() -> None:
@@ -181,11 +186,15 @@ def video_list_tab() -> None:
             status.update({"video_quality": video_quality})
             status.update({"audio_quality": audio_quality})
 
-            command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
-            command = command_generator.gen_args()
+            output_placeholder = st.empty()
+            if parse_status(status, key_name="video_list_parse", output_placeholder=output_placeholder):  # 解析状态
+                command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
+                command = command_generator.gen_args()
 
-            # 使用特定的key名称
-            run_command(command, key_name="video_list_output")
+                # 使用特定的key名称
+                run_command(command, key_name="video_list_output", output_placeholder=output_placeholder)
+            else:
+                st.session_state.is_running = False
 
 
 def favorite_tab() -> None:
@@ -260,11 +269,15 @@ def favorite_tab() -> None:
             status.update({"video_quality": video_quality})
             status.update({"audio_quality": audio_quality})
 
-            command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
-            command = command_generator.gen_args()
+            output_placeholder = st.empty()
+            if parse_status(status, key_name="favor_list_parse", output_placeholder=output_placeholder):  # 解析状态
+                command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
+                command = command_generator.gen_args()
 
-            # 使用特定的key名称
-            run_command(command, key_name="favor_list_output")
+                # 使用特定的key名称
+                run_command(command, key_name="favor_list_output", output_placeholder=output_placeholder)
+            else:
+                st.session_state.is_running = False
 
 
 def collection_tab() -> None:
@@ -339,11 +352,15 @@ def collection_tab() -> None:
             status.update({"video_quality": video_quality})
             status.update({"audio_quality": audio_quality})
 
-            command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
-            command = command_generator.gen_args()
+            output_placeholder = st.empty()
+            if parse_status(status, key_name="collection_parse", output_placeholder=output_placeholder):
+                command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
+                command = command_generator.gen_args()
 
-            # 使用特定的key名称
-            run_command(command, key_name="collection_output")
+                # 使用特定的key名称
+                run_command(command, key_name="collection_output", output_placeholder=output_placeholder)
+            else:
+                st.session_state.is_running = False
 
 
 def bangumi_tab() -> None:
@@ -422,11 +439,16 @@ def bangumi_tab() -> None:
             status.update({"debug_mode": debug_mode})
             status.update({"video_quality": video_quality})
             status.update({"audio_quality": audio_quality})
-            command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
-            command = command_generator.gen_args()
 
-            # 使用特定的key名称
-            run_command(command, key_name="bangumi_output")
+            output_placeholder = st.empty()
+            if parse_status(status, key_name="bangumi_parse", output_placeholder=output_placeholder):  # 解析状态
+                command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
+                command = command_generator.gen_args()
+
+                # 使用特定的key名称
+                run_command(command, key_name="bangumi_output", output_placeholder=output_placeholder)
+            else:
+                st.session_state.is_running = False
 
 
 def setting_tab() -> None:

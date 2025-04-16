@@ -10,7 +10,10 @@ import streamlit as st
 from uiya.utils.TextHelper import clean_ouput
 
 if TYPE_CHECKING:
-    from uiya._typing import SupportOS
+    from streamlit.delta_generator import DeltaGenerator
+
+    from uiya._typing import CommandStatus, SupportOS
+
 # 防止被小写 windows 坑到
 if platform.system() == "Windows":
     os: SupportOS = "windows"
@@ -26,10 +29,34 @@ if os == "windows":
 else:
     import pexpect  # type:ignore [import-error]
 
+
+def parse_status(status: CommandStatus, key_name: str, output_placeholder: DeltaGenerator) -> bool:
+    """检查 Command status 并且提前返回错误. 防止用户触发 raise 异常导致 UI 崩溃"""
+    # 初始化或清空输出
+    output_key: str = f"{key_name}_content"
+    if output_key not in st.session_state:
+        st.session_state[output_key] = ""
+    else:
+        st.session_state[output_key] = ""
+    # 用户没有输入 URL
+    # TODO 应该检查合法性
+    if not status["url"]:
+        st.session_state[output_key] = "URL 不能为空"
+        output_placeholder.code(st.session_state[output_key], language="bash")
+        return False
+    elif not (
+        status["require_video"] or status["require_audio"] or status["require_danmaku"] or status["require_cover"]
+    ):
+        st.session_state[output_key] = "至少需要选择一个资源项"
+        output_placeholder.code(st.session_state[output_key], language="bash")
+        return False
+    else:
+        output_placeholder.code(st.session_state[output_key], language="bash")
+        return True
+
+
 # TODO child 的类型不明确，可能需要找时间修复
-
-
-def run_command(command: list[str], key_name: str) -> int | None:
+def run_command(command: list[str], key_name: str, output_placeholder: DeltaGenerator) -> int | None:
     """
     使用 pexpect 运行命令并实时更新 Streamlit 界面，同时保留终端原始输出
 
@@ -48,9 +75,6 @@ def run_command(command: list[str], key_name: str) -> int | None:
         st.session_state[output_key] = ""
     else:
         st.session_state[output_key] = ""
-
-    # 创建占位符用于更新
-    output_placeholder = st.empty()
 
     # 显示初始空输出
     output_placeholder.code(st.session_state[output_key], language="bash")
@@ -141,7 +165,7 @@ def run_command(command: list[str], key_name: str) -> int | None:
                 break
 
         # 未经处理的原始字符集
-        print([output_text])
+        # print([output_text])
 
         # 获取退出状态
         child.close()  # type:ignore
