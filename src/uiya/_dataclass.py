@@ -102,6 +102,7 @@ class CommandGenerator:
         return True
 
     def gen_args(self):
+        # TODO 直接在这里 raise, 会导致 UI 直接崩溃, 所以要提前检查，这里只是作为最后的检查
         # ================== URL
         # URL not correct
         if self.url == "" or not self.url_check(self.url):
