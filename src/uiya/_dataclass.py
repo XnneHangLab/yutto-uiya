@@ -145,8 +145,11 @@ class CommandGenerator:
         toml_args = ["--config", str(yutto_setting_path)]
         self.args.extend(toml_args)
         # =================== BATCH DOWNLOAD
+        if self.batch_download:
+            batch_download_args = ["-b"]
+            self.args.extend(batch_download_args)
         if self.support_select and self.selected_p is not None:
-            batch_download_args = ["-b", "-p", self.selected_p]
+            batch_download_args = ["-p", self.selected_p]
             self.args.extend(batch_download_args)
         # =================== DEBUG MODE
         if self.debug_mode:

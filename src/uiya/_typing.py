@@ -25,8 +25,10 @@ class CommandStatus(TypedDict):
 
     target_type: TargetType
     url: str
-    batch_download: bool  # bangumi:True, video: False, video_list: True, collection: True, Favor: True
-    support_select: bool  # bangumi: True, video: False, video_list: True, collection: False, space: False, Favor: False
+    batch_download: (
+        bool  # bangumi:True, video: False, video_list: True, collection: True, Favor: True, bangumi_list: True
+    )
+    support_select: bool  # bangumi: True, video: False, video_list: True, collection: False, space: False, Favor: False, bangumi_list: False
     selected_p: str | None  # Optional
     require_video: bool
     require_audio: bool
