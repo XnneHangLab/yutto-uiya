@@ -81,8 +81,13 @@ class CommandGenerator:
     require_audio: bool = True
     require_danmaku: bool = False
     require_cover: bool = False
+    require_metadata: bool = True
+    require_subtitle: bool = True
 
     debug_mode: bool = False
+    parse_mode: bool = True
+    no_color: bool = True
+    no_progress: bool = True
 
     video_quality: VideoQuality = "360p 流畅"
     audio_quality: AudioQuality = "320kbps"
@@ -121,8 +126,8 @@ class CommandGenerator:
                 require_video=self.require_video,
                 require_audio=self.require_audio,
                 require_danmaku=self.require_danmaku,
-                require_subtitle=False,
-                require_metadata=False,
+                require_subtitle=self.require_subtitle,
+                require_metadata=self.require_metadata,
                 require_cover=self.require_cover,
                 save_cover=self.require_cover,
             )
@@ -158,6 +163,21 @@ class CommandGenerator:
             print(YuttoSetting.basic)
             print(YuttoSetting.resource)
             print("=================== DEBUG MODE ↑===================")
+
+        # =================== parse
+        if self.parse_mode:
+            parse_args = ["--skip-download"]
+            self.args.extend(parse_args)
+
+        # =================== no-color
+        if self.no_color:
+            no_color_args = ["--no-color"]
+            self.args.extend(no_color_args)
+
+        # =================== no-progress
+        if self.no_progress:
+            no_progress_args = ["--no-progress"]
+            self.args.extend(no_progress_args)
 
         return self.args
 

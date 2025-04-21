@@ -131,3 +131,8 @@ tmp.py
 User\ Data/
 chrome-linux64/
 chromedriver-linux64/
+
+
+# packages
+
+packages/

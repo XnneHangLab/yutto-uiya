@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal, TypedDict
+from typing import Any, Literal, TypedDict
 
 TargetType = Literal["bangumi", "video", "video_list", "collection", "favor", "space"]
 VideoQuality = Literal[
@@ -34,25 +34,15 @@ class CommandStatus(TypedDict):
     require_audio: bool
     require_danmaku: bool
     require_cover: bool
+    require_metadata: bool
+    require_subtitle: bool
     debug_mode: bool
+    parse_mode: bool
+    no_color: bool
+    no_progress: bool
     video_quality: VideoQuality
     audio_quality: AudioQuality
 
-
-video_status: CommandStatus = {
-    "target_type": "video",
-    "batch_download": False,
-    "support_select": False,
-    "url": "https://example.com/video123",
-    "selected_p": None,
-    "require_video": True,
-    "require_audio": True,
-    "require_danmaku": False,
-    "require_cover": False,
-    "debug_mode": False,
-    "video_quality": "360p 流畅",
-    "audio_quality": "320kbps",
-}
 
 bangumi_status: CommandStatus = {
     "target_type": "bangumi",
@@ -62,11 +52,51 @@ bangumi_status: CommandStatus = {
     "selected_p": None,
     "require_video": True,
     "require_audio": True,
-    "require_danmaku": False,
-    "require_cover": False,
+    "require_danmaku": True,
+    "require_cover": True,
+    "require_metadata": True,
+    "require_subtitle": True,
     "debug_mode": False,
+    "parse_mode": True,
+    "no_color": False,
+    "no_progress": True,
     "video_quality": "360p 流畅",
     "audio_quality": "320kbps",
 }
 
 SupportOS = Literal["windows", "linux", "macos"]
+
+
+class VideoMetadata(TypedDict):
+    title: str
+    show_title: str
+    plot: str
+    thumb: str
+    premiered: int
+    dateadded: int
+    actor: list[dict[str, Any]]
+    genre: list[str]
+    tag: list[str]
+    source: str
+    original_filename: str
+    website: str
+    chapter_info_data: list[Any]
+
+
+class EpisodeInfo(TypedDict):
+    title: str
+    link: str
+    video_quality_list: list[str]  # 只保留清晰度描述
+    audio_quality_list: list[str]  # 只保留比特率描述
+    has_danmaku: bool
+    has_subtitle: bool
+    has_chapter_info: bool
+    metadata: VideoMetadata | None
+    cover_link: str
+
+
+class YuttoParseResult(TypedDict):
+    video_name: str
+    episodes_count: int
+    episodes: list[EpisodeInfo]
+    current_episode_index: int  # 当前正在处理的集的索引

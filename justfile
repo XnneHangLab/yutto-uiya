@@ -3,6 +3,20 @@ start:
   uv sync
   uv run streamlit run src/uiya/yutto_uiya.py
 
+dev:
+    rm -rf packages/yutto/dist
+    uv build packages/yutto
+    uv lock
+    uv sync --no-cache
+    uv run streamlit run src/uiya/yutto_uiya.py
+
+test-parse:
+    rm -rf packages/yutto/dist
+    uv build packages/yutto
+    uv lock
+    uv sync --no-cache
+    uv run test
+
 fmt:
   uv run ruff check --fix --select I .
   uv run ruff format .
