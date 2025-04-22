@@ -100,3 +100,22 @@ class YuttoParseResult(TypedDict):
     episodes_count: int
     episodes: list[EpisodeInfo]
     current_episode_index: int  # 当前正在处理的集的索引
+
+
+class RunnerKeys(TypedDict):
+    """Session keys use in runner.py"""
+
+    select_p: str  # 被选中的解析卡片 index, list[int]
+    click_p: str  # 被点击的解析卡片 index,  int
+    parse_content: str  # 解析的卡片 content , list[dict], EpisodeInfo
+    download_content: str  # 下载 output, 和终端保持一致
+    parse_command_status: str  # 解析 CommandStatus 格式
+    is_running: str  # 是否正在运行
+
+
+class YuttoUiyaKeys(TypedDict):
+    """Session keys use in yutto_uiya.py"""
+
+    is_running: str  # 是否正在运行
+
+    save: str  # 是否保存(信息提示)

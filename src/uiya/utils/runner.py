@@ -7,12 +7,13 @@ from typing import TYPE_CHECKING
 
 import streamlit as st
 
-from uiya.utils.TextHelper import YuttoOutputParser, clean_ouput
+from uiya._session_keys import runner_keys
+from uiya.utils.TextHelper import YuttoOutputParser, clean_ouput, split_into_words
 
 if TYPE_CHECKING:
     from streamlit.delta_generator import DeltaGenerator
 
-    from uiya._typing import CommandStatus, SupportOS, YuttoParseResult
+    from uiya._typing import CommandStatus, EpisodeInfo, SupportOS, YuttoParseResult
 
 # 防止被小写 windows 坑到
 if platform.system() == "Windows":
@@ -29,34 +30,43 @@ if os == "windows":
 else:
     import pexpect  # type:ignore [import-error]
 
+if runner_keys["select_p"] not in st.session_state:
+    st.session_state[runner_keys["select_p"]] = None
+if runner_keys["click_p"] not in st.session_state:
+    st.session_state[runner_keys["click_p"]] = None
+if runner_keys["parse_content"] not in st.session_state:
+    st.session_state[runner_keys["parse_content"]] = []
+if runner_keys["download_content"] not in st.session_state:
+    st.session_state[runner_keys["download_content"]] = ""
+if runner_keys["parse_command_status"] not in st.session_state:
+    st.session_state[runner_keys["parse_command_status"]] = ""
+if runner_keys["is_running"] not in st.session_state:
+    st.session_state[runner_keys["is_running"]] = False
 
-def parse_status(status: CommandStatus, key_name: str, output_placeholder: DeltaGenerator) -> bool:
+
+def parse_status(status: CommandStatus, output_placeholder: DeltaGenerator) -> bool:
     """检查 Command status 并且提前返回错误. 防止用户触发 raise 异常导致 UI 崩溃"""
     # 初始化或清空输出
-    output_key: str = f"{key_name}_content"
-    if output_key not in st.session_state:
-        st.session_state[output_key] = ""
-    else:
-        st.session_state[output_key] = ""
+    st.session_state[runner_keys["parse_command_status"]] = ""
     # 用户没有输入 URL
     # TODO 应该检查合法性
     if not status["url"]:
-        st.session_state[output_key] = "URL 不能为空"
-        output_placeholder.code(st.session_state[output_key], language="bash")
+        st.session_state[runner_keys["parse_command_status"]] = "URL 不能为空"
+        output_placeholder.code(st.session_state[runner_keys["parse_command_status"]], language="bash")
         return False
     elif not (
         status["require_video"] or status["require_audio"] or status["require_danmaku"] or status["require_cover"]
     ):
-        st.session_state[output_key] = "至少需要选择一个资源项"
-        output_placeholder.code(st.session_state[output_key], language="bash")
+        st.session_state[runner_keys["parse_command_status"]] = "至少需要选择一个资源项"
+        output_placeholder.code(st.session_state[runner_keys["parse_command_status"]], language="bash")
         return False
     else:
-        output_placeholder.code(st.session_state[output_key], language="bash")
+        output_placeholder.code(st.session_state[runner_keys["parse_command_status"]], language="bash")
         return True
 
 
 # TODO child 的类型不明确，可能需要找时间修复
-def run_downloader(command: list[str], key_name: str, output_placeholder: DeltaGenerator) -> int | None:
+def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> int | None:
     """
     使用 pexpect 运行命令并实时更新 Streamlit 界面，同时保留终端原始输出
 
@@ -67,15 +77,7 @@ def run_downloader(command: list[str], key_name: str, output_placeholder: DeltaG
     Returns:
         命令执行的退出状态码，如果无法获取则返回 None
     """
-    # 为这个特定命令创建唯一的输出键名
-    output_key: str = f"{key_name}_content"
-
-    # 初始化或清空输出
-    if output_key not in st.session_state:
-        st.session_state[output_key] = ""
-    else:
-        st.session_state[output_key] = ""
-
+    output_key = runner_keys["download_content"]
     # 显示初始空输出
     output_placeholder.code(st.session_state[output_key], language="bash")
 
@@ -182,7 +184,11 @@ def run_downloader(command: list[str], key_name: str, output_placeholder: DeltaG
     return child.exitstatus if child and hasattr(child, "exitstatus") else None  # type: ignore[assignment]
 
 
-def run_parser(command: list[str]) -> YuttoParseResult:
+def truncate(text: str, max_len: int):
+    return text if len(text) <= max_len else text[:max_len] + "…"
+
+
+def run_parser(command: list[str], place_holder: DeltaGenerator) -> YuttoParseResult:
     """
     使用 pexpect 运行命令并实时更新 Streamlit 界面，同时保留终端原始输出
 
@@ -193,6 +199,8 @@ def run_parser(command: list[str]) -> YuttoParseResult:
     Returns:
         命令执行的退出状态码，如果无法获取则返回 None
     """
+    key = runner_keys["parse_content"]
+    st.session_state[key] = []
     child = None
     parser = YuttoOutputParser()
     show_index = -1
@@ -236,8 +244,9 @@ def run_parser(command: list[str]) -> YuttoParseResult:
                         parser.parse_line("".join(buffer))
                         current_index = parser.current_index
                         if current_index - show_index == 2:
+                            st.session_state[key].append(parser.result["episodes"][show_index])
                             show_index += 1
-                            print(parser.result["episodes"][show_index])
+                            show_card_container(st.session_state[key][-1], show_index)
 
                         buffer = []
 
@@ -265,7 +274,47 @@ def run_parser(command: list[str]) -> YuttoParseResult:
 
     finally:
         st.session_state.is_running = False
-        if parser.current_index != 0:
-            print(parser.result["episodes"][parser.current_index])
+        st.session_state[key].append(parser.result["episodes"][show_index])
+        show_index += 1
+        show_card_container(st.session_state[key][-1], show_index)
 
     return parser.result
+
+
+def show_card_container(episode: EpisodeInfo, index: int) -> None:
+    """显示解析卡片的容器"""
+    card_conatiner = st.container(key=f"card_container_{index}")
+    with card_conatiner:
+        cols = st.columns([1, 16, 4])
+        with cols[0]:
+            checked = st.checkbox("s", key=f"selected_{index}", value=False, label_visibility="hidden")
+            if checked:
+                st.session_state["selected_p"] = index
+
+        with cols[1]:
+            title = (
+                "".join(split_into_words(episode["title"])[:15]) + "..."
+                if len(split_into_words(episode["title"])) > 15
+                else episode["title"].strip()
+            )
+            if episode["metadata"]:
+                details = (
+                    "".join(split_into_words(episode["metadata"]["plot"])[:30]) + "..."
+                    if len(split_into_words(episode["metadata"]["plot"])) > 30
+                    else episode["metadata"]["plot"].strip()
+                )
+            else:
+                details = "无描述信息"
+            # 显示标题和详情
+            st.markdown(f"**{title}**")
+            st.markdown(f"*{details}*")
+
+        # 在右侧放置一个明显的按钮，提示用户点击
+        with cols[2]:
+            st.markdown("")
+            detail_btn = st.button(
+                "查看详情",
+                key=f"detail_btn_{index}",
+            )
+        if detail_btn:
+            st.session_state["clicked_p"] = index

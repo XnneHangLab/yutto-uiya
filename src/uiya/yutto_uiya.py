@@ -3,10 +3,11 @@ from __future__ import annotations
 import streamlit as st
 
 from uiya._dataclass import CommandGenerator
+from uiya._session_keys import runner_keys, yutto_uiya_keys
 from uiya._typing import AudioQuality, VideoQuality, bangumi_status
 from uiya.styles.global_style import style
 from uiya.utils.config import UiyaSetting, get_setting_title, load_settings_file, write_settings_file
-from uiya.utils.runner import parse_status, run_downloader, run_parser
+from uiya.utils.runner import parse_status, run_downloader, run_parser, show_card_container
 
 if "save" in st.session_state:
     st.toast("参数已成功保存", icon=":material/verified:")
@@ -18,41 +19,49 @@ video_quality_choice: list[str] = list(VideoQuality.__args__)  # type: ignore
 audio_quality_choice: list[str] = list(AudioQuality.__args__)  # type: ignore
 
 
-if "is_running" not in st.session_state:
+if yutto_uiya_keys["is_running"] not in st.session_state:
     st.session_state.is_running = False
 
-if "save" in st.session_state:
+if yutto_uiya_keys["save"] in st.session_state:
     st.toast("参数已成功保存", icon=":material/verified:")
-    del st.session_state["save"]
+    del st.session_state[yutto_uiya_keys["save"]]
 
 
 def bangumi_tab() -> None:
     """UI for downloading bangumi."""
-    BangumiContainer = st.container(border=True)
-    with BangumiContainer:
-        url = st.text_input("URL (视频网址,详细见参考链接)", key="bangumi_url")
-        run_btn = st.button(
-            "解析", key="bangumi_button", disabled=st.session_state.is_running, use_container_width=True
-        )
-        if run_btn and not st.session_state.is_running:
-            st.session_state.is_running = True
+    place_holder = st.empty()
+    with st.form("bangumi_form", clear_on_submit=False):
+        input_col, btn_col = st.columns([4, 1])
+        with input_col:
+            url = st.text_input("URL", key="bangumi_url", placeholder="请输入番剧链接", label_visibility="collapsed")
+        with btn_col:
+            run_btn = st.form_submit_button(
+                "解析", disabled=st.session_state.get(yutto_uiya_keys["is_running"], False), use_container_width=True
+            )
+    # 处理表单提交
+    if run_btn and not st.session_state[yutto_uiya_keys["is_running"]]:
+        st.session_state[yutto_uiya_keys["is_running"]] = True
 
-            status = bangumi_status
-            # 任务默认参数
-            status.update({"target_type": "bangumi"})
-            # 用户自定义参数,由 UI 传入
-            status.update({"url": url})
+        status = bangumi_status
+        # 任务默认参数
+        status.update({"target_type": "bangumi"})
+        # 用户自定义参数,由 UI 传入
+        status.update({"url": url})
 
-            output_placeholder = st.empty()
-            if parse_status(status, key_name="bangumi_parse", output_placeholder=output_placeholder):  # 解析状态
-                command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
-                command = command_generator.gen_args()
+        output_placeholder = st.empty()
+        if parse_status(status, output_placeholder=output_placeholder):  # 解析状态
+            command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
+            command = command_generator.gen_args()
 
-                # 使用特定的key名称
-                # run_downloader(command, key_name="bangumi_output", output_placeholder=output_placeholder)
-                print(run_parser(command=command))
-            else:
-                st.session_state.is_running = False
+            # 使用特定的key名称
+            # run_downloader(command, key_name="bangumi_output", output_placeholder=output_placeholder)
+            print(run_parser(command=command, place_holder=output_placeholder))
+            st.rerun()
+        else:
+            st.session_state[yutto_uiya_keys["is_running"]] = False
+    if st.session_state[runner_keys["parse_content"]]:
+        for i, item in enumerate(st.session_state[runner_keys["parse_content"]]):
+            show_card_container(item, i)
 
 
 def setting_tab() -> None:

@@ -197,3 +197,22 @@ class YuttoOutputParser:
     def get_result(self) -> YuttoParseResult:
         """获取当前的解析结果"""
         return self.result
+
+
+def split_into_words(text: str) -> list[str]:
+    """
+    将句子分割成单个汉字和单词，保留标点符号
+    Example:
+    split_into_words("晚安纳尼南尼nony!") -> ['晚', '安', '纳', '尼', '南', '尼', 'nony', '!']
+    split_into_words("就的真的妈a等等?") -> ['就', '的', '真', '的', '妈', 'a', '等', '等', '?']
+    split_into_words("多喜天dustin birthday.") -> ['多', '喜', '天', 'dustin', 'birthday', '.']
+    split_into_words("He's 我见过的。") -> ["He's", '我', '见', '过', '的', '。']
+    """
+
+    # 正则表达式用于匹配英文单词、汉字、标点符号和英文缩写
+    pattern = re.compile(r"[a-zA-Z]+(?:'[a-zA-Z]+)?|[\u4e00-\u9fa5]|[^\u4e00-\u9fa5a-zA-Z\s]")
+
+    # 使用 findall 方法找到所有匹配的部分
+    words = pattern.findall(text)
+
+    return words

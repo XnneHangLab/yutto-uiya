@@ -1,0 +1,21 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from uiya._typing import RunnerKeys, YuttoUiyaKeys
+
+
+runner_keys: RunnerKeys = {
+    "select_p": "select_p",
+    "click_p": "click_p",
+    "parse_content": "parse_content",
+    "parse_command_status": "parse_command_status",
+    "download_content": "download_content",
+    "is_running": "is_running",
+}
+
+yutto_uiya_keys: YuttoUiyaKeys = {
+    "is_running": "is_running",
+    "save": "save",
+}
