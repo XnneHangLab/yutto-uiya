@@ -243,10 +243,12 @@ def run_parser(command: list[str], place_holder: DeltaGenerator) -> YuttoParseRe
                         output_text += "".join(buffer)
                         parser.parse_line("".join(buffer))
                         current_index = parser.current_index
-                        if current_index - show_index == 2:
-                            st.session_state[key].append(parser.result["episodes"][show_index])
+                        if current_index - show_index == 1:
+                            # 避免加入重复的元素 skip -1
+                            if show_index != -1:
+                                st.session_state[key].append(parser.result["episodes"][show_index])
+                                show_card_container(st.session_state[key][show_index], show_index)
                             show_index += 1
-                            show_card_container(st.session_state[key][-1], show_index)
 
                         buffer = []
 

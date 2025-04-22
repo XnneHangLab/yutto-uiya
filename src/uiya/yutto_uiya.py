@@ -9,9 +9,9 @@ from uiya.styles.global_style import style
 from uiya.utils.config import UiyaSetting, get_setting_title, load_settings_file, write_settings_file
 from uiya.utils.runner import parse_status, run_downloader, run_parser, show_card_container
 
-if "save" in st.session_state:
+if yutto_uiya_keys["save"] in st.session_state:
     st.toast("参数已成功保存", icon=":material/verified:")
-    del st.session_state["save"]
+    del st.session_state[yutto_uiya_keys["save"]]
 
 
 # Get video and audio quality choices
@@ -25,6 +25,15 @@ if yutto_uiya_keys["is_running"] not in st.session_state:
 if yutto_uiya_keys["save"] in st.session_state:
     st.toast("参数已成功保存", icon=":material/verified:")
     del st.session_state[yutto_uiya_keys["save"]]
+
+if runner_keys["parse_content"] not in st.session_state:
+    st.session_state.parse_content = []
+
+if runner_keys["select_p"] not in st.session_state:
+    st.session_state.select_p = []
+
+if runner_keys["click_p"] not in st.session_state:
+    st.session_state.click_p = -1
 
 
 def bangumi_tab() -> None:
@@ -55,11 +64,12 @@ def bangumi_tab() -> None:
 
             # 使用特定的key名称
             # run_downloader(command, key_name="bangumi_output", output_placeholder=output_placeholder)
-            print(run_parser(command=command, place_holder=output_placeholder))
+            run_parser(command=command, place_holder=output_placeholder)
             st.rerun()
         else:
             st.session_state[yutto_uiya_keys["is_running"]] = False
     if st.session_state[runner_keys["parse_content"]]:
+        # 去掉完全相同的元素
         for i, item in enumerate(st.session_state[runner_keys["parse_content"]]):
             show_card_container(item, i)
 
