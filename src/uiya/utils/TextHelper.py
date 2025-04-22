@@ -122,32 +122,32 @@ class YuttoOutputParser:
                     }
                 )
 
-        current_index = self.result["current_episode_index"]
+        self.current_index = self.result["current_episode_index"]
         # collect episode info
-        if current_index != -1:
+        if self.current_index != -1:
             # 提取链接
             if "\x1b[30;46m LINK \x1b[0m" in line:
                 self.current_value = line.split("\x1b[30;46m LINK \x1b[0m")[1].replace(" ", "").replace("\r\n", "")
                 self.current_type = "link"
-                self.result["episodes"][current_index][self.current_type] = self.current_value
+                self.result["episodes"][self.current_index][self.current_type] = self.current_value
 
             # 检查是否有弹幕
             if "\x1b[30;46m 弹幕 \x1b[0m" in line:
                 self.current_value = True
                 self.current_type = "has_danmaku"
-                self.result["episodes"][current_index][self.current_type] = self.current_value
+                self.result["episodes"][self.current_index][self.current_type] = self.current_value
 
             # 检查是否有字幕
             if "\x1b[30;46m 字幕 \x1b[0m" in line:
                 self.current_value = True
                 self.current_type = "has_subtitle"
-                self.result["episodes"][current_index][self.current_type] = self.current_value
+                self.result["episodes"][self.current_index][self.current_type] = self.current_value
 
             # 检查是否有章节信息
             if "\x1b[30;46m 章节 \x1b[0m" in line:
                 self.current_value = True
                 self.current_type = "has_chapter_info"
-                self.result["episodes"][current_index][self.current_type] = self.current_value
+                self.result["episodes"][self.current_index][self.current_type] = self.current_value
 
             if "\x1b[30;46m 描述文件 \x1b[0m " in line:
                 # 提取从"描述文件"后面的所有内容作为元数据开始
@@ -157,7 +157,7 @@ class YuttoOutputParser:
 
                 try:
                     self.current_value = ast.literal_eval(self.current_value)
-                    self.result["episodes"][current_index]["metadata"] = self.current_value
+                    self.result["episodes"][self.current_index]["metadata"] = self.current_value
                 except Exception as E:
                     print(f"{E}")
                     # 继续收集，可能跨多行
@@ -166,18 +166,18 @@ class YuttoOutputParser:
             if "\x1b[30;46m 封面 \x1b[0m" in line and "http" in line:
                 self.current_value = line.split("\x1b[30;46m 封面 \x1b[0m")[1].replace(" ", "").replace("\r\n", "")
                 self.current_type = "cover_link"
-                self.result["episodes"][current_index][self.current_type] = self.current_value
+                self.result["episodes"][self.current_index][self.current_type] = self.current_value
 
             # 进入视频流部分
             if "\x1b[94m INFO \x1b[0m 共包含以下" in line and "视频流" in line:
                 self.current_type = "video_quality_list"
-                self.result["episodes"][current_index]["video_quality_list"] = []
+                self.result["episodes"][self.current_index]["video_quality_list"] = []
                 return None
 
             # 进入音频流部分
             if "\x1b[94m INFO \x1b[0m 共包含以下" in line and "个音频流" in line:
                 self.current_type = "audio_quality_list"
-                self.result["episodes"][current_index]["audio_quality_list"] = []
+                self.result["episodes"][self.current_index]["audio_quality_list"] = []
 
             # 处理视频流
             if self.current_type == "video_quality_list":
@@ -185,14 +185,14 @@ class YuttoOutputParser:
                 if quality_match:
                     quality = quality_match.group(1).strip()
                     self.current_value = quality
-                    self.result["episodes"][current_index][self.current_type].append(self.current_value)
+                    self.result["episodes"][self.current_index][self.current_type].append(self.current_value)
             # 处理音频流
             if self.current_type == "audio_quality_list":
                 bitrate_match = re.search(r"<([^>]*)>", line)
                 if bitrate_match:
                     bitrate = bitrate_match.group(1).strip()
                     self.current_value = bitrate
-                    self.result["episodes"][current_index][self.current_type].append(self.current_value)
+                    self.result["episodes"][self.current_index][self.current_type].append(self.current_value)
 
     def get_result(self) -> YuttoParseResult:
         """获取当前的解析结果"""

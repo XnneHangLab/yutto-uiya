@@ -192,7 +192,8 @@ def run_parser(command: list[str])->YuttoParseResult:
         命令执行的退出状态码，如果无法获取则返回 None
     """
     child = None
-    parer = YuttoOutputParser()
+    parser = YuttoOutputParser()
+    show_index = -1
     try:
         child = pexpect.spawn(  # type: ignore[assignment]
             command[0],
@@ -232,7 +233,12 @@ def run_parser(command: list[str])->YuttoParseResult:
 
                     if update_condition:
                         output_text += "".join(buffer)
-                        parer.parse_line("".join(buffer))
+                        parser.parse_line("".join(buffer))
+                        current_index = parser.current_index
+                        if current_index - show_index == 2:
+                            show_index +=1
+                            print(parser.result["episodes"][show_index])
+
                         buffer = []
 
                 elif index == 1:  # EOF，进程结束
@@ -242,9 +248,9 @@ def run_parser(command: list[str])->YuttoParseResult:
                         sys.stdout.flush()
 
                     if buffer:
-                        # 匹配解析时输出的 `投稿视频 ...``
                         output_text += "".join(buffer)
-                        parer.parse_line("".join(buffer))
+                        parser.parse_line("".join(buffer))
+                        current_index = parser.current_index
                     break
 
             except Exception as e:
@@ -261,5 +267,7 @@ def run_parser(command: list[str])->YuttoParseResult:
 
     finally:
         st.session_state.is_running = False
+        if parser.current_index != 0:
+            print(parser.result["episodes"][parser.current_index])
 
-    return parer.result
+    return parser.result
