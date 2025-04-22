@@ -106,7 +106,7 @@ class YuttoOutputParser:
                 self.current_type = "current_episode_index"
                 self.result[self.current_type] = self.current_value
 
-                self.current_value = episode_start_match.group(3).replace("\x1b[0m", "").replace(" ","")
+                self.current_value = episode_start_match.group(3).replace("\x1b[0m", "").replace(" ", "")
                 self.current_type = "title"
                 self.result["episodes"].append(
                     {

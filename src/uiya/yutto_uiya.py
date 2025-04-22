@@ -6,7 +6,7 @@ from uiya._dataclass import CommandGenerator
 from uiya._typing import AudioQuality, VideoQuality, bangumi_status
 from uiya.styles.global_style import style
 from uiya.utils.config import UiyaSetting, get_setting_title, load_settings_file, write_settings_file
-from uiya.utils.runner import parse_status, run_downloader,run_parser
+from uiya.utils.runner import parse_status, run_downloader, run_parser
 
 if "save" in st.session_state:
     st.toast("参数已成功保存", icon=":material/verified:")

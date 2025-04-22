@@ -7,11 +7,12 @@ from typing import TYPE_CHECKING
 
 import streamlit as st
 
-from uiya.utils.TextHelper import clean_ouput,YuttoOutputParser
+from uiya.utils.TextHelper import YuttoOutputParser, clean_ouput
+
 if TYPE_CHECKING:
     from streamlit.delta_generator import DeltaGenerator
 
-    from uiya._typing import CommandStatus, SupportOS,YuttoParseResult
+    from uiya._typing import CommandStatus, SupportOS, YuttoParseResult
 
 # 防止被小写 windows 坑到
 if platform.system() == "Windows":
@@ -180,7 +181,8 @@ def run_downloader(command: list[str], key_name: str, output_placeholder: DeltaG
 
     return child.exitstatus if child and hasattr(child, "exitstatus") else None  # type: ignore[assignment]
 
-def run_parser(command: list[str])->YuttoParseResult:
+
+def run_parser(command: list[str]) -> YuttoParseResult:
     """
     使用 pexpect 运行命令并实时更新 Streamlit 界面，同时保留终端原始输出
 
@@ -218,9 +220,7 @@ def run_parser(command: list[str])->YuttoParseResult:
                     sys.stdout.flush()
 
                     if os != "windows":
-                        update_condition: bool = (
-                            "\r\n" in "".join(buffer)
-                        )
+                        update_condition: bool = "\r\n" in "".join(buffer)
                     else:
                         update_condition: bool = (
                             (char == "\n")
@@ -236,7 +236,7 @@ def run_parser(command: list[str])->YuttoParseResult:
                         parser.parse_line("".join(buffer))
                         current_index = parser.current_index
                         if current_index - show_index == 2:
-                            show_index +=1
+                            show_index += 1
                             print(parser.result["episodes"][show_index])
 
                         buffer = []
@@ -257,13 +257,11 @@ def run_parser(command: list[str])->YuttoParseResult:
                 print(e)
                 break
 
-
         # 获取退出状态
         child.close()  # type:ignore
 
     except Exception as e:
         print(e)
-
 
     finally:
         st.session_state.is_running = False
