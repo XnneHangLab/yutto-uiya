@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import streamlit as st
 
-from uiya._session_keys import runner_keys
+from uiya._session_keys import runner_keys,yutto_uiya_keys
 from uiya.utils.TextHelper import YuttoOutputParser, clean_ouput, split_into_words
 
 if TYPE_CHECKING:
@@ -31,7 +31,7 @@ else:
     import pexpect  # type:ignore [import-error]
 
 if runner_keys["select_p"] not in st.session_state:
-    st.session_state[runner_keys["select_p"]] = None
+    st.session_state[runner_keys["select_p"]] = []
 if runner_keys["click_p"] not in st.session_state:
     st.session_state[runner_keys["click_p"]] = None
 if runner_keys["parse_content"] not in st.session_state:
@@ -42,6 +42,8 @@ if runner_keys["parse_command_status"] not in st.session_state:
     st.session_state[runner_keys["parse_command_status"]] = ""
 if runner_keys["is_running"] not in st.session_state:
     st.session_state[runner_keys["is_running"]] = False
+if runner_keys["runtime_error"] not in st.session_state:
+    st.session_state[runner_keys["runtime_error"]] = ""
 
 
 def parse_status(status: CommandStatus, output_placeholder: DeltaGenerator) -> bool:
@@ -77,6 +79,9 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
     Returns:
         命令执行的退出状态码，如果无法获取则返回 None
     """
+    st.session_state[runner_keys["click_p"]] = None
+    st.session_state[runner_keys["parse_content"]] = []
+    st.session_state[runner_keys["runtime_error"]] = ""
     output_key = runner_keys["download_content"]
     # 显示初始空输出
     output_placeholder.code(st.session_state[output_key], language="bash")
@@ -188,7 +193,7 @@ def truncate(text: str, max_len: int):
     return text if len(text) <= max_len else text[:max_len] + "…"
 
 
-def run_parser(command: list[str], place_holder: DeltaGenerator) -> YuttoParseResult:
+def run_parser(command: list[str]) -> YuttoParseResult:
     """
     使用 pexpect 运行命令并实时更新 Streamlit 界面，同时保留终端原始输出
 
@@ -204,6 +209,12 @@ def run_parser(command: list[str], place_holder: DeltaGenerator) -> YuttoParseRe
     child = None
     parser = YuttoOutputParser()
     show_index = -1
+    st.session_state[runner_keys["click_p"]] = None
+    st.session_state[runner_keys["parse_content"]] = []
+    st.session_state[runner_keys["runtime_error"]] = ""
+    buffer: list[str] = []
+    output_text = ""
+
     try:
         child = pexpect.spawn(  # type: ignore[assignment]
             command[0],
@@ -211,8 +222,6 @@ def run_parser(command: list[str], place_holder: DeltaGenerator) -> YuttoParseRe
             encoding="utf-8",
         )
         # 读取并处理输出
-        buffer: list[str] = []
-        output_text = ""
         while True:
             try:
                 # 尝试读取字符
@@ -272,18 +281,43 @@ def run_parser(command: list[str], place_holder: DeltaGenerator) -> YuttoParseRe
         child.close()  # type:ignore
 
     except Exception as e:
-        print(e)
-
+        pass
     finally:
-        st.session_state.is_running = False
-        st.session_state[key].append(parser.result["episodes"][show_index])
-        show_index += 1
-        show_card_container(st.session_state[key][-1], show_index)
+        try:
+            st.session_state.is_running = False
+            st.session_state[key].append(parser.result["episodes"][show_index])
+            show_index += 1
+            show_card_container(st.session_state[key][-1], show_index)
+        except Exception as e:
+            st.session_state[runner_keys["runtime_error"]] = output_text if output_text else str(e)
 
     return parser.result
 
 
 def show_card_container(episode: EpisodeInfo, index: int) -> None:
+    """显示解析卡片的容器"""
+    card_conatiner = st.container(key=f"card_container_{index}",border=True)
+    with card_conatiner:
+        title = (
+            "".join(split_into_words(episode["title"])[:15]) + "..."
+            if len(split_into_words(episode["title"])) > 15
+            else episode["title"].strip()
+        )
+        if episode["metadata"] and episode["metadata"]["plot"]:
+            details = (
+                "".join(split_into_words(episode["metadata"]["plot"])[:30]) + "..."
+                if len(split_into_words(episode["metadata"]["plot"])) > 30
+                else episode["metadata"]["plot"].strip()
+            )
+
+        else:
+            details = "无描述信息"
+        # 显示标题和详情
+        st.markdown(f"**{title}**")
+        st.markdown(f"*{details}*")
+
+
+def show_interatable_card_container(episode: EpisodeInfo, index: int) -> None:
     """显示解析卡片的容器"""
     card_conatiner = st.container(key=f"card_container_{index}")
     with card_conatiner:
@@ -299,12 +333,13 @@ def show_card_container(episode: EpisodeInfo, index: int) -> None:
                 if len(split_into_words(episode["title"])) > 15
                 else episode["title"].strip()
             )
-            if episode["metadata"]:
+            if episode["metadata"] and episode["metadata"]["plot"]:
                 details = (
                     "".join(split_into_words(episode["metadata"]["plot"])[:30]) + "..."
                     if len(split_into_words(episode["metadata"]["plot"])) > 30
                     else episode["metadata"]["plot"].strip()
                 )
+
             else:
                 details = "无描述信息"
             # 显示标题和详情
@@ -317,6 +352,15 @@ def show_card_container(episode: EpisodeInfo, index: int) -> None:
             detail_btn = st.button(
                 "查看详情",
                 key=f"detail_btn_{index}",
+                on_click=click_detail_btn,
+                args = (index,),
             )
-        if detail_btn:
-            st.session_state["clicked_p"] = index
+            if detail_btn:
+                # 已经在 on_click 里处理了
+                # on click 是即时的,这里可能会因为重新执行而脱节
+                pass
+
+def click_detail_btn(index:int):
+    """点击详情按钮"""
+    st.session_state[runner_keys["click_p"]] = index
+    st.session_state[yutto_uiya_keys["flush"]] = True
