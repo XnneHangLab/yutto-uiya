@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import streamlit as st
 
-from uiya._session_keys import runner_keys,yutto_uiya_keys
+from uiya._session_keys import runner_keys, yutto_uiya_keys
 from uiya.utils.TextHelper import YuttoOutputParser, clean_ouput, split_into_words
 
 if TYPE_CHECKING:
@@ -296,7 +296,7 @@ def run_parser(command: list[str]) -> YuttoParseResult:
 
 def show_card_container(episode: EpisodeInfo, index: int) -> None:
     """显示解析卡片的容器"""
-    card_conatiner = st.container(key=f"card_container_{index}",border=True)
+    card_conatiner = st.container(key=f"card_container_{index}", border=True)
     with card_conatiner:
         title = (
             "".join(split_into_words(episode["title"])[:15]) + "..."
@@ -353,14 +353,15 @@ def show_interatable_card_container(episode: EpisodeInfo, index: int) -> None:
                 "查看详情",
                 key=f"detail_btn_{index}",
                 on_click=click_detail_btn,
-                args = (index,),
+                args=(index,),
             )
             if detail_btn:
                 # 已经在 on_click 里处理了
                 # on click 是即时的,这里可能会因为重新执行而脱节
                 pass
 
-def click_detail_btn(index:int):
+
+def click_detail_btn(index: int):
     """点击详情按钮"""
     st.session_state[runner_keys["click_p"]] = index
     st.session_state[yutto_uiya_keys["flush"]] = True
