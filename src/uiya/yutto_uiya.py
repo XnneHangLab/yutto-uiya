@@ -4,10 +4,10 @@ import streamlit as st
 
 from uiya._dataclass import CommandGenerator
 from uiya._session_keys import runner_keys, yutto_uiya_keys
-from uiya._typing import AudioQuality, EpisodeInfo, VideoQuality, bangumi_status
+from uiya._typing import AudioQuality, VideoQuality, bangumi_status,EpisodeInfo
 from uiya.styles.global_style import style
 from uiya.utils.config import UiyaSetting, get_setting_title, load_settings_file, write_settings_file
-from uiya.utils.runner import parse_status, run_downloader, run_parser, show_interatable_card_container
+from uiya.utils.runner import parse_status, run_downloader, run_parser,show_interatable_card_container,select_card_container
 
 if yutto_uiya_keys["save"] in st.session_state:
     st.toast("参数已成功保存", icon=":material/verified:")
@@ -73,9 +73,10 @@ def bangumi_tab() -> None:
             st.session_state[yutto_uiya_keys["is_running"]] = False
     if st.session_state[runner_keys["parse_content"]]:
         # 去掉完全相同的元素
+        select_card_container()
         for i, item in enumerate(st.session_state[runner_keys["parse_content"]]):
             show_interatable_card_container(item, i)
-    if st.session_state[runner_keys["click_p"]] is not None:  # index 可能为0
+    if st.session_state[runner_keys["click_p"]] is not None: # index 可能为0
         current_p = st.session_state[runner_keys["click_p"]]
         current_episode: EpisodeInfo = st.session_state[runner_keys["parse_content"]][current_p]
         with episode_info_container:
@@ -93,8 +94,9 @@ def bangumi_tab() -> None:
         st.error(st.session_state[runner_keys["runtime_error"]])
         output_placeholder.code(
             st.session_state[runner_keys["runtime_error"]],
-            language="bash",
-        )
+            language="bash",)
+    if st.session_state[runner_keys["select_p"]]:
+        print(st.session_state[runner_keys["select_p"]])
 
 
 def setting_tab() -> None:
@@ -134,10 +136,10 @@ def setting_tab() -> None:
             st.markdown("")
             st.markdown("")
             if st.button("**保存更改**", use_container_width=True, type="primary"):
-                settings.zh_set_value("SESS_DATA", sess_data)
                 settings.zh_set_value("login_strict", login_strict)
                 settings.zh_set_value("vip_strict", vip_strict)
-                settings.zh_set_value("download_dir", download_dir)
+                settings.download_dir = download_dir
+                settings.SESS_DATA = sess_data
                 write_settings_file("uiya.toml", settings)
                 st.session_state.save = True
                 st.rerun()
