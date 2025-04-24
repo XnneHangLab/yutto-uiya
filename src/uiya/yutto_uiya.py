@@ -35,15 +35,45 @@ if yutto_uiya_keys["save"] in st.session_state:
 # 之所以这里再写一次是为了防止有时刷新网页后丢失了必要的数据
 if runner_keys["parse_content"] not in st.session_state:
     st.session_state[runner_keys["parse_content"]] = []
-
 if runner_keys["select_p"] not in st.session_state:
     st.session_state[runner_keys["select_p"]] = []
-
 if runner_keys["click_p"] not in st.session_state:
     st.session_state[runner_keys["click_p"]] = None
-
 if runner_keys["runtime_error"] not in st.session_state:
     st.session_state[runner_keys["runtime_error"]] = ""
+
+@st.dialog
+def downloader(download_urls:list[str],video_quality:list[VideoQuality],audio_quality:list[AudioQuality]) -> None:
+    columns = st.columns([1,1,1,1,4,4])
+    with columns[0]:
+        st.checkbox("视频", value=True, key="video")
+    with columns[1]:
+        st.checkbox("音频", value=True, key="audio")
+    with columns[2]:
+        st.checkbox("弹幕", value=False, key="danmaku")
+    with columns[3]:
+        st.checkbox("封面", value=False, key="cover")
+    with columns[4]:
+        st.selectbox("视频质量",
+            video_quality,
+            index=video_quality.index(st.session_state.get("video_quality", "360p 流畅")),
+            key="video_quality",
+        )
+    with columns[5]:
+        st.selectbox("音频质量",
+            audio_quality,
+            index=audio_quality.index(st.session_state.get("audio_quality", "320kbps")),
+            key="audio_quality",
+        )
+    download_button = st.button(
+        "开始下载",
+        use_container_width=True,
+        disabled=st.session_state.get(yutto_uiya_keys["is_running"], False),
+        type="primary",
+    )
+    if download_button:
+        pass
+
 
 
 def bangumi_tab() -> None:
@@ -103,7 +133,29 @@ def bangumi_tab() -> None:
             language="bash",
         )
     if st.session_state[runner_keys["select_p"]]:
-        print(st.session_state[runner_keys["select_p"]])
+        download_urls:list[str] = []
+        audio_quality:list[AudioQuality] = []
+        video_quality:list[VideoQuality] = []
+        for i in st.session_state[runner_keys["select_p"]]:
+            episode_info:EpisodeInfo = st.session_state[runner_keys["parse_content"]][i]
+            download_urls.append(episode_info["link"])
+            audio_quality.extend(episode_info["audio_quality_list"])
+            video_quality.extend(episode_info["video_quality_list"])
+            # 去掉完全相同的元素
+            download_urls = list(set(download_urls))
+            audio_quality = list(set(audio_quality))
+            video_quality = list(set(video_quality))
+
+        download_button = st.button(
+            "下载",
+            use_container_width=True,
+            disabled=st.session_state.get(yutto_uiya_keys["is_running"], False),
+            type="primary",
+        )
+        if download_button:
+            downloader(download_urls,video_quality,audio_quality)
+
+
 
 
 def setting_tab() -> None:

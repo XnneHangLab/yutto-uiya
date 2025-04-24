@@ -86,8 +86,8 @@ class VideoMetadata(TypedDict):
 class EpisodeInfo(TypedDict):
     title: str
     link: str
-    video_quality_list: list[str]  # 只保留清晰度描述
-    audio_quality_list: list[str]  # 只保留比特率描述
+    video_quality_list: list[VideoQuality]  # 只保留清晰度描述
+    audio_quality_list: list[AudioQuality]  # 只保留比特率描述
     has_danmaku: bool
     has_subtitle: bool
     has_chapter_info: bool
