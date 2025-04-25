@@ -158,7 +158,7 @@ def bangumi_tab() -> None:
 
             # 使用特定的key名称
             # run_downloader(command, key_name="bangumi_output", output_placeholder=output_placeholder)
-            run_parser(command=command)
+            run_parser(command=command,debug=True)
             st.rerun()
         else:
             st.session_state[yutto_uiya_keys["is_running"]] = False

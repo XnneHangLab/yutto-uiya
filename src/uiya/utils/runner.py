@@ -194,7 +194,7 @@ def truncate(text: str, max_len: int):
     return text if len(text) <= max_len else text[:max_len] + "…"
 
 
-def run_parser(command: list[str]) -> YuttoParseResult:
+def run_parser(command: list[str], debug:bool = False) -> YuttoParseResult:
     """
     使用 pexpect 运行命令并实时更新 Streamlit 界面，同时保留终端原始输出
 
@@ -241,14 +241,7 @@ def run_parser(command: list[str]) -> YuttoParseResult:
                     if os != "windows":
                         update_condition: bool = "\r\n" in "".join(buffer)
                     else:
-                        update_condition: bool = (
-                            (char == "\n")
-                            or "……" in "".join(buffer)  # 开始下载..... & 加载中.....
-                            or "INFO " in "".join(buffer)
-                            or "WARN" in "".join(buffer)
-                            or "ERROR" in "".join(buffer)
-                            or "⚡  " in "".join(buffer)
-                        )
+                        update_condition: bool = "\r\n" in "".join(buffer)
 
                     if update_condition:
                         output_text += "".join(buffer)
@@ -285,14 +278,22 @@ def run_parser(command: list[str]) -> YuttoParseResult:
     except Exception as e:
         pass
     finally:
-        try:
+        if debug:
             st.session_state.is_running = False
+            print([output_text])
+            print(output_text)
             st.session_state[key].append(parser.result["episodes"][show_index])
             st.session_state[runner_keys["video_name"]] = parser.result["video_name"]
             show_index += 1
-            show_card_container(st.session_state[key][-1], show_index)
-        except Exception as e:
-            st.session_state[runner_keys["runtime_error"]] = output_text if output_text else str(e)
+        else:
+            try:
+                st.session_state.is_running = False
+                st.session_state[key].append(parser.result["episodes"][show_index])
+                st.session_state[runner_keys["video_name"]] = parser.result["video_name"]
+                show_index += 1
+                show_card_container(st.session_state[key][-1], show_index)
+            except Exception as e:
+                st.session_state[runner_keys["runtime_error"]] = output_text if output_text else str(e)
 
     return parser.result
 
