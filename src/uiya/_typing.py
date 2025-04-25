@@ -23,7 +23,6 @@ class CommandStatus(TypedDict):
     """Command Status"""
 
     url: str
-    tmp_dir: str  # https://www.bilibili.com/video/BV1vZ4y1M7mQ?p=2 和 https://www.bilibili.com/video/BV1vZ4y1M7mQ?p=1 分两次下载会被视为同一个视频(因为大标题一样),所以这里暂时先用 tmp_dir / time.time() 来区分
     batch_download: bool
     require_video: bool
     require_audio: bool
@@ -41,7 +40,6 @@ class CommandStatus(TypedDict):
 
 full_status: CommandStatus = {
     "url": "https://example.com/video123",
-    "tmp_dir": "./cache",
     "batch_download": False,
     "require_video": True,
     "require_audio": True,

@@ -89,7 +89,7 @@ class CommandGenerator:
     video_quality: VideoQuality = "360P 流畅"
     audio_quality: AudioQuality = "320kbps"
 
-    tmp_dir: str = "./cache"
+    tmp_dir: str = "./.cache"
 
     # ========== 这些是从 uiya.toml 中读取，或者作为UI设置中保持的值
     uiya_setting: UiyaSetting = field(default_factory=lambda: load_settings_file("uiya.toml", UiyaSetting))
@@ -115,7 +115,7 @@ class CommandGenerator:
         else:
             self.args = ["uv", "run", "yutto", self.url]
 
-        tmp_dir = Path("./cache")
+        tmp_dir = Path("./.cache")
         current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
         tmp_dir = tmp_dir / current_time
         self.tmp_dir = str(tmp_dir)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import streamlit as st
 from pathlib import Path
+from natsort import natsorted
 
 from uiya._dataclass import CommandGenerator
 from uiya._session_keys import runner_keys, yutto_uiya_keys
@@ -15,6 +16,8 @@ from uiya.utils.runner import (
     select_card_container,
     show_interatable_card_container,
 )
+
+
 
 
 if yutto_uiya_keys["save"] in st.session_state:
@@ -49,9 +52,10 @@ if runner_keys["runtime_error"] not in st.session_state:
 def downloader(download_urls: list[str], video_quality: list[VideoQuality], audio_quality: list[AudioQuality]) -> None:
     settings = load_settings_file("uiya.toml", UiyaSetting)
     download_dir = settings.download_dir
+    video_name = st.session_state[runner_keys["video_name"]]
     columns = st.columns([1, 1, 1, 1])
-    audio_quality = sorted(audio_quality)
-    video_quality = sorted(video_quality)
+    audio_quality = natsorted(audio_quality)
+    video_quality = natsorted(video_quality)
     with columns[0]:
         require_video = st.checkbox("视频", value=True, key="video")
     with columns[1]:
@@ -66,14 +70,14 @@ def downloader(download_urls: list[str], video_quality: list[VideoQuality], audi
         video = st.selectbox(
             "视频质量",
             video_quality,
-            index=0,
+            index=len(video_quality) - 1,
             key="video_quality",
         )
     with quality_columns[1]:
         audio = st.selectbox(
             "音频质量",
             audio_quality,
-            index=0,
+            index=len(audio_quality) - 1,
             key="audio_quality",
         )
     download_button = st.button(
@@ -95,6 +99,7 @@ def downloader(download_urls: list[str], video_quality: list[VideoQuality], audi
         status["require_metadata"] = require_metadata
         status["video_quality"] = video
         status["audio_quality"] = audio
+        status["no_progress"] = False
         for index,url in enumerate(download_urls):
             episode_info = st.session_state[runner_keys["parse_content"]][index]
             status["url"] = url
@@ -105,9 +110,9 @@ def downloader(download_urls: list[str], video_quality: list[VideoQuality], audi
             # 把资源从 tmp_dir 中捞出来
             tmp_dir = Path(command_generator.tmp_dir)
             if tmp_dir.exists():
-                download_dir = Path(download_dir)
-                download_dir = download_dir / st.session_state[runner_keys["video_name"]]
+                download_dir = Path(download_dir) / video_name
                 download_dir.mkdir(parents=True, exist_ok=True)
+                print(download_dir)
                 for file in tmp_dir.iterdir():
                     if file.is_file():
                         new_file_name = f"{episode_info['title']}"
@@ -116,6 +121,13 @@ def downloader(download_urls: list[str], video_quality: list[VideoQuality], audi
                         # 移动到指定目录 dwonload_dir 并且覆盖同名文件如果存在
                         new_file_path.replace(download_dir / new_file_path.name)
                         st.success(f"文件已保存到: {download_dir / new_file_path.name}")
+            output_placeholder.code("", language="bash")
+            # 删除 tmp_dir
+            if tmp_dir.exists():
+                for file in tmp_dir.iterdir():
+                    if file.is_file():
+                        file.unlink()
+                tmp_dir.rmdir()
 
 
 
