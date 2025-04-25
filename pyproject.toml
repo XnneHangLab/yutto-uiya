@@ -8,13 +8,13 @@ dependencies = [
     "pydantic>=2.10.6",
     "tomli_w==1.2.0",
     "streamlit==1.43.2",
-
     # special
     #"yutto==2.0.3",
     "yutto",
     "httpx[http2,socks]>=0.28.1",
     "pexpect==4.9.0;sys_platform!='win32'",
     "wexpect-uv==0.0.2;sys_platform=='win32'",
+    "natsort>=8.4.0",
 ]
 authors = [{ name = "MrXnneHang", email = "XnneHang@gmail.com" }]
 keywords = []
