@@ -10,6 +10,7 @@ runner_keys: RunnerKeys = {
     "select_p": "select_p",
     "click_p": "click_p",
     "parse_content": "parse_content",
+    "video_name": "video_name",
     "parse_command_status": "parse_command_status",
     "download_content": "download_content",
     "is_running": "is_running",

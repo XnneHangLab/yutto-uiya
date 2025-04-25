@@ -2,15 +2,14 @@ from __future__ import annotations
 
 from typing import Any, Literal, TypedDict
 
-TargetType = Literal["bangumi", "video", "video_list", "collection", "favor", "space"]
 VideoQuality = Literal[
-    "360p 流畅",
-    "480p 清晰",
-    "720p 高清",
-    "720p 60帧",
-    "1080p 高清",
-    "1080p 高码率",
-    "1080p 60帧",
+    "360P 流畅",
+    "480P 清晰",
+    "720P 高清",
+    "720P 60帧",
+    "1080P 高清",
+    "1080P 高码率",
+    "1080P 60帧",
     "4K 超清",
     "HDR 真彩",
     "杜比视界",
@@ -23,13 +22,9 @@ AudioQuality = Literal["64kbps", "128kbps", "320kbps", "杜比全景声", "杜�
 class CommandStatus(TypedDict):
     """Command Status"""
 
-    target_type: TargetType
     url: str
-    batch_download: (
-        bool  # bangumi:True, video: False, video_list: True, collection: True, Favor: True, bangumi_list: True
-    )
-    support_select: bool  # bangumi: True, video: False, video_list: True, collection: False, space: False, Favor: False, bangumi_list: False
-    selected_p: str | None  # Optional
+    tmp_dir: str  # https://www.bilibili.com/video/BV1vZ4y1M7mQ?p=2 和 https://www.bilibili.com/video/BV1vZ4y1M7mQ?p=1 分两次下载会被视为同一个视频(因为大标题一样),所以这里暂时先用 tmp_dir / time.time() 来区分
+    batch_download: bool
     require_video: bool
     require_audio: bool
     require_danmaku: bool
@@ -44,12 +39,10 @@ class CommandStatus(TypedDict):
     audio_quality: AudioQuality
 
 
-bangumi_status: CommandStatus = {
-    "target_type": "bangumi",
-    "batch_download": True,
-    "support_select": True,
+full_status: CommandStatus = {
     "url": "https://example.com/video123",
-    "selected_p": None,
+    "tmp_dir": "./cache",
+    "batch_download": False,
     "require_video": True,
     "require_audio": True,
     "require_danmaku": True,
@@ -60,7 +53,7 @@ bangumi_status: CommandStatus = {
     "parse_mode": True,
     "no_color": False,
     "no_progress": True,
-    "video_quality": "360p 流畅",
+    "video_quality": "360P 流畅",
     "audio_quality": "320kbps",
 }
 
@@ -108,6 +101,7 @@ class RunnerKeys(TypedDict):
     select_p: str  # 被选中的解析卡片 index, list[int]
     click_p: str  # 被点击的解析卡片 index,  int
     parse_content: str  # 解析的卡片 content , list[dict], EpisodeInfo
+    video_name: str # 整个视频的名称
     download_content: str  # 下载 output, 和终端保持一致
     parse_command_status: str  # 解析 CommandStatus 格式
     is_running: str  # 是否正在运行

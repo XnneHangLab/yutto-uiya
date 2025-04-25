@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import streamlit as st
+from pathlib import Path
 
 from uiya._dataclass import CommandGenerator
 from uiya._session_keys import runner_keys, yutto_uiya_keys
-from uiya._typing import AudioQuality, EpisodeInfo, VideoQuality, bangumi_status
+from uiya._typing import AudioQuality, EpisodeInfo, VideoQuality, full_status, YuttoParseResult
 from uiya.styles.global_style import style
 from uiya.utils.config import UiyaSetting, get_setting_title, load_settings_file, write_settings_file
 from uiya.utils.runner import (
@@ -14,6 +15,7 @@ from uiya.utils.runner import (
     select_card_container,
     show_interatable_card_container,
 )
+
 
 if yutto_uiya_keys["save"] in st.session_state:
     st.toast("参数已成功保存", icon=":material/verified:")
@@ -42,27 +44,36 @@ if runner_keys["click_p"] not in st.session_state:
 if runner_keys["runtime_error"] not in st.session_state:
     st.session_state[runner_keys["runtime_error"]] = ""
 
-@st.dialog
-def downloader(download_urls:list[str],video_quality:list[VideoQuality],audio_quality:list[AudioQuality]) -> None:
-    columns = st.columns([1,1,1,1,4,4])
+
+@st.dialog("下载选项")
+def downloader(download_urls: list[str], video_quality: list[VideoQuality], audio_quality: list[AudioQuality]) -> None:
+    settings = load_settings_file("uiya.toml", UiyaSetting)
+    download_dir = settings.download_dir
+    columns = st.columns([1, 1, 1, 1])
+    audio_quality = sorted(audio_quality)
+    video_quality = sorted(video_quality)
     with columns[0]:
-        st.checkbox("视频", value=True, key="video")
+        require_video = st.checkbox("视频", value=True, key="video")
     with columns[1]:
-        st.checkbox("音频", value=True, key="audio")
+        require_audio = st.checkbox("音频", value=True, key="audio")
     with columns[2]:
-        st.checkbox("弹幕", value=False, key="danmaku")
+        require_danmuku = st.checkbox("弹幕", value=False, key="danmaku")
     with columns[3]:
-        st.checkbox("封面", value=False, key="cover")
-    with columns[4]:
-        st.selectbox("视频质量",
+        require_metadata = st.checkbox("meta数据", value=False, key="metadata")
+
+    quality_columns = st.columns([1, 1])
+    with quality_columns[0]:
+        video = st.selectbox(
+            "视频质量",
             video_quality,
-            index=video_quality.index(st.session_state.get("video_quality", "360p 流畅")),
+            index=0,
             key="video_quality",
         )
-    with columns[5]:
-        st.selectbox("音频质量",
+    with quality_columns[1]:
+        audio = st.selectbox(
+            "音频质量",
             audio_quality,
-            index=audio_quality.index(st.session_state.get("audio_quality", "320kbps")),
+            index=0,
             key="audio_quality",
         )
     download_button = st.button(
@@ -71,8 +82,40 @@ def downloader(download_urls:list[str],video_quality:list[VideoQuality],audio_qu
         disabled=st.session_state.get(yutto_uiya_keys["is_running"], False),
         type="primary",
     )
+    output_placeholder = st.empty()
     if download_button:
-        pass
+        status = full_status
+        command_generator = CommandGenerator(full_status["url"])  # 占位, 这里还没开始下载
+        status["batch_download"] = False
+        status["parse_mode"] = False
+        status["require_video"] = require_video
+        status["require_audio"] = require_audio
+        status["require_cover"] = False  # TODO 暂时放弃 cover , 因为 cover 会存在大量重复
+        status["require_danmaku"] = require_danmuku
+        status["require_metadata"] = require_metadata
+        status["video_quality"] = video
+        status["audio_quality"] = audio
+        for index,url in enumerate(download_urls):
+            episode_info = st.session_state[runner_keys["parse_content"]][index]
+            status["url"] = url
+            command_generator = command_generator.from_status(status)  # 通过from_status来初始化
+            command = command_generator.gen_args()
+            run_downloader(command=command, output_placeholder=output_placeholder)
+            st.session_state[yutto_uiya_keys["is_running"]] = True
+            # 把资源从 tmp_dir 中捞出来
+            tmp_dir = Path(command_generator.tmp_dir)
+            if tmp_dir.exists():
+                download_dir = Path(download_dir)
+                download_dir = download_dir / st.session_state[runner_keys["video_name"]]
+                download_dir.mkdir(parents=True, exist_ok=True)
+                for file in tmp_dir.iterdir():
+                    if file.is_file():
+                        new_file_name = f"{episode_info['title']}"
+                        new_file_path = file.with_name(f"{new_file_name}{file.suffix}")
+                        file.rename(new_file_path)
+                        # 移动到指定目录 dwonload_dir 并且覆盖同名文件如果存在
+                        new_file_path.replace(download_dir / new_file_path.name)
+                        st.success(f"文件已保存到: {download_dir / new_file_path.name}")
 
 
 
@@ -92,11 +135,11 @@ def bangumi_tab() -> None:
     if run_btn and not st.session_state[yutto_uiya_keys["is_running"]]:
         st.session_state[yutto_uiya_keys["is_running"]] = True
 
-        status = bangumi_status
-        # 任务默认参数
-        status.update({"target_type": "bangumi"})
+        status = full_status
         # 用户自定义参数,由 UI 传入
-        status.update({"url": url})
+        status["url"] = url
+        status["batch_download"] = True
+        status["parse_mode"] = True
         if parse_status(status, output_placeholder=output_placeholder):  # 解析状态
             command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
             command = command_generator.gen_args()
@@ -133,11 +176,11 @@ def bangumi_tab() -> None:
             language="bash",
         )
     if st.session_state[runner_keys["select_p"]]:
-        download_urls:list[str] = []
-        audio_quality:list[AudioQuality] = []
-        video_quality:list[VideoQuality] = []
+        download_urls: list[str] = []
+        audio_quality: list[AudioQuality] = []
+        video_quality: list[VideoQuality] = []
         for i in st.session_state[runner_keys["select_p"]]:
-            episode_info:EpisodeInfo = st.session_state[runner_keys["parse_content"]][i]
+            episode_info: EpisodeInfo = st.session_state[runner_keys["parse_content"]][i]
             download_urls.append(episode_info["link"])
             audio_quality.extend(episode_info["audio_quality_list"])
             video_quality.extend(episode_info["video_quality_list"])
@@ -153,9 +196,7 @@ def bangumi_tab() -> None:
             type="primary",
         )
         if download_button:
-            downloader(download_urls,video_quality,audio_quality)
-
-
+            downloader(download_urls, video_quality, audio_quality)
 
 
 def setting_tab() -> None:

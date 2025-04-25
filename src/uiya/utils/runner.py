@@ -44,6 +44,8 @@ if runner_keys["is_running"] not in st.session_state:
     st.session_state[runner_keys["is_running"]] = False
 if runner_keys["runtime_error"] not in st.session_state:
     st.session_state[runner_keys["runtime_error"]] = ""
+if runner_keys["video_name"] not in st.session_state:
+    st.session_state[runner_keys["video_name"]] = ""
 
 
 def parse_status(status: CommandStatus, output_placeholder: DeltaGenerator) -> bool:
@@ -80,7 +82,6 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
         命令执行的退出状态码，如果无法获取则返回 None
     """
     st.session_state[runner_keys["click_p"]] = None
-    st.session_state[runner_keys["parse_content"]] = []
     st.session_state[runner_keys["runtime_error"]] = ""
     output_key = runner_keys["download_content"]
     # 显示初始空输出
@@ -212,6 +213,7 @@ def run_parser(command: list[str]) -> YuttoParseResult:
     st.session_state[runner_keys["click_p"]] = None
     st.session_state[runner_keys["parse_content"]] = []
     st.session_state[runner_keys["runtime_error"]] = ""
+    st.session_state[runner_keys["video_name"]] = ""
     buffer: list[str] = []
     output_text = ""
 
@@ -286,6 +288,7 @@ def run_parser(command: list[str]) -> YuttoParseResult:
         try:
             st.session_state.is_running = False
             st.session_state[key].append(parser.result["episodes"][show_index])
+            st.session_state[runner_keys["video_name"]] = parser.result["video_name"]
             show_index += 1
             show_card_container(st.session_state[key][-1], show_index)
         except Exception as e:

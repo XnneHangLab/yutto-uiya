@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from uiya._dictionary import emoji
 
 if TYPE_CHECKING:
-    from uiya._typing import YuttoParseResult,VideoQuality,AudioQuality
+    from uiya._typing import AudioQuality, VideoQuality, YuttoParseResult
 
 
 def clean_ouput(output: str):
@@ -184,14 +184,14 @@ class YuttoOutputParser:
             if self.current_type == "video_quality_list":
                 quality_match = re.search(r"<([^>]*)>", line)
                 if quality_match:
-                    quality:VideoQuality = quality_match.group(1).strip() # type: ignore
+                    quality: VideoQuality = quality_match.group(1).strip()  # type: ignore
                     self.current_value = quality
                     self.result["episodes"][self.current_index][self.current_type].append(self.current_value)
             # 处理音频流
             if self.current_type == "audio_quality_list":
                 bitrate_match = re.search(r"<([^>]*)>", line)
                 if bitrate_match:
-                    bitrate:AudioQuality = bitrate_match.group(1).strip() # type:ignore
+                    bitrate: AudioQuality = bitrate_match.group(1).strip()  # type:ignore
                     self.current_value = bitrate
                     self.result["episodes"][self.current_index][self.current_type].append(self.current_value)
 
