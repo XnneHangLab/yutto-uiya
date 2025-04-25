@@ -5,7 +5,9 @@ start:
 
 dev:
     rm -rf packages/yutto/dist
+    rm -rf packages/wexpect-uv/dist
     uv build packages/yutto
+    uv build packages/wexpect-uv
     uv lock
     uv sync --no-cache
     uv run streamlit run src/uiya/yutto_uiya.py
