@@ -266,6 +266,7 @@ def run_parser(command: list[str], debug:bool = False) -> YuttoParseResult:
                         output_text += "".join(buffer)
                         parser.parse_line("".join(buffer))
                         current_index = parser.current_index
+                    print("进程结束")
                     break
 
             except Exception as e:
@@ -276,7 +277,7 @@ def run_parser(command: list[str], debug:bool = False) -> YuttoParseResult:
         child.close()  # type:ignore
 
     except Exception as e:
-        pass
+        print(e)
     finally:
         if debug:
             st.session_state.is_running = False
