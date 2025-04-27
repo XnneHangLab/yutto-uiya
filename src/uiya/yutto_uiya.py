@@ -47,6 +47,9 @@ if runner_keys["click_p"] not in st.session_state:
 if runner_keys["runtime_error"] not in st.session_state:
     st.session_state[runner_keys["runtime_error"]] = ""
 
+if runner_keys["download_content"] not in st.session_state:
+    st.session_state[runner_keys["download_content"]] = ""
+
 
 @st.dialog("下载选项")
 def downloader(download_urls: list[str], video_quality: list[VideoQuality], audio_quality: list[AudioQuality]) -> None:

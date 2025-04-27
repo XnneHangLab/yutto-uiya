@@ -39,7 +39,7 @@ def clean_ouput(output: str):
 
     # Add line break for process line
     if "━━━" in output:
-        output = output + "\n"
+        output = output + "\n" if platform.system() != "windows" else output + "\r\n"
     return output
 
 

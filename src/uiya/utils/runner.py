@@ -113,11 +113,8 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
                     current_time: float = time.time()
                     update_condition: bool = (
                         (char == "\n")
-                        or "……" in "".join(buffer)  # 开始下载..... & 加载中.....
-                        or "INFO " in "".join(buffer)
-                        or "WARN" in "".join(buffer)
-                        or "ERROR" in "".join(buffer)
-                        or "⚡  " in "".join(buffer)
+                        or ("⚡\x1b[0m" in "".join(buffer))
+                        or ("[/s\x1b[0m" in "".join(buffer))
                     )
 
                     if update_condition:
