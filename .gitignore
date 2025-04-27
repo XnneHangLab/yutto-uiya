@@ -136,3 +136,7 @@ chromedriver-linux64/
 # packages
 
 packages/
+
+
+# wexpect
+wexpect_log

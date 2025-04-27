@@ -13,7 +13,7 @@ dependencies = [
     "yutto",
     "httpx[http2,socks]>=0.28.1",
     "pexpect==4.9.0;sys_platform!='win32'",
-    # "wexpect-uv==0.0.2;sys_platform=='win32'",
+    # "wexpect-uv==0.0.4;sys_platform=='win32'",
     "wexpect-uv;sys_platform=='win32'",
     "natsort>=8.4.0",
 ]
@@ -48,10 +48,11 @@ dev = [
 
 [project.scripts]
 test = "uiya.test:main"
+tmp = "uiya.tmp:main"
 
 [tool.uv.sources]
 yutto = { path = "./packages/yutto/dist/yutto-2.0.3-py3-none-any.whl"}
-wexpect-uv = {path="./packages/wexpect-uv/dist/wexpect_uv-0.0.2-py3-none-any.whl"}
+wexpect-uv = {path="./packages/wexpect-uv/dist/wexpect_uv-0.0.4-py3-none-any.whl"}
 
 [tool.pyright]
 include = ["src/uiya"]
