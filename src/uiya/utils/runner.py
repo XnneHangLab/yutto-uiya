@@ -106,34 +106,23 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
                 if index == 0:  # 读取到一个字符
                     char: str = str(child.after)  # type: ignore[assignment]
                     buffer.append(char)
-
-                    # 如果是unix-like,直接输出到终端，如果是windows,则需要先处理一下。
-                    if os != "windows":
-                        sys.stdout.write(char)
+                    sys.stdout.write(char)
                     sys.stdout.flush()
 
                     # 定期更新界面
                     current_time: float = time.time()
-                    if os != "windows":
-                        update_condition: bool = (
-                            char == "\n" or "/s\x1b[0m" in "".join(buffer) or "/⚡\x1b[0m" in "".join(buffer)
-                        )
-                    else:
-                        update_condition: bool = (
-                            (char == "\n")
-                            or "……" in "".join(buffer)  # 开始下载..... & 加载中.....
-                            or "INFO " in "".join(buffer)
-                            or "WARN" in "".join(buffer)
-                            or "ERROR" in "".join(buffer)
-                            or "⚡  " in "".join(buffer)
-                        )
+                    update_condition: bool = (
+                        (char == "\n")
+                        or "……" in "".join(buffer)  # 开始下载..... & 加载中.....
+                        or "INFO " in "".join(buffer)
+                        or "WARN" in "".join(buffer)
+                        or "ERROR" in "".join(buffer)
+                        or "⚡  " in "".join(buffer)
+                    )
 
                     if update_condition:
                         output_text += "".join(buffer)
                         output = clean_ouput("".join(buffer))
-                        if os == "windows":
-                            if output:  # if != ""
-                                print(output)
                         st.session_state[output_key] += output
                         buffer = []
                         last_update_time = current_time
@@ -234,14 +223,11 @@ def run_parser(command: list[str], debug:bool = False) -> YuttoParseResult:
                     buffer.append(char)
 
                     # 如果是unix-like,直接输出到终端，如果是windows,则需要先处理一下。
-                    if os != "windows":
-                        sys.stdout.write(char)
+                    sys.stdout.write(char)
                     sys.stdout.flush()
 
-                    if os != "windows":
-                        update_condition: bool = "\r\n" in "".join(buffer)
-                    else:
-                        update_condition: bool = "\r\n" in "".join(buffer)
+
+                    update_condition: bool = "\r\n" in "".join(buffer)
 
                     if update_condition:
                         output_text += "".join(buffer)
@@ -266,26 +252,28 @@ def run_parser(command: list[str], debug:bool = False) -> YuttoParseResult:
                         output_text += "".join(buffer)
                         parser.parse_line("".join(buffer))
                         current_index = parser.current_index
-                    print("进程结束")
                     break
 
             except Exception as e:
-                print(e)
+                error_msg: str = f"\n循环内部出现错误: {e}\n"
+                print(error_msg, file=sys.stderr)
                 break
 
         # 获取退出状态
         child.close()  # type:ignore
 
     except Exception as e:
-        print(e)
+        error_msg: str = f"\n发生错误: {e}\n"
+        print(error_msg, file=sys.stderr)
     finally:
         if debug:
             st.session_state.is_running = False
             print([output_text])
-            print(output_text)
+            print([parser.result])
             st.session_state[key].append(parser.result["episodes"][show_index])
             st.session_state[runner_keys["video_name"]] = parser.result["video_name"]
             show_index += 1
+            show_card_container(st.session_state[key][-1], show_index)
         else:
             try:
                 st.session_state.is_running = False

@@ -116,7 +116,7 @@ def downloader(download_urls: list[str], video_quality: list[VideoQuality], audi
                 for file in tmp_dir.iterdir():
                     if file.is_file():
                         new_file_name = f"{episode_info['title']}"
-                        new_file_path = file.with_name(f"{new_file_name}{file.suffix}")
+                        new_file_path = file.with_name(f"{new_file_name}{file.suffix}".replace("\r", ""))
                         file.rename(new_file_path)
                         # 移动到指定目录 dwonload_dir 并且覆盖同名文件如果存在
                         new_file_path.replace(download_dir / new_file_path.name)
