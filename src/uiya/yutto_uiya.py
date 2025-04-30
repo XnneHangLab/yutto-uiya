@@ -85,6 +85,7 @@ def downloader(download_urls: list[str], video_quality: list[VideoQuality], audi
     download_button = st.button(
         "开始下载",
         use_container_width=True,
+        disabled=st.session_state[yutto_uiya_keys["is_running"]],
         type="primary",
     )
     output_placeholder = st.empty()
@@ -122,13 +123,15 @@ def downloader(download_urls: list[str], video_quality: list[VideoQuality], audi
                         # 移动到指定目录 dwonload_dir 并且覆盖同名文件如果存在
                         new_file_path.replace(download_dir / new_file_path.name)
                         st.success(f"文件已保存到: {download_dir / new_file_path.name}")
-            # output_placeholder.code("", language="bash")
+            output_placeholder.code("", language="bash")
             # 删除 tmp_dir
             if tmp_dir.exists():
                 for file in tmp_dir.iterdir():
                     if file.is_file():
                         file.unlink()
                 tmp_dir.rmdir()
+        st.session_state[yutto_uiya_keys["is_running"]] = False
+        st.rerun()
 
 
 
@@ -141,11 +144,11 @@ def bangumi_tab() -> None:
             url = st.text_input("URL", key="bangumi_url", placeholder="请输入番剧链接", label_visibility="collapsed")
         with parse_btn_col:
             parse_btn = st.form_submit_button(
-                "单集解析", use_container_width=True
+                "单集解析", use_container_width=True,disabled=st.session_state[yutto_uiya_keys["is_running"]]
             )
         with batch_parse_btn_col:
             batch_parse_btn = st.form_submit_button(
-                "全集解析", use_container_width=True
+                "全集解析", use_container_width=True,disabled=st.session_state[yutto_uiya_keys["is_running"]]
             )
     output_placeholder = st.empty()
     if batch_parse_btn and not st.session_state[yutto_uiya_keys["is_running"]]:
@@ -179,6 +182,9 @@ def bangumi_tab() -> None:
             st.rerun()
         else:
             st.session_state[yutto_uiya_keys["is_running"]] = False
+
+    if st.session_state[yutto_uiya_keys["is_running"]]:
+        print("正在运行")
 
     if st.session_state[runner_keys["parse_content"]]:
         # 去掉完全相同的元素
