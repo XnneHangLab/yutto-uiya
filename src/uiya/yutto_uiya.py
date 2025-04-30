@@ -1,454 +1,247 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import streamlit as st
+from natsort import natsorted
 
 from uiya._dataclass import CommandGenerator
-from uiya._typing import AudioQuality, VideoQuality, bangumi_status, video_status
+from uiya._session_keys import runner_keys, yutto_uiya_keys
+from uiya._typing import (
+    AudioQuality,
+    EpisodeInfo,
+    VideoQuality,
+    full_status,
+)
 from uiya.styles.global_style import style
 from uiya.utils.config import UiyaSetting, get_setting_title, load_settings_file, write_settings_file
-from uiya.utils.runner import parse_status, run_command
+from uiya.utils.runner import (
+    parse_status,
+    run_downloader,
+    run_parser,
+    select_card_container,
+    show_interatable_card_container,
+)
 
-if "save" in st.session_state:
+if yutto_uiya_keys["save"] in st.session_state:
     st.toast("参数已成功保存", icon=":material/verified:")
-    del st.session_state["save"]
+    del st.session_state[yutto_uiya_keys["save"]]
+
+if yutto_uiya_keys["flush"] in st.session_state:
+    del st.session_state[yutto_uiya_keys["flush"]]
+    st.rerun()
 
 
-# Get video and audio quality choices
-video_quality_choice: list[str] = list(VideoQuality.__args__)  # type: ignore
-audio_quality_choice: list[str] = list(AudioQuality.__args__)  # type: ignore
-
-
-if "is_running" not in st.session_state:
+if yutto_uiya_keys["is_running"] not in st.session_state:
     st.session_state.is_running = False
 
-if "save" in st.session_state:
+if yutto_uiya_keys["save"] in st.session_state:
     st.toast("参数已成功保存", icon=":material/verified:")
-    del st.session_state["save"]
+    del st.session_state[yutto_uiya_keys["save"]]
+
+# 这些在 import 时就会被初始化,需要保证它和 import 时的那个保持一致.
+# 之所以这里再写一次是为了防止有时刷新网页后丢失了必要的数据
+if runner_keys["parse_content"] not in st.session_state:
+    st.session_state[runner_keys["parse_content"]] = []
+if runner_keys["select_p"] not in st.session_state:
+    st.session_state[runner_keys["select_p"]] = []
+if runner_keys["click_p"] not in st.session_state:
+    st.session_state[runner_keys["click_p"]] = None
+if runner_keys["runtime_error"] not in st.session_state:
+    st.session_state[runner_keys["runtime_error"]] = ""
+
+if runner_keys["download_content"] not in st.session_state:
+    st.session_state[runner_keys["download_content"]] = ""
 
 
-# 在你的应用中使用
-def single_video_tab():
-    SingleUser = st.container(border=True)
-    with SingleUser:
-        st.markdown("""
-        ## 对正在播放用户投稿视频下载（单视频，或者多视频的p1）
-        示例链接🔗:
-        - [https://www.bilibili.com/video/BV1vZ4y1M7mQ](https://www.bilibili.com/video/BV1vZ4y1M7mQ)
+@st.dialog(title="下载选项", width="large")
+def downloader(
+    download_urls: list[str],
+    video_quality: list[VideoQuality],
+    audio_quality: list[AudioQuality],
+    need_sort: bool = True,
+) -> None:
+    settings = load_settings_file("uiya.toml", UiyaSetting)
+    download_dir = settings.download_dir
+    video_name = st.session_state[runner_keys["video_name"]]
+    columns = st.columns([1, 1, 1, 1])
+    if need_sort:
+        audio_quality = natsorted(audio_quality)
+        video_quality = natsorted(video_quality)
+    with columns[0]:
+        require_video = st.checkbox("视频", value=True, key="video")
+    with columns[1]:
+        require_audio = st.checkbox("音频", value=True, key="audio")
+    with columns[2]:
+        require_danmuku = st.checkbox("弹幕", value=False, key="danmaku")
+    with columns[3]:
+        require_metadata = st.checkbox("meta数据", value=False, key="metadata")
 
-        用法：
-        - 输入框URL: 必填，输入想要下载的的视频链接
-        - 资源选择: 可以单独选择或者组合选择。只选择画面则下载视频没有声音。
-        - 清晰度: 如果不存在指定的清晰度或者该清晰度不具有访问权限，那么会降低清晰度进行下载，更高清晰度需要大会员。大会员需要填写`configs/args.yaml`中的SESS_DATA并且用户自身具有大会员权限。
-        - 音频质量: 同清晰度。不用多说了哈。
-        - Debug Mode: 如果碰到Bug,可以开启Debug Mode,然后截图终端的信息以及结果框反馈给我。
-        """)
-
-        url = st.text_input("URL (视频网址，详细见参考链接)")
-
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            require_video = st.checkbox("画面", value=True)
-        with col2:
-            require_audio = st.checkbox("音频", value=True)
-        with col3:
-            require_danmaku = st.checkbox("弹幕", value=False)
-        with col4:
-            require_cover = st.checkbox("封面", value=False)
-
-        debug_mode = st.checkbox("Debug Mode", value=False)
-
-        col1, col2 = st.columns(2)
-        with col1:
-            video_quality: VideoQuality = st.selectbox(
-                "清晰度",
-                options=video_quality_choice,
-                index=4,
-                help="选择你想要的清晰度(视频具有该资源并且你有访问权限,否则自动降级)",
-            )  # type: ignore
-        with col2:
-            audio_quality: AudioQuality = st.selectbox(
-                "音频质量",
-                options=audio_quality_choice,
-                index=2,
-                help="选择你想要的音频质量(视频具有该资源并且你有访问权限,否则自动降级)",
-            )  # type: ignore
-        # 初始化运行状态
-        if "is_running" not in st.session_state:
-            st.session_state.is_running = False
-
-        # 禁用按钮如果已经在运行
-        run_btn = st.button(
-            "开始下载", key="single_video_button", disabled=st.session_state.is_running, use_container_width=True
+    quality_columns = st.columns([1, 1])
+    with quality_columns[0]:
+        video = st.selectbox(
+            "视频质量",
+            video_quality,
+            index=len(video_quality) - 1,
+            key="video_quality",
         )
-
-        if run_btn and not st.session_state.is_running:
-            st.session_state.is_running = True
-
-            status = video_status
-            # 任务默认参数
-            status.update({"target_type": "video"})
-            status.update({"batch_download": False})
-            status.update({"support_select": False})
-
-            # 用户自定义参数,由 UI 传入
-            status.update({"url": url})
-            status.update({"require_video": require_video})
-            status.update({"require_audio": require_audio})
-            status.update({"require_danmaku": require_danmaku})
-            status.update({"require_cover": require_cover})
-            status.update({"debug_mode": debug_mode})
-            status.update({"video_quality": video_quality})
-            status.update({"audio_quality": audio_quality})
-
-            output_placeholder = st.empty()
-            if parse_status(status, key_name="single_video_parse", output_placeholder=output_placeholder):  # 解析状态
-                command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
-                command = command_generator.gen_args()
-                # 使用特定的key名称
-                run_command(command, key_name="single_video_output", output_placeholder=output_placeholder)
-            else:
-                st.session_state.is_running = False
-
-
-def video_list_tab() -> None:
-    """UI for downloading a list of videos."""
-    VideoList = st.container(border=True)
-    with VideoList:
-        st.markdown("""
-        ## 对正在播放用户投稿视频下载：(支持多p,不指定默认全下)
-        示例链接🔗:
-        - [https://www.bilibili.com/video/BV1vZ4y1M7mQ](https://www.bilibili.com/video/BV1vZ4y1M7mQ)
-
-        用法：
-        - 输入框URL: 必填，输入正在播放的视频链接
-        - 选集: 选填，选择要下载的p,支持写法`1,2,3`或`1~3`,全部下载`1~-1`,可以自己探索一下。不填写默认下载全部。
-        - 资源选择： 参见用户视频-单个视频的说明。
-        - 清晰度： 参见用户视频-单个视频的说明。
-        - 音频质量： 参见用户视频-单个视频的说明。
-        - Debug Mode: 如果碰到Bug,可以开启Debug Mode,然后重复运行复现问题最后截图终端的信息以及结果框反馈给我。
-        """)
-
-        url = st.text_input("URL (视频网址，详细见参考链接)", key="video_list_url")
-        select_p = st.text_input("选集 (输入比如这样的,1,2,3 or 1~3 or 1~-1,注意英文逗号分隔)", value="1~-1")
-
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            require_video = st.checkbox("画面", value=True, key="video_list_video")
-        with col2:
-            require_audio = st.checkbox("音频", value=True, key="video_list_audio")
-        with col3:
-            require_danmaku = st.checkbox("弹幕", value=False, key="video_list_danmaku")
-        with col4:
-            require_cover = st.checkbox("封面", value=False, key="video_list_cover")
-
-        debug_mode = st.checkbox("Debug Mode", value=False, key="video_list_debug")
-
-        col1, col2 = st.columns(2)
-        with col1:
-            video_quality: VideoQuality = st.selectbox(
-                "清晰度",
-                options=video_quality_choice,
-                index=4,
-                key="video_list_quality",
-                help="选择你想要的清晰度(视频具有该资源并且你有访问权限,否则自动降级)",
-            )  # type: ignore
-        with col2:
-            audio_quality: AudioQuality = st.selectbox(
-                "音频质量",
-                options=audio_quality_choice,
-                index=2,
-                key="video_list_audio_quality",
-                help="选择你想要的音频质量(视频具有该资源并且你有访问权限,否则自动降级)",
-            )  # type: ignore
-
-        # 禁用按钮如果已经在运行
-        run_btn = st.button(
-            "开始下载", key="video_list_button", disabled=st.session_state.is_running, use_container_width=True
+    with quality_columns[1]:
+        audio = st.selectbox(
+            "音频质量",
+            audio_quality,
+            index=len(audio_quality) - 1,
+            key="audio_quality",
         )
-
-        if run_btn and not st.session_state.is_running:
-            st.session_state.is_running = True
-
-            status = video_status
-            # 任务默认参数
-            status.update({"target_type": "video_list"})
-            status.update({"batch_download": True})
-            status.update({"support_select": True})
-
-            # 用户自定义参数,由 UI 传入
-            status.update({"url": url})
-            status.update({"selected_p": select_p})
-            status.update({"require_video": require_video})
-            status.update({"require_audio": require_audio})
-            status.update({"require_danmaku": require_danmaku})
-            status.update({"require_cover": require_cover})
-            status.update({"debug_mode": debug_mode})
-            status.update({"video_quality": video_quality})
-            status.update({"audio_quality": audio_quality})
-
-            output_placeholder = st.empty()
-            if parse_status(status, key_name="video_list_parse", output_placeholder=output_placeholder):  # 解析状态
-                command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
-                command = command_generator.gen_args()
-
-                # 使用特定的key名称
-                run_command(command, key_name="video_list_output", output_placeholder=output_placeholder)
-            else:
-                st.session_state.is_running = False
-
-
-def favorite_tab() -> None:
-    """UI for downloading from favorites."""
-    FavoriteConatiner = st.container(border=True)
-    with FavoriteConatiner:
-        st.markdown("""
-        ## 对用户整个收藏夹下载：(不支持默认收藏夹，不建议尝试)
-        示例链接🔗:
-        - [https://space.bilibili.com/100969474/favlist?fid=1306978874&ftype=create](https://space.bilibili.com/100969474/favlist?fid=1306978874&ftype=create)
-
-        用法：
-        - 输入框URL: 指定收藏夹地址，参考示例，不支持默认收藏夹。
-        - 资源选择： 参见用户视频-单个视频的说明。
-        - 清晰度： 参见用户视频-单个视频的说明。
-        - 音频质量： 参见用户视频-单个视频的说明。
-        - Debug Mode: 如果碰到Bug,可以开启Debug Mode,然后重复运行复现问题最后截图终端的信息以及结果框反馈给我。
-        """)
-
-        url = st.text_input("URL (视频网址,详细见参考链接)", key="favorite_url")
-
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            require_video = st.checkbox("画面", value=True, key="favorite_video")
-        with col2:
-            require_audio = st.checkbox("音频", value=True, key="favorite_audio")
-        with col3:
-            require_danmaku = st.checkbox("弹幕", value=False, key="favorite_danmaku")
-        with col4:
-            require_cover = st.checkbox("封面", value=False, key="favorite_cover")
-
-        debug_mode = st.checkbox("Debug Mode", value=False, key="favorite_debug")
-
-        col1, col2 = st.columns(2)
-        with col1:
-            video_quality: VideoQuality = st.selectbox(
-                "清晰度",
-                options=video_quality_choice,
-                index=4,
-                key="favorite_quality",
-                help="选择你想要的清晰度(视频具有该资源并且你有访问权限,否则自动降级)",
-            )  # type: ignore
-        with col2:
-            audio_quality: AudioQuality = st.selectbox(
-                "音频质量",
-                options=audio_quality_choice,
-                index=2,
-                key="favorite_audio_quality",
-                help="选择你想要的音频质量(视频具有该资源并且你有访问权限,否则自动降级)",
-            )  # type: ignore
-
-        run_btn = st.button(
-            "开始下载", key="favor_list_button", disabled=st.session_state.is_running, use_container_width=True
-        )
-
-        if run_btn and not st.session_state.is_running:
-            st.session_state.is_running = True
-
-            status = video_status
-            # 任务默认参数
-            status.update({"target_type": "favor"})
-            status.update({"batch_download": True})
-            status.update({"support_select": False})
-
-            # 用户自定义参数,由 UI 传入
-            status.update({"url": url})
-            status.update({"require_video": require_video})
-            status.update({"require_audio": require_audio})
-            status.update({"require_danmaku": require_danmaku})
-            status.update({"require_cover": require_cover})
-            status.update({"debug_mode": debug_mode})
-            status.update({"video_quality": video_quality})
-            status.update({"audio_quality": audio_quality})
-
-            output_placeholder = st.empty()
-            if parse_status(status, key_name="favor_list_parse", output_placeholder=output_placeholder):  # 解析状态
-                command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
-                command = command_generator.gen_args()
-
-                # 使用特定的key名称
-                run_command(command, key_name="favor_list_output", output_placeholder=output_placeholder)
-            else:
-                st.session_state.is_running = False
-
-
-def collection_tab() -> None:
-    """UI for downloading from collections."""
-    CollectionContainer = st.container(border=True)
-    with CollectionContainer:
-        st.markdown("""
-        ## 对用户发布合集下载：（不支持选集，只能全下）
-        示例链接🔗:
-        - [https://space.bilibili.com/100969474/channel/seriesdetail?sid=1947439](https://space.bilibili.com/100969474/channel/seriesdetail?sid=1947439)
-
-        用法：
-        - 输入框URL: 指定合集地址，参考示例
-        - 资源选择： 参见用户视频-单个视频的说明。
-        - 清晰度： 参见用户视频-单个视频的说明。
-        - 音频质量： 参见用户视频-单个视频的说明。
-        - Debug Mode: 如果碰到Bug,可以开启Debug Mode,然后重复运行复现问题最后截图终端的信息以及结果框反馈给我。
-        """)
-
-        url = st.text_input("URL (视频网址,详细见参考链接)", key="collection_url")
-
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            require_video = st.checkbox("画面", value=True, key="collection_video")
-        with col2:
-            require_audio = st.checkbox("音频", value=True, key="collection_audio")
-        with col3:
-            require_danmaku = st.checkbox("弹幕", value=False, key="collection_danmaku")
-        with col4:
-            require_cover = st.checkbox("封面", value=False, key="collection_cover")
-
-        debug_mode = st.checkbox("Debug Mode", value=False, key="collection_debug")
-
-        col1, col2 = st.columns(2)
-        with col1:
-            video_quality: VideoQuality = st.selectbox(
-                "清晰度",
-                options=video_quality_choice,
-                index=4,
-                key="collection_quality",
-                help="选择你想要的清晰度(视频具有该资源并且你有访问权限,否则自动降级)",
-            )  # type: ignore
-        with col2:
-            audio_quality: AudioQuality = st.selectbox(
-                "音频质量",
-                options=audio_quality_choice,
-                index=2,
-                key="collection_audio_quality",
-                help="选择你想要的音频质量(视频具有该资源并且你有访问权限,否则自动降级)",
-            )  # type: ignore
-
-        run_btn = st.button(
-            "开始下载", key="collection_button", disabled=st.session_state.is_running, use_container_width=True
-        )
-
-        if run_btn and not st.session_state.is_running:
-            st.session_state.is_running = True
-
-            status = video_status
-            # 任务默认参数
-            status.update({"target_type": "collection"})
-            status.update({"batch_download": True})
-            status.update({"support_select": False})
-
-            # 用户自定义参数,由 UI 传入
-            status.update({"url": url})
-            status.update({"require_video": require_video})
-            status.update({"require_audio": require_audio})
-            status.update({"require_danmaku": require_danmaku})
-            status.update({"require_cover": require_cover})
-            status.update({"debug_mode": debug_mode})
-            status.update({"video_quality": video_quality})
-            status.update({"audio_quality": audio_quality})
-
-            output_placeholder = st.empty()
-            if parse_status(status, key_name="collection_parse", output_placeholder=output_placeholder):
-                command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
-                command = command_generator.gen_args()
-
-                # 使用特定的key名称
-                run_command(command, key_name="collection_output", output_placeholder=output_placeholder)
-            else:
-                st.session_state.is_running = False
+    download_button = st.button(
+        "开始下载",
+        use_container_width=True,
+        disabled=st.session_state[yutto_uiya_keys["is_running"]],
+        type="primary",
+    )
+    output_placeholder = st.empty()
+    if download_button:
+        status = full_status
+        command_generator = CommandGenerator(full_status["url"])  # 占位, 这里还没开始下载
+        status["batch_download"] = False
+        status["parse_mode"] = False
+        status["require_video"] = require_video
+        status["require_audio"] = require_audio
+        status["require_cover"] = False  # TODO 暂时放弃 cover , 因为 cover 会存在大量重复
+        status["require_danmaku"] = require_danmuku
+        status["require_metadata"] = require_metadata
+        status["video_quality"] = video
+        status["audio_quality"] = audio
+        status["no_progress"] = False
+        for index, url in enumerate(download_urls):
+            episode_info = st.session_state[runner_keys["parse_content"]][index]
+            status["url"] = url
+            command_generator = command_generator.from_status(status)  # 通过from_status来初始化
+            command = command_generator.gen_args()
+            run_downloader(command=command, output_placeholder=output_placeholder)
+            st.session_state[yutto_uiya_keys["is_running"]] = True
+            # 把资源从 tmp_dir 中捞出来
+            tmp_dir = Path(command_generator.tmp_dir)
+            if tmp_dir.exists():
+                download_dir = Path(download_dir) / video_name
+                download_dir.mkdir(parents=True, exist_ok=True)
+                # print(download_dir)
+                for file in tmp_dir.iterdir():
+                    if file.is_file():
+                        new_file_name = f"{episode_info['title']}"
+                        new_file_path = file.with_name(f"{new_file_name}{file.suffix}".replace("\r", ""))
+                        file.rename(new_file_path)
+                        # 移动到指定目录 dwonload_dir 并且覆盖同名文件如果存在
+                        new_file_path.replace(download_dir / new_file_path.name)
+                        st.success(f"文件已保存到: {download_dir / new_file_path.name}")
+            output_placeholder.code("", language="bash")
+            # 删除 tmp_dir
+            if tmp_dir.exists():
+                for file in tmp_dir.iterdir():
+                    if file.is_file():
+                        file.unlink()
+                tmp_dir.rmdir()
+        st.session_state[yutto_uiya_keys["is_running"]] = False
+        st.rerun()
 
 
 def bangumi_tab() -> None:
     """UI for downloading bangumi."""
-    BangumiContainer = st.container(border=True)
-    with BangumiContainer:
-        st.markdown("""
-        ## 对番剧进行下载：（支持选集，不输入指定选集默认全下）
-        示例链接🔗:
-        - 播放中：[https://www.bilibili.com/bangumi/play/ss45957](https://www.bilibili.com/bangumi/play/ss45957)
-        - 首页：[https://www.bilibili.com/bangumi/media/md21087073](https://www.bilibili.com/bangumi/media/md21087073)
+    episode_info_container = st.container(key="episode_info_container")
+    with st.form("bangumi_form", clear_on_submit=False):
+        input_col, parse_btn_col, batch_parse_btn_col = st.columns([4, 1, 1])
+        with input_col:
+            url = st.text_input("URL", key="bangumi_url", placeholder="请输入番剧链接", label_visibility="collapsed")
+        with parse_btn_col:
+            parse_btn = st.form_submit_button(
+                "单集解析", use_container_width=True, disabled=st.session_state[yutto_uiya_keys["is_running"]]
+            )
+        with batch_parse_btn_col:
+            batch_parse_btn = st.form_submit_button(
+                "全集解析", use_container_width=True, disabled=st.session_state[yutto_uiya_keys["is_running"]]
+            )
+    output_placeholder = st.empty()
+    if batch_parse_btn and not st.session_state[yutto_uiya_keys["is_running"]]:
+        st.session_state[yutto_uiya_keys["is_running"]] = True
 
-        用法：
-        - 输入框URL: 指定番剧首页地址，参考示例
-        - 选择集数： `1,2,3` 或者 `1~3` 或者 `1~-1`全下，不输入默认全下。
-        - 资源选择: 可以单独选择或者组合选择。只选择画面则下载视频没有声音。
-        - 清晰度: 如果不存在指定的清晰度或者该清晰度不具有访问权限，那么会降低清晰度进行下载，更高清晰度需要大会员。大会员需要填写`configs/args.yaml`中的SESS_DATA并且用户自身具有大会员权限。
-        - 音频质量: 同清晰度。不用多说了哈。
-        - Debug Mode: 如果碰到Bug,可以开启Debug Mode,然后重复运行复现问题最后截图终端的信息以及结果框反馈给我。
-        """)
+        status = full_status
+        # 用户自定义参数,由 UI 传入
+        status["url"] = url
+        status["batch_download"] = True
+        status["parse_mode"] = True
+        if parse_status(status, output_placeholder=output_placeholder):  # 解析状态
+            command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
+            command = command_generator.gen_args()
 
-        url = st.text_input("URL (视频网址,详细见参考链接)", key="bangumi_url")
-        select_p = st.text_input(
-            "选集 (输入比如这样的,1,2,3 or 1~3 or 1~-1,注意英文逗号分隔)", value="1~-1", key="bangumi_select_p"
+            # 使用特定的key名称
+            # run_downloader(command, key_name="bangumi_output", output_placeholder=output_placeholder)
+            run_parser(command=command, debug=False)
+            st.rerun()
+        else:
+            st.session_state[yutto_uiya_keys["is_running"]] = False
+    if parse_btn and not st.session_state[yutto_uiya_keys["is_running"]]:
+        st.session_state[yutto_uiya_keys["is_running"]] = True
+        status = full_status
+        status["url"] = url
+        status["batch_download"] = False
+        status["parse_mode"] = True
+        if parse_status(status, output_placeholder=output_placeholder):
+            command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
+            command = command_generator.gen_args()
+            run_parser(command=command, debug=False, batch=False)
+            st.rerun()
+        else:
+            st.session_state[yutto_uiya_keys["is_running"]] = False
+
+    if st.session_state[yutto_uiya_keys["is_running"]]:
+        print("正在运行")
+
+    if st.session_state[runner_keys["parse_content"]]:
+        # 去掉完全相同的元素
+        select_card_container()
+        for i, item in enumerate(st.session_state[runner_keys["parse_content"]]):
+            if st.session_state[runner_keys["click_p"]] is None:
+                st.session_state[runner_keys["click_p"]] = 0  # 默认以第一个为当前点击的
+            show_interatable_card_container(item, i)
+    if st.session_state[runner_keys["click_p"]] is not None:  # index 可能为0, 所以不用 if st.session_state[]:
+        current_p = st.session_state[runner_keys["click_p"]]
+        current_episode: EpisodeInfo = st.session_state[runner_keys["parse_content"]][current_p]
+        with episode_info_container:
+            if current_episode["cover_link"]:
+                # 使用HTML标签显示图片并控制大小
+                st.markdown(
+                    f"""
+                    ![image](https://image.baidu.com/search/down?url={current_episode["cover_link"]})
+                    """
+                )
+            st.markdown(f"### {current_episode['title']}")
+            if current_episode["metadata"]:
+                st.markdown(f"{current_episode['metadata']['plot']}")
+    if st.session_state[runner_keys["runtime_error"]]:
+        output_placeholder.code(
+            st.session_state[runner_keys["runtime_error"]],
+            language="bash",
         )
+    if st.session_state[runner_keys["select_p"]]:
+        download_urls: list[str] = []
+        audio_quality: list[AudioQuality] = []
+        video_quality: list[VideoQuality] = []
+        for i in st.session_state[runner_keys["select_p"]]:
+            episode_info: EpisodeInfo = st.session_state[runner_keys["parse_content"]][i]
+            download_urls.append(episode_info["link"])
+            audio_quality.extend(episode_info["audio_quality_list"])
+            video_quality.extend(episode_info["video_quality_list"])
+            # 去掉完全相同的元素
+            download_urls = list(set(download_urls))
+            audio_quality = list(set(audio_quality))
+            video_quality = list(set(video_quality))
 
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            require_video = st.checkbox("画面", value=True, key="bangumi_video")
-        with col2:
-            require_audio = st.checkbox("音频", value=True, key="bangumi_audio")
-        with col3:
-            require_danmaku = st.checkbox("弹幕", value=False, key="bangumi_danmaku")
-        with col4:
-            require_cover = st.checkbox("封面", value=False, key="bangumi_cover")
-
-        debug_mode = st.checkbox("Debug Mode", value=False, key="bangumi_debug")
-
-        col1, col2 = st.columns(2)
-        with col1:
-            video_quality: VideoQuality = st.selectbox(
-                "清晰度",
-                options=video_quality_choice,
-                index=4,
-                key="bangumi_quality",
-                help="选择你想要的清晰度(视频具有该资源并且你有访问权限,否则自动降级)",
-            )  # type: ignore
-        with col2:
-            audio_quality: AudioQuality = st.selectbox(
-                "音频质量",
-                options=audio_quality_choice,
-                index=2,
-                key="bangumi_audio_quality",
-                help="选择你想要的音频质量(视频具有该资源并且你有访问权限,否则自动降级)",
-            )  # type: ignore
-
-        run_btn = st.button(
-            "开始下载", key="bangumi_button", disabled=st.session_state.is_running, use_container_width=True
+        download_button = st.button(
+            "下载",
+            use_container_width=True,
+            type="primary",
         )
-        if run_btn and not st.session_state.is_running:
-            st.session_state.is_running = True
-
-            status = bangumi_status
-            # 任务默认参数
-            status.update({"target_type": "bangumi"})
-            status.update({"batch_download": True})
-            status.update({"support_select": True})
-
-            # 用户自定义参数,由 UI 传入
-            status.update({"url": url})
-            status.update({"selected_p": select_p})
-            status.update({"require_video": require_video})
-            status.update({"require_audio": require_audio})
-            status.update({"require_danmaku": require_danmaku})
-            status.update({"require_cover": require_cover})
-            status.update({"debug_mode": debug_mode})
-            status.update({"video_quality": video_quality})
-            status.update({"audio_quality": audio_quality})
-
-            output_placeholder = st.empty()
-            if parse_status(status, key_name="bangumi_parse", output_placeholder=output_placeholder):  # 解析状态
-                command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
-                command = command_generator.gen_args()
-
-                # 使用特定的key名称
-                run_command(command, key_name="bangumi_output", output_placeholder=output_placeholder)
-            else:
-                st.session_state.is_running = False
+        if download_button:
+            downloader(download_urls, video_quality, audio_quality)
 
 
 def setting_tab() -> None:
@@ -488,10 +281,10 @@ def setting_tab() -> None:
             st.markdown("")
             st.markdown("")
             if st.button("**保存更改**", use_container_width=True, type="primary"):
-                settings.zh_set_value("SESS_DATA", sess_data)
                 settings.zh_set_value("login_strict", login_strict)
                 settings.zh_set_value("vip_strict", vip_strict)
-                settings.zh_set_value("download_dir", download_dir)
+                settings.download_dir = download_dir
+                settings.SESS_DATA = sess_data
                 write_settings_file("uiya.toml", settings)
                 st.session_state.save = True
                 st.rerun()
@@ -502,51 +295,15 @@ def setting_tab() -> None:
             st.caption("Changing Parameter Settings")
 
 
-def about_tab() -> None:
-    """UI for About section."""
-    AboutContainer = st.container(border=True)
-    with AboutContainer:
-        st.markdown("""
-        ## 它的核心是`yutto`:
-        作者原仓库:[yutto](https://github.com/yutto-dev/yutto)
-
-        我只是写了这个 WebUI:[yutto-uiya](https://github.com/MrXnneHang/yutto-uiya/)
-
-        如果有更多关于界面和操作上的优化，以及功能的需求欢迎补充，因为`yutto`的功能实际上还有好多有待发掘。
-
-        我会考虑尝试进行拓展。
-
-        最后，祝各位使用愉快!
-        """)
-
-
 settings: UiyaSetting = load_settings_file("uiya.toml", UiyaSetting)
 if not settings.as_package:
     style()
 TabContainer = st.container()
 with TabContainer:
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["用户视频", "收藏夹", "合集", "番剧", "设置", "关于 yutto-uiya"])
-
-    with tab1:
-        st.header("用户视频下载")
-        user_video_subtab = st.radio("选择下载模式", ["单个视频", "视频列表（多个视频）"], horizontal=True)
-
-        if user_video_subtab == "单个视频":
-            single_video_tab()
-        else:
-            video_list_tab()
-
-    with tab2:
-        favorite_tab()
-
-    with tab3:
-        collection_tab()
-
-    with tab4:
-        bangumi_tab()
+    tab5, tab6 = st.tabs(["视频", "设置"])
 
     with tab5:
-        setting_tab()
+        bangumi_tab()
 
     with tab6:
-        about_tab()
+        setting_tab()

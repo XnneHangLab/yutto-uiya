@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
+from pathlib import Path
 from typing import TYPE_CHECKING, Annotated
 
 from pydantic import BaseModel, Field
@@ -11,18 +13,17 @@ if TYPE_CHECKING:
     from uiya._typing import (
         AudioQuality,
         CommandStatus,
-        TargetType,
         VideoQuality,
     )
 
 video_quality_mapping: dict[VideoQuality, int] = {
-    "360p 流畅": 16,
-    "480p 清晰": 32,
-    "720p 高清": 64,
-    "720p 60帧": 74,
-    "1080p 高清": 80,
-    "1080p 高码率": 112,
-    "1080p 60帧": 116,
+    "360P 流畅": 16,
+    "480P 清晰": 32,
+    "720P 高清": 64,
+    "720P 60帧": 74,
+    "1080P 高清": 80,
+    "1080P 高码率": 112,
+    "1080P 60帧": 116,
     "4K 超清": 120,
     "HDR 真彩": 125,
     "杜比视界": 126,
@@ -71,21 +72,24 @@ class CommandGenerator:
     """Command Generator"""
 
     # ========= 这些从 UI 中获取，用户实时选择。
-    target_type: TargetType
     url: str
-    batch_download: bool
-    support_select: bool
-    selected_p: str | None = None
-
+    batch_download: bool = False
     require_video: bool = True
     require_audio: bool = True
     require_danmaku: bool = False
     require_cover: bool = False
+    require_metadata: bool = True
+    require_subtitle: bool = True
 
     debug_mode: bool = False
+    parse_mode: bool = True
+    no_color: bool = True
+    no_progress: bool = True
 
-    video_quality: VideoQuality = "360p 流畅"
+    video_quality: VideoQuality = "360P 流畅"
     audio_quality: AudioQuality = "320kbps"
+
+    tmp_dir: str = "./.cache"
 
     # ========== 这些是从 uiya.toml 中读取，或者作为UI设置中保持的值
     uiya_setting: UiyaSetting = field(default_factory=lambda: load_settings_file("uiya.toml", UiyaSetting))
@@ -111,6 +115,10 @@ class CommandGenerator:
         else:
             self.args = ["uv", "run", "yutto", self.url]
 
+        tmp_dir = Path("./.cache")
+        current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+        tmp_dir = tmp_dir / current_time
+        self.tmp_dir = str(tmp_dir)
         # ================== RESOURCES
         # [] [] [], no resource required
         if not self.require_video and not self.require_audio and not self.require_danmaku and not self.require_cover:
@@ -121,8 +129,8 @@ class CommandGenerator:
                 require_video=self.require_video,
                 require_audio=self.require_audio,
                 require_danmaku=self.require_danmaku,
-                require_subtitle=False,
-                require_metadata=False,
+                require_subtitle=self.require_subtitle,
+                require_metadata=self.require_metadata,
                 require_cover=self.require_cover,
                 save_cover=self.require_cover,
             )
@@ -135,7 +143,7 @@ class CommandGenerator:
             sessdata=self.uiya_setting.SESS_DATA,
             vip_strict=True if self.uiya_setting.vip_strict == "open" else False,
             login_strict=True if self.uiya_setting.login_strict == "open" else False,
-            dir=self.uiya_setting.download_dir,
+            dir=self.tmp_dir,
         )
 
         # =================== GENERATE yutto.toml
@@ -148,9 +156,6 @@ class CommandGenerator:
         if self.batch_download:
             batch_download_args = ["-b"]
             self.args.extend(batch_download_args)
-        if self.support_select and self.selected_p is not None:
-            batch_download_args = ["-p", self.selected_p]
-            self.args.extend(batch_download_args)
         # =================== DEBUG MODE
         if self.debug_mode:
             print("=================== DEBUG MODE ↓===================")
@@ -159,17 +164,19 @@ class CommandGenerator:
             print(YuttoSetting.resource)
             print("=================== DEBUG MODE ↑===================")
 
+        # =================== parse
+        if self.parse_mode:
+            parse_args = ["--skip-download"]
+            self.args.extend(parse_args)
+
+        # =================== no-color
+        if self.no_color:
+            no_color_args = ["--no-color"]
+            self.args.extend(no_color_args)
+
+        # =================== no-progress
+        if self.no_progress:
+            no_progress_args = ["--no-progress"]
+            self.args.extend(no_progress_args)
+
         return self.args
-
-
-if __name__ == "__main__":
-    commander = CommandGenerator(
-        target_type="video",
-        url="https://www.bilibili.com/video/BV1Zy4y1q7ZB",
-        batch_download=False,
-        support_select=False,
-        selected_p=None,
-        debug_mode=True,
-    )
-    args = commander.gen_args()
-    print(args)
