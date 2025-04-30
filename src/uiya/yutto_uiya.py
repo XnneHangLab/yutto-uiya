@@ -86,7 +86,6 @@ def downloader(download_urls: list[str], video_quality: list[VideoQuality], audi
     download_button = st.button(
         "开始下载",
         use_container_width=True,
-        disabled=st.session_state.get(yutto_uiya_keys["is_running"], False),
         type="primary",
     )
     output_placeholder = st.empty()
@@ -143,7 +142,7 @@ def bangumi_tab() -> None:
             url = st.text_input("URL", key="bangumi_url", placeholder="请输入番剧链接", label_visibility="collapsed")
         with btn_col:
             run_btn = st.form_submit_button(
-                "解析", disabled=st.session_state.get(yutto_uiya_keys["is_running"], False), use_container_width=True
+                "解析", use_container_width=True
             )
     output_placeholder = st.empty()
     # 处理表单提交
@@ -209,7 +208,6 @@ def bangumi_tab() -> None:
         download_button = st.button(
             "下载",
             use_container_width=True,
-            disabled=st.session_state.get(yutto_uiya_keys["is_running"], False),
             type="primary",
         )
         if download_button:
