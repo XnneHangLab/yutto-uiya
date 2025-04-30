@@ -1,12 +1,18 @@
 from __future__ import annotations
 
-import streamlit as st
 from pathlib import Path
+
+import streamlit as st
 from natsort import natsorted
 
 from uiya._dataclass import CommandGenerator
 from uiya._session_keys import runner_keys, yutto_uiya_keys
-from uiya._typing import AudioQuality, EpisodeInfo, VideoQuality, full_status, YuttoParseResult, video_quality_list,audio_quality_list
+from uiya._typing import (
+    AudioQuality,
+    EpisodeInfo,
+    VideoQuality,
+    full_status,
+)
 from uiya.styles.global_style import style
 from uiya.utils.config import UiyaSetting, get_setting_title, load_settings_file, write_settings_file
 from uiya.utils.runner import (
@@ -16,7 +22,6 @@ from uiya.utils.runner import (
     select_card_container,
     show_interatable_card_container,
 )
-
 
 if yutto_uiya_keys["save"] in st.session_state:
     st.toast("参数已成功保存", icon=":material/verified:")
@@ -49,8 +54,13 @@ if runner_keys["download_content"] not in st.session_state:
     st.session_state[runner_keys["download_content"]] = ""
 
 
-@st.dialog(title = "下载选项", width = "large")
-def downloader(download_urls: list[str], video_quality: list[VideoQuality], audio_quality: list[AudioQuality], need_sort: bool=True) -> None:
+@st.dialog(title="下载选项", width="large")
+def downloader(
+    download_urls: list[str],
+    video_quality: list[VideoQuality],
+    audio_quality: list[AudioQuality],
+    need_sort: bool = True,
+) -> None:
     settings = load_settings_file("uiya.toml", UiyaSetting)
     download_dir = settings.download_dir
     video_name = st.session_state[runner_keys["video_name"]]
@@ -102,7 +112,7 @@ def downloader(download_urls: list[str], video_quality: list[VideoQuality], audi
         status["video_quality"] = video
         status["audio_quality"] = audio
         status["no_progress"] = False
-        for index,url in enumerate(download_urls):
+        for index, url in enumerate(download_urls):
             episode_info = st.session_state[runner_keys["parse_content"]][index]
             status["url"] = url
             command_generator = command_generator.from_status(status)  # 通过from_status来初始化
@@ -134,21 +144,20 @@ def downloader(download_urls: list[str], video_quality: list[VideoQuality], audi
         st.rerun()
 
 
-
 def bangumi_tab() -> None:
     """UI for downloading bangumi."""
     episode_info_container = st.container(key="episode_info_container")
     with st.form("bangumi_form", clear_on_submit=False):
-        input_col, parse_btn_col, batch_parse_btn_col = st.columns([4, 1 , 1])
+        input_col, parse_btn_col, batch_parse_btn_col = st.columns([4, 1, 1])
         with input_col:
             url = st.text_input("URL", key="bangumi_url", placeholder="请输入番剧链接", label_visibility="collapsed")
         with parse_btn_col:
             parse_btn = st.form_submit_button(
-                "单集解析", use_container_width=True,disabled=st.session_state[yutto_uiya_keys["is_running"]]
+                "单集解析", use_container_width=True, disabled=st.session_state[yutto_uiya_keys["is_running"]]
             )
         with batch_parse_btn_col:
             batch_parse_btn = st.form_submit_button(
-                "全集解析", use_container_width=True,disabled=st.session_state[yutto_uiya_keys["is_running"]]
+                "全集解析", use_container_width=True, disabled=st.session_state[yutto_uiya_keys["is_running"]]
             )
     output_placeholder = st.empty()
     if batch_parse_btn and not st.session_state[yutto_uiya_keys["is_running"]]:
@@ -165,7 +174,7 @@ def bangumi_tab() -> None:
 
             # 使用特定的key名称
             # run_downloader(command, key_name="bangumi_output", output_placeholder=output_placeholder)
-            run_parser(command=command,debug=False)
+            run_parser(command=command, debug=False)
             st.rerun()
         else:
             st.session_state[yutto_uiya_keys["is_running"]] = False
@@ -178,7 +187,7 @@ def bangumi_tab() -> None:
         if parse_status(status, output_placeholder=output_placeholder):
             command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
             command = command_generator.gen_args()
-            run_parser(command=command,debug=False,batch=False)
+            run_parser(command=command, debug=False, batch=False)
             st.rerun()
         else:
             st.session_state[yutto_uiya_keys["is_running"]] = False
@@ -191,7 +200,7 @@ def bangumi_tab() -> None:
         select_card_container()
         for i, item in enumerate(st.session_state[runner_keys["parse_content"]]):
             if st.session_state[runner_keys["click_p"]] is None:
-                st.session_state[runner_keys["click_p"]] = 0 # 默认以第一个为当前点击的
+                st.session_state[runner_keys["click_p"]] = 0  # 默认以第一个为当前点击的
             show_interatable_card_container(item, i)
     if st.session_state[runner_keys["click_p"]] is not None:  # index 可能为0, 所以不用 if st.session_state[]:
         current_p = st.session_state[runner_keys["click_p"]]

@@ -84,7 +84,7 @@ class YuttoOutputParser:
             )
 
         # 提取视频名称
-        if "\x1b[30;46m 投稿视频 \x1b[0m" in line or "\x1b[30m\x1b[46m 投稿视频 \x1b[0m" in line: # pexpect or wexpect
+        if "\x1b[30;46m 投稿视频 \x1b[0m" in line or "\x1b[30m\x1b[46m 投稿视频 \x1b[0m" in line:  # pexpect or wexpect
             if "\x1b[30;46m 投稿视频 \x1b[0m" in line:
                 self.current_value = line.split("\x1b[30;46m 投稿视频 \x1b[0m")[1].replace(" ", "")
             else:
@@ -94,7 +94,7 @@ class YuttoOutputParser:
             self.result["episodes"][0]["title"] = self.current_value.strip()
             return None
 
-        if "\x1b[30;46m LINK \x1b[0m" in line or "\x1b[30m\x1b[46m LINK \x1b[0m" in line: # pexpect or wexpect
+        if "\x1b[30;46m LINK \x1b[0m" in line or "\x1b[30m\x1b[46m LINK \x1b[0m" in line:  # pexpect or wexpect
             if "\x1b[30;46m LINK \x1b[0m" in line:
                 self.current_value = line.split("\x1b[30;46m LINK \x1b[0m")[1].replace(" ", "").replace("\r\n", "")
             else:
@@ -126,7 +126,9 @@ class YuttoOutputParser:
             self.current_type = "has_chapter_info"
             self.result["episodes"][0][self.current_type] = self.current_value
 
-        if "\x1b[30;46m 描述文件 \x1b[0m " in line or "\x1b[30m\x1b[46m 描述文件 \x1b[0m " in line: # pexpect or wexpect
+        if (
+            "\x1b[30;46m 描述文件 \x1b[0m " in line or "\x1b[30m\x1b[46m 描述文件 \x1b[0m " in line
+        ):  # pexpect or wexpect
             # 提取从"描述文件"后面的所有内容作为元数据开始
             if "\x1b[30;46m 描述文件 \x1b[0m " in line:
                 meta_part = line.split("\x1b[30;46m 描述文件 \x1b[0m ", 1)[1].replace("\r\n", "").replace(" ", "")
@@ -187,7 +189,7 @@ class YuttoOutputParser:
         """
         # 清理行
         # 提取视频名称
-        if "\x1b[30;46m 投稿视频 \x1b[0m" in line or "\x1b[30m\x1b[46m 投稿视频 \x1b[0m" in line: # pexpect or wexpect
+        if "\x1b[30;46m 投稿视频 \x1b[0m" in line or "\x1b[30m\x1b[46m 投稿视频 \x1b[0m" in line:  # pexpect or wexpect
             if "\x1b[30;46m 投稿视频 \x1b[0m" in line:
                 self.current_value = line.split("\x1b[30;46m 投稿视频 \x1b[0m")[1].replace(" ", "")
             else:
@@ -197,7 +199,7 @@ class YuttoOutputParser:
             return None
 
         # 提取总集数
-        if "\x1b[94m INFO \x1b[0m 全" in line and "话" in line: # wexpect and pexpect as the same
+        if "\x1b[94m INFO \x1b[0m 全" in line and "话" in line:  # wexpect and pexpect as the same
             episodes_count_match = re.search(r"全\s+(\d+)\s+话", line)
             if episodes_count_match:
                 self.current_value = episodes_count_match.group(1)
@@ -206,7 +208,7 @@ class YuttoOutputParser:
             return None
 
         # 新的一集开始
-        if "\x1b[30;46m [" in line or "\x1b[30m\x1b[46m [" in line: # pexpect or wexpect
+        if "\x1b[30;46m [" in line or "\x1b[30m\x1b[46m [" in line:  # pexpect or wexpect
             pattern = r"\[(\d+)/(\d+)\]\s+(.*)"
             episode_start_match = re.search(pattern, line)
             if episode_start_match:
@@ -234,11 +236,13 @@ class YuttoOutputParser:
         # collect episode info
         if self.current_index != -1:
             # 提取链接
-            if "\x1b[30;46m LINK \x1b[0m" in line or "\x1b[30m\x1b[46m LINK \x1b[0m" in line: # pexpect or wexpect
+            if "\x1b[30;46m LINK \x1b[0m" in line or "\x1b[30m\x1b[46m LINK \x1b[0m" in line:  # pexpect or wexpect
                 if "\x1b[30;46m LINK \x1b[0m" in line:
                     self.current_value = line.split("\x1b[30;46m LINK \x1b[0m")[1].replace(" ", "").replace("\r\n", "")
                 else:
-                    self.current_value = line.split("\x1b[30m\x1b[46m LINK \x1b[0m")[1].replace(" ", "").replace("\r\n", "")
+                    self.current_value = (
+                        line.split("\x1b[30m\x1b[46m LINK \x1b[0m")[1].replace(" ", "").replace("\r\n", "")
+                    )
                 self.current_type = "link"
                 self.result["episodes"][self.current_index][self.current_type] = self.current_value
 
@@ -260,12 +264,16 @@ class YuttoOutputParser:
                 self.current_type = "has_chapter_info"
                 self.result["episodes"][self.current_index][self.current_type] = self.current_value
 
-            if "\x1b[30;46m 描述文件 \x1b[0m " in line or "\x1b[30m\x1b[46m 描述文件 \x1b[0m " in line: # pexpect or wexpect
+            if (
+                "\x1b[30;46m 描述文件 \x1b[0m " in line or "\x1b[30m\x1b[46m 描述文件 \x1b[0m " in line
+            ):  # pexpect or wexpect
                 # 提取从"描述文件"后面的所有内容作为元数据开始
                 if "\x1b[30;46m 描述文件 \x1b[0m " in line:
                     meta_part = line.split("\x1b[30;46m 描述文件 \x1b[0m ", 1)[1].replace("\r\n", "").replace(" ", "")
                 else:
-                    meta_part = line.split("\x1b[30m\x1b[46m 描述文件 \x1b[0m ", 1)[1].replace("\r\n", "").replace(" ", "")
+                    meta_part = (
+                        line.split("\x1b[30m\x1b[46m 描述文件 \x1b[0m ", 1)[1].replace("\r\n", "").replace(" ", "")
+                    )
                 self.current_type = "metadata"
                 self.current_value = meta_part
 
@@ -281,7 +289,9 @@ class YuttoOutputParser:
                 if "\x1b[30;46m 封面 \x1b[0m" in line:
                     self.current_value = line.split("\x1b[30;46m 封面 \x1b[0m")[1].replace(" ", "").replace("\r\n", "")
                 elif "\x1b[30m\x1b[46m 封面 \x1b[0m":
-                    self.current_value = line.split("\x1b[30m\x1b[46m 封面 \x1b[0m")[1].replace(" ", "").replace("\r\n", "")
+                    self.current_value = (
+                        line.split("\x1b[30m\x1b[46m 封面 \x1b[0m")[1].replace(" ", "").replace("\r\n", "")
+                    )
                 self.current_type = "cover_link"
                 self.result["episodes"][self.current_index][self.current_type] = str(self.current_value)
 

@@ -47,6 +47,7 @@ if runner_keys["runtime_error"] not in st.session_state:
 if runner_keys["video_name"] not in st.session_state:
     st.session_state[runner_keys["video_name"]] = ""
 
+
 def initial_keys() -> None:
     """初始化 session keys"""
     st.session_state[runner_keys["select_p"]] = []
@@ -57,6 +58,7 @@ def initial_keys() -> None:
     st.session_state[runner_keys["is_running"]] = False
     st.session_state[runner_keys["runtime_error"]] = ""
     st.session_state[runner_keys["video_name"]] = ""
+
 
 def parse_status(status: CommandStatus, output_placeholder: DeltaGenerator) -> bool:
     """检查 Command status 并且提前返回错误. 防止用户触发 raise 异常导致 UI 崩溃"""
@@ -104,7 +106,7 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
             encoding="utf-8",
         )
         # 读取并处理输出
-        buffer:  list[str] = []
+        buffer: list[str] = []
         last_update_time: float = time.time()
         output_text = ""
         while True:
@@ -120,10 +122,7 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
                     current_time: float = time.time()
                     line = "".join(buffer)
                     update_condition: bool = (
-                        (char == "\n")
-                        or ("⚡\x1b[0m" in line)
-                        or ("[/s\x1b[0m" in line)
-                        or ("/s\x1b[0m" in line)
+                        (char == "\n") or ("⚡\x1b[0m" in line) or ("[/s\x1b[0m" in line) or ("/s\x1b[0m" in line)
                     )
 
                     if update_condition:
@@ -131,7 +130,7 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
                         if "━━" in line:
                             print("\r" + line + "\r", end="")
                         else:
-                            print(line, end="") # 自带 \r\n
+                            print(line, end="")  # 自带 \r\n
                         output = clean_ouput(line)
                         st.session_state[output_key] += output
                         buffer = []
@@ -152,7 +151,7 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
                         if "━━" in line:
                             print("\r" + line + "\r", end="")
                         else:
-                            print(line, end="") # 自带 \r\n 或者 \n
+                            print(line, end="")  # 自带 \r\n 或者 \n
                         output = clean_ouput(line)
                         st.session_state[output_key] += output
                         output_placeholder.code(st.session_state[output_key], language="bash")
@@ -166,7 +165,7 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
                         if "━━" in line:
                             print("\r" + line + "\r", end="")
                         else:
-                            print(line, end="") # 自带 \r\n
+                            print(line, end="")  # 自带 \r\n
                         output = clean_ouput(line)
                         st.session_state[output_key] += output
                         buffer = []
@@ -203,7 +202,7 @@ def truncate(text: str, max_len: int):
     return text if len(text) <= max_len else text[:max_len] + "…"
 
 
-def run_parser(command: list[str], debug:bool = False, batch: bool = True) -> YuttoParseResult:
+def run_parser(command: list[str], debug: bool = False, batch: bool = True) -> YuttoParseResult:
     """
     使用 pexpect 运行命令并实时更新 Streamlit 界面，同时保留终端原始输出
 
@@ -241,7 +240,6 @@ def run_parser(command: list[str], debug:bool = False, batch: bool = True) -> Yu
                     # 如果是unix-like,直接输出到终端，如果是windows,则需要先处理一下。
                     sys.stdout.write(char)
                     sys.stdout.flush()
-
 
                     update_condition: bool = "\r\n" in "".join(buffer)
 

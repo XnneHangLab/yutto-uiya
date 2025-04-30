@@ -16,11 +16,12 @@ VideoQuality = Literal[
     "8K 超高清",
 ]
 
-video_quality_list:list[VideoQuality] = list(get_args(VideoQuality))
+video_quality_list: list[VideoQuality] = list(get_args(VideoQuality))
 
 AudioQuality = Literal["64kbps", "128kbps", "320kbps", "杜比全景声", "杜比音效", "Hi-Res"]
 
-audio_quality_list:list[AudioQuality] = list(get_args(AudioQuality))
+audio_quality_list: list[AudioQuality] = list(get_args(AudioQuality))
+
 
 class CommandStatus(TypedDict):
     """Command Status"""
@@ -102,7 +103,7 @@ class RunnerKeys(TypedDict):
     select_p: str  # 被选中的解析卡片 index, list[int]
     click_p: str  # 被点击的解析卡片 index,  int
     parse_content: str  # 解析的卡片 content , list[dict], EpisodeInfo
-    video_name: str # 整个视频的名称
+    video_name: str  # 整个视频的名称
     download_content: str  # 下载 output, 和终端保持一致
     parse_command_status: str  # 解析 CommandStatus 格式
     is_running: str  # 是否正在运行
