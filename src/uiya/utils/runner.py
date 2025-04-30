@@ -47,17 +47,21 @@ if runner_keys["runtime_error"] not in st.session_state:
 if runner_keys["video_name"] not in st.session_state:
     st.session_state[runner_keys["video_name"]] = ""
 
+def initial_keys() -> None:
+    """初始化 session keys"""
+    st.session_state[runner_keys["select_p"]] = []
+    st.session_state[runner_keys["click_p"]] = None
+    st.session_state[runner_keys["parse_content"]] = []
+    st.session_state[runner_keys["download_content"]] = ""
+    st.session_state[runner_keys["parse_command_status"]] = ""
+    st.session_state[runner_keys["is_running"]] = False
+    st.session_state[runner_keys["runtime_error"]] = ""
+    st.session_state[runner_keys["video_name"]] = ""
 
 def parse_status(status: CommandStatus, output_placeholder: DeltaGenerator) -> bool:
     """检查 Command status 并且提前返回错误. 防止用户触发 raise 异常导致 UI 崩溃"""
     # 初始化或清空输出
-    st.session_state[runner_keys["parse_command_status"]] = ""
-    st.session_state[runner_keys["parse_content"]] = []
-    st.session_state[runner_keys["video_name"]] = ""
-    st.session_state[runner_keys["select_p"]] = []
-    st.session_state[runner_keys["download_content"]] = ""
-    st.session_state[runner_keys["click_p"]] = None
-    st.session_state[runner_keys["runtime_error"]] = ""
+    initial_keys()
     # 用户没有输入 URL
     # TODO 应该检查合法性
     if not status["url"]:
@@ -87,10 +91,9 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
     Returns:
         命令执行的退出状态码，如果无法获取则返回 None
     """
-    st.session_state[runner_keys["click_p"]] = None
-    st.session_state[runner_keys["runtime_error"]] = ""
     output_key = runner_keys["download_content"]
     # 显示初始空输出
+    st.session_state[output_key] = ""
     output_placeholder.code(st.session_state[output_key], language="bash")
 
     child = None
@@ -212,14 +215,10 @@ def run_parser(command: list[str], debug:bool = False, batch: bool = True) -> Yu
         命令执行的退出状态码，如果无法获取则返回 None
     """
     key = runner_keys["parse_content"]
-    st.session_state[key] = []
     child = None
     parser = YuttoOutputParser()
     show_index = -1
-    st.session_state[runner_keys["click_p"]] = None
-    st.session_state[runner_keys["parse_content"]] = []
-    st.session_state[runner_keys["runtime_error"]] = ""
-    st.session_state[runner_keys["video_name"]] = ""
+    initial_keys()
     buffer: list[str] = []
     output_text = ""
 
