@@ -114,7 +114,7 @@ def downloader(download_urls: list[str], video_quality: list[VideoQuality], audi
             if tmp_dir.exists():
                 download_dir = Path(download_dir) / video_name
                 download_dir.mkdir(parents=True, exist_ok=True)
-                print(download_dir)
+                # print(download_dir)
                 for file in tmp_dir.iterdir():
                     if file.is_file():
                         new_file_name = f"{episode_info['title']}"
@@ -160,7 +160,7 @@ def bangumi_tab() -> None:
 
             # 使用特定的key名称
             # run_downloader(command, key_name="bangumi_output", output_placeholder=output_placeholder)
-            run_parser(command=command,debug=True)
+            run_parser(command=command,debug=False)
             st.rerun()
         else:
             st.session_state[yutto_uiya_keys["is_running"]] = False

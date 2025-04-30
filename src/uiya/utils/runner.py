@@ -52,6 +52,12 @@ def parse_status(status: CommandStatus, output_placeholder: DeltaGenerator) -> b
     """检查 Command status 并且提前返回错误. 防止用户触发 raise 异常导致 UI 崩溃"""
     # 初始化或清空输出
     st.session_state[runner_keys["parse_command_status"]] = ""
+    st.session_state[runner_keys["parse_content"]] = []
+    st.session_state[runner_keys["video_name"]] = ""
+    st.session_state[runner_keys["select_p"]] = []
+    st.session_state[runner_keys["download_content"]] = ""
+    st.session_state[runner_keys["click_p"]] = None
+    st.session_state[runner_keys["runtime_error"]] = ""
     # 用户没有输入 URL
     # TODO 应该检查合法性
     if not status["url"]:
@@ -95,7 +101,7 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
             encoding="utf-8",
         )
         # 读取并处理输出
-        buffer: list[str] = []
+        buffer:  list[str] = []
         last_update_time: float = time.time()
         output_text = ""
         while True:
@@ -106,21 +112,28 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
                 if index == 0:  # 读取到一个字符
                     char: str = str(child.after)  # type: ignore[assignment]
                     buffer.append(char)
-                    sys.stdout.write(char)
-                    sys.stdout.flush()
+                    if os != "windows": # 因为 windows 的进度条需要额外处理,所以放在 update_condition 里面进行打印.
+                        sys.stdout.write(char)
+                        sys.stdout.flush()
 
                     # 定期更新界面
                     current_time: float = time.time()
+                    line = "".join(buffer)
                     update_condition: bool = (
                         (char == "\n")
-                        or ("⚡\x1b[0m" in "".join(buffer))
-                        or ("[/s\x1b[0m" in "".join(buffer))
-                        or ("/s\x1b[0m" in "".join(buffer))
+                        or ("⚡\x1b[0m" in line)
+                        or ("[/s\x1b[0m" in line)
+                        or ("/s\x1b[0m" in line)
                     )
 
                     if update_condition:
-                        output_text += "".join(buffer)
-                        output = clean_ouput("".join(buffer))
+                        output_text += line
+                        if os == "windows":
+                            if "━━" in line:
+                                print("\r" + line + "\r", end="")
+                            else:
+                                print(line, end="") # 自带 \r\n
+                        output = clean_ouput(line)
                         st.session_state[output_key] += output
                         buffer = []
                         last_update_time = current_time
@@ -135,8 +148,14 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
 
                     if buffer:
                         # 匹配解析时输出的 `投稿视频 ...``
-                        output_text += "".join(buffer)
-                        output = clean_ouput("".join(buffer))
+                        line = "".join(buffer)
+                        output_text += line
+                        if os == "windows":
+                            if "━━" in line:
+                                print("\r" + line + "\r", end="")
+                            else:
+                                print(line, end="") # 自带 \r\n
+                        output = clean_ouput(line)
                         st.session_state[output_key] += output
                         output_placeholder.code(st.session_state[output_key], language="bash")
                     break
@@ -144,8 +163,14 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
                 elif index == 2:  # 超时
                     current_time: float = time.time()
                     if buffer and (current_time - last_update_time) > 0.5:
-                        output_text += "".join(buffer)
-                        output = clean_ouput("".join(buffer))
+                        line = "".join(buffer)
+                        output_text += line
+                        if os == "windows":
+                            if "━━" in line:
+                                print("\r" + line + "\r", end="")
+                            else:
+                                print(line, end="") # 自带 \r\n
+                        output = clean_ouput(line)
                         st.session_state[output_key] += output
                         buffer = []
                         last_update_time = current_time
@@ -160,7 +185,7 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
                 break
 
         # 未经处理的原始字符集
-        print([output_text])
+        # print([output_text])
 
         # 获取退出状态
         child.close()  # type:ignore
