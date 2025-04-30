@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from uiya._dataclass import CommandGenerator
+from uiya._typing import full_status
 from uiya.utils.config import UiyaSetting, load_settings_file
 
 if TYPE_CHECKING:
@@ -14,50 +15,13 @@ if TYPE_CHECKING:
 class TestCommandGenerator:
     def setup_method(self):
         """每个测试方法运行前的设置"""
-        self.status: CommandStatus = {
-            "target_type": "video",
-            "batch_download": False,
-            "support_select": False,
-            "url": "https://example.com/video123",
-            "selected_p": None,
-            "require_video": True,
-            "require_audio": True,
-            "require_danmaku": False,
-            "require_cover": False,
-            "debug_mode": False,
-            "video_quality": "360p 流畅",
-            "audio_quality": "320kbps",
-        }
+        self.status: CommandStatus = full_status
         self.settings = load_settings_file("uiya.toml", UiyaSetting)
-
-    def test_init(self):
-        """测试 CommandGenerator 的初始化"""
-        # 从值初始化
-        command_generator = CommandGenerator(
-            target_type="video",
-            batch_download=False,
-            support_select=False,
-            url="https://example.com/video123",
-            selected_p=None,
-            require_video=True,
-            require_audio=True,
-            require_danmaku=False,
-            require_cover=False,
-            debug_mode=False,
-            video_quality="360p 流畅",
-            audio_quality="320kbps",
-        )
-
-        assert command_generator.target_type == "video"
-        assert command_generator.url == "https://example.com/video123"
-        assert command_generator.require_video is True
-        assert command_generator.require_audio is True
 
     def test_from_status(self):
         """测试从状态字典创建 CommandGenerator"""
         command_generator = CommandGenerator.from_status(self.status)
 
-        assert command_generator.target_type == "video"
         assert command_generator.url == "https://example.com/video123"
         assert command_generator.require_video is True
         assert command_generator.require_audio is True

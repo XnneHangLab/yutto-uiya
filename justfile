@@ -14,7 +14,7 @@ dev:
     uv run streamlit run src/uiya/yutto_uiya.py
 
 statrt:
-  
+
 
 test-parse:
     rm -rf packages/yutto/dist
@@ -35,7 +35,7 @@ fmt-docs:
   prettier --ignore-path .prettierignore --write '**/*.md'
 
 test:
-  uv run pytest
+  uv run pytest tests
 
 # CI specific
 ci-install:
