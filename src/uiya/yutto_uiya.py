@@ -169,8 +169,10 @@ def bangumi_tab() -> None:
         # 去掉完全相同的元素
         select_card_container()
         for i, item in enumerate(st.session_state[runner_keys["parse_content"]]):
+            if st.session_state[runner_keys["click_p"]] is None:
+                st.session_state[runner_keys["click_p"]] = 0 # 默认以第一个为当前点击的
             show_interatable_card_container(item, i)
-    if st.session_state[runner_keys["click_p"]] is not None:  # index 可能为0
+    if st.session_state[runner_keys["click_p"]] is not None:  # index 可能为0, 所以不用 if st.session_state[]:
         current_p = st.session_state[runner_keys["click_p"]]
         current_episode: EpisodeInfo = st.session_state[runner_keys["parse_content"]][current_p]
         with episode_info_container:
