@@ -51,7 +51,7 @@ if runner_keys["download_content"] not in st.session_state:
     st.session_state[runner_keys["download_content"]] = ""
 
 
-@st.dialog("下载选项")
+@st.dialog(title = "下载选项", width = "large")
 def downloader(download_urls: list[str], video_quality: list[VideoQuality], audio_quality: list[AudioQuality]) -> None:
     settings = load_settings_file("uiya.toml", UiyaSetting)
     download_dir = settings.download_dir
@@ -124,7 +124,7 @@ def downloader(download_urls: list[str], video_quality: list[VideoQuality], audi
                         # 移动到指定目录 dwonload_dir 并且覆盖同名文件如果存在
                         new_file_path.replace(download_dir / new_file_path.name)
                         st.success(f"文件已保存到: {download_dir / new_file_path.name}")
-            output_placeholder.code("", language="bash")
+            # output_placeholder.code("", language="bash")
             # 删除 tmp_dir
             if tmp_dir.exists():
                 for file in tmp_dir.iterdir():

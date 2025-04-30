@@ -115,6 +115,7 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
                         (char == "\n")
                         or ("⚡\x1b[0m" in "".join(buffer))
                         or ("[/s\x1b[0m" in "".join(buffer))
+                        or ("/s\x1b[0m" in "".join(buffer))
                     )
 
                     if update_condition:
