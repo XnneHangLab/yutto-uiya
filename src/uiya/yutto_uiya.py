@@ -6,7 +6,7 @@ from natsort import natsorted
 
 from uiya._dataclass import CommandGenerator
 from uiya._session_keys import runner_keys, yutto_uiya_keys
-from uiya._typing import AudioQuality, EpisodeInfo, VideoQuality, full_status, YuttoParseResult
+from uiya._typing import AudioQuality, EpisodeInfo, VideoQuality, full_status, YuttoParseResult, video_quality_list,audio_quality_list
 from uiya.styles.global_style import style
 from uiya.utils.config import UiyaSetting, get_setting_title, load_settings_file, write_settings_file
 from uiya.utils.runner import (
@@ -16,8 +16,6 @@ from uiya.utils.runner import (
     select_card_container,
     show_interatable_card_container,
 )
-
-
 
 
 if yutto_uiya_keys["save"] in st.session_state:
@@ -52,13 +50,14 @@ if runner_keys["download_content"] not in st.session_state:
 
 
 @st.dialog(title = "下载选项", width = "large")
-def downloader(download_urls: list[str], video_quality: list[VideoQuality], audio_quality: list[AudioQuality]) -> None:
+def downloader(download_urls: list[str], video_quality: list[VideoQuality], audio_quality: list[AudioQuality], need_sort: bool=True) -> None:
     settings = load_settings_file("uiya.toml", UiyaSetting)
     download_dir = settings.download_dir
     video_name = st.session_state[runner_keys["video_name"]]
     columns = st.columns([1, 1, 1, 1])
-    audio_quality = natsorted(audio_quality)
-    video_quality = natsorted(video_quality)
+    if need_sort:
+        audio_quality = natsorted(audio_quality)
+        video_quality = natsorted(video_quality)
     with columns[0]:
         require_video = st.checkbox("视频", value=True, key="video")
     with columns[1]:
@@ -137,16 +136,19 @@ def bangumi_tab() -> None:
     """UI for downloading bangumi."""
     episode_info_container = st.container(key="episode_info_container")
     with st.form("bangumi_form", clear_on_submit=False):
-        input_col, btn_col = st.columns([4, 1])
+        input_col, parse_btn_col, batch_parse_btn_col = st.columns([4, 1 , 1])
         with input_col:
             url = st.text_input("URL", key="bangumi_url", placeholder="请输入番剧链接", label_visibility="collapsed")
-        with btn_col:
-            run_btn = st.form_submit_button(
-                "解析", use_container_width=True
+        with parse_btn_col:
+            parse_btn = st.form_submit_button(
+                "单集解析", use_container_width=True
+            )
+        with batch_parse_btn_col:
+            batch_parse_btn = st.form_submit_button(
+                "全集解析", use_container_width=True
             )
     output_placeholder = st.empty()
-    # 处理表单提交
-    if run_btn and not st.session_state[yutto_uiya_keys["is_running"]]:
+    if batch_parse_btn and not st.session_state[yutto_uiya_keys["is_running"]]:
         st.session_state[yutto_uiya_keys["is_running"]] = True
 
         status = full_status
@@ -161,9 +163,24 @@ def bangumi_tab() -> None:
             # 使用特定的key名称
             # run_downloader(command, key_name="bangumi_output", output_placeholder=output_placeholder)
             run_parser(command=command,debug=False)
+
             st.rerun()
         else:
             st.session_state[yutto_uiya_keys["is_running"]] = False
+    if parse_btn and not st.session_state[yutto_uiya_keys["is_running"]]:
+        st.session_state[yutto_uiya_keys["is_running"]] = True
+        status = full_status
+        status["url"] = url
+        status["batch_download"] = False
+        status["parse_mode"] = True
+        if parse_status(status, output_placeholder=output_placeholder):
+            command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
+            command = command_generator.gen_args()
+            run_parser(command=command,debug=False,batch=False)
+            st.rerun()
+        else:
+            st.session_state[yutto_uiya_keys["is_running"]] = False
+
     if st.session_state[runner_keys["parse_content"]]:
         # 去掉完全相同的元素
         select_card_container()

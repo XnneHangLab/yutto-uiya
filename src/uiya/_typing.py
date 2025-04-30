@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, TypedDict, get_args
 
 VideoQuality = Literal[
     "360P 流畅",
@@ -16,8 +16,11 @@ VideoQuality = Literal[
     "8K 超高清",
 ]
 
+video_quality_list:list[VideoQuality] = list(get_args(VideoQuality))
+
 AudioQuality = Literal["64kbps", "128kbps", "320kbps", "杜比全景声", "杜比音效", "Hi-Res"]
 
+audio_quality_list:list[AudioQuality] = list(get_args(AudioQuality))
 
 class CommandStatus(TypedDict):
     """Command Status"""

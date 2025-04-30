@@ -206,7 +206,7 @@ def truncate(text: str, max_len: int):
     return text if len(text) <= max_len else text[:max_len] + "…"
 
 
-def run_parser(command: list[str], debug:bool = False) -> YuttoParseResult:
+def run_parser(command: list[str], debug:bool = False, batch: bool = True) -> YuttoParseResult:
     """
     使用 pexpect 运行命令并实时更新 Streamlit 界面，同时保留终端原始输出
 
@@ -254,7 +254,10 @@ def run_parser(command: list[str], debug:bool = False) -> YuttoParseResult:
 
                     if update_condition:
                         output_text += "".join(buffer)
-                        parser.parse_line("".join(buffer))
+                        if batch:
+                            parser.batch_parse_line("".join(buffer))
+                        else:
+                            parser.parse_line("".join(buffer))
                         current_index = parser.current_index
                         if current_index - show_index == 1:
                             # 避免加入重复的元素 skip -1
@@ -273,7 +276,10 @@ def run_parser(command: list[str], debug:bool = False) -> YuttoParseResult:
 
                     if buffer:
                         output_text += "".join(buffer)
-                        parser.parse_line("".join(buffer))
+                        if batch:
+                            parser.batch_parse_line("".join(buffer))
+                        else:
+                            parser.parse_line("".join(buffer))
                         current_index = parser.current_index
                     break
 
@@ -299,13 +305,16 @@ def run_parser(command: list[str], debug:bool = False) -> YuttoParseResult:
             show_card_container(st.session_state[key][-1], show_index)
         else:
             try:
-                st.session_state.is_running = False
-                st.session_state[key].append(parser.result["episodes"][show_index])
-                st.session_state[runner_keys["video_name"]] = parser.result["video_name"]
-                show_index += 1
-                show_card_container(st.session_state[key][-1], show_index)
+                if "url 不正确，也许该 url 仅支持批量下载，如果是这样，请使用参数 -b～" in output_text:
+                    st.session_state[runner_keys["runtime_error"]] = clean_ouput(output_text)
+                else:
+                    st.session_state.is_running = False
+                    st.session_state[key].append(parser.result["episodes"][show_index])
+                    st.session_state[runner_keys["video_name"]] = parser.result["video_name"]
+                    show_index += 1
+                    show_card_container(st.session_state[key][-1], show_index)
             except Exception as e:
-                st.session_state[runner_keys["runtime_error"]] = output_text if output_text else str(e)
+                st.session_state[runner_keys["runtime_error"]] = clean_ouput(output_text) if output_text else str(e)
 
     return parser.result
 
