@@ -306,6 +306,8 @@ def run_parser(command: list[str], debug:bool = False, batch: bool = True) -> Yu
         else:
             try:
                 if "url 不正确，也许该 url 仅支持批量下载，如果是这样，请使用参数 -b～" in output_text:
+                    st.session_state[runner_keys["is_running"]] = False
+                    output_text += "请尝试使用`全集解析` \r\n"
                     st.session_state[runner_keys["runtime_error"]] = clean_ouput(output_text)
                 else:
                     st.session_state.is_running = False
@@ -344,7 +346,7 @@ def show_card_container(episode: EpisodeInfo, index: int) -> None:
 
 def show_interatable_card_container(episode: EpisodeInfo, index: int) -> None:
     """显示解析卡片的容器"""
-    card_conatiner = st.container(key=f"card_container_{index}")
+    card_conatiner = st.container(key=f"interatable_card_container_{index}")
     with card_conatiner:
         cols = st.columns([1, 16, 4])
         with cols[0]:

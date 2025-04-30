@@ -163,7 +163,6 @@ def bangumi_tab() -> None:
             # 使用特定的key名称
             # run_downloader(command, key_name="bangumi_output", output_placeholder=output_placeholder)
             run_parser(command=command,debug=False)
-
             st.rerun()
         else:
             st.session_state[yutto_uiya_keys["is_running"]] = False
@@ -203,7 +202,6 @@ def bangumi_tab() -> None:
             if current_episode["metadata"]:
                 st.markdown(f"{current_episode['metadata']['plot']}")
     if st.session_state[runner_keys["runtime_error"]]:
-        st.error(st.session_state[runner_keys["runtime_error"]])
         output_placeholder.code(
             st.session_state[runner_keys["runtime_error"]],
             language="bash",
