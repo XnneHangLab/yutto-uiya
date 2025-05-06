@@ -118,3 +118,5 @@ class YuttoUiyaKeys(TypedDict):
     save: str  # 是否保存(信息提示)
 
     flush: str  # 用于刷新页面
+
+    full_status: str  # 用于保存完整的状态信息, 防止二次被篡改
