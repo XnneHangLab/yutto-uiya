@@ -28,10 +28,6 @@ if yutto_uiya_keys["save"] in st.session_state:
     st.toast("参数已成功保存", icon=":material/verified:")
     del st.session_state[yutto_uiya_keys["save"]]
 
-if yutto_uiya_keys["flush"] in st.session_state:
-    del st.session_state[yutto_uiya_keys["flush"]]
-    st.rerun()
-
 if yutto_uiya_keys["is_running"] not in st.session_state:
     st.session_state.is_running = False
 

@@ -8,6 +8,7 @@ if TYPE_CHECKING:
 
 runner_keys: RunnerKeys = {
     "select_p": "select_p",
+    "select_all": "select_all",
     "click_p": "click_p",
     "parse_content": "parse_content",
     "video_name": "video_name",
@@ -20,6 +21,5 @@ runner_keys: RunnerKeys = {
 yutto_uiya_keys: YuttoUiyaKeys = {
     "is_running": "is_running",
     "save": "save",
-    "flush": "flush",
     "full_status": "full_status",
 }

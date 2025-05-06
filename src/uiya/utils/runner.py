@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import streamlit as st
 
-from uiya._session_keys import runner_keys, yutto_uiya_keys
+from uiya._session_keys import runner_keys
 from uiya.utils.TextHelper import YuttoOutputParser, clean_ouput, split_into_words
 
 if TYPE_CHECKING:
@@ -32,6 +32,8 @@ else:
 
 if runner_keys["select_p"] not in st.session_state:
     st.session_state[runner_keys["select_p"]] = []
+if runner_keys["select_all"] not in st.session_state:
+    st.session_state[runner_keys["select_all"]] = False
 if runner_keys["click_p"] not in st.session_state:
     st.session_state[runner_keys["click_p"]] = None
 if runner_keys["parse_content"] not in st.session_state:
@@ -348,6 +350,7 @@ def show_interatable_card_container(episode: EpisodeInfo, index: int) -> None:
                 value=True if index in st.session_state[runner_keys["select_p"]] else False,
                 label_visibility="hidden",
             )
+            print(st.session_state[runner_keys["select_p"]])
             # 通过 checkbox 控制 value
             if checked:
                 # 避免重复添加
@@ -397,17 +400,14 @@ def select_card_container() -> None:
     with card_conatiner:
         cols = st.columns([1, 16, 4])
         with cols[0]:
-            checked = st.checkbox("s", key="selected_select", value=False, label_visibility="hidden")
+            checked = st.checkbox("s", key="selected_select", label_visibility="hidden")
+            st.session_state[runner_keys["select_all"]] = checked
             if checked:
-                for i in range(len(st.session_state[runner_keys["parse_content"]])):
-                    st.session_state[runner_keys["select_p"]].append(i) if i not in st.session_state[
-                        runner_keys["select_p"]
-                    ] else st.session_state[runner_keys["select_p"]]
+                st.session_state[runner_keys["select_p"]] = list(
+                    range(len(st.session_state[runner_keys["parse_content"]]))
+                )
             else:
-                for i in range(len(st.session_state[runner_keys["parse_content"]])):
-                    st.session_state[runner_keys["select_p"]].remove(i) if i in st.session_state[
-                        runner_keys["select_p"]
-                    ] else st.session_state[runner_keys["select_p"]]
+                st.session_state[runner_keys["select_p"]] = []
         with cols[1]:
             st.markdown("")
         with cols[2]:
@@ -417,4 +417,3 @@ def select_card_container() -> None:
 def click_detail_btn(index: int):
     """点击详情按钮"""
     st.session_state[runner_keys["click_p"]] = index
-    st.session_state[yutto_uiya_keys["flush"]] = True
