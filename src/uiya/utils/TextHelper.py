@@ -25,6 +25,7 @@ def clean_ouput(output: str):
     output = output.replace("\x1b[93m", "[")
     output = output.replace("\x1b[91m", "[")
     output = output.replace("\x1b[92m", "[")
+    output = output.replace("\x1b[97m\x1b[45m", "[")
     output = output.replace("\x1b[30m\x1b[46m", "[")
     output = output.replace("\x1b[0m", "] ")
     output = output.replace("\x1b[90m", "]")

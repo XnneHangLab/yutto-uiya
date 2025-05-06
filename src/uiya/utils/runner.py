@@ -350,7 +350,7 @@ def show_interatable_card_container(episode: EpisodeInfo, index: int) -> None:
                 value=True if index in st.session_state[runner_keys["select_p"]] else False,
                 label_visibility="hidden",
             )
-            print(st.session_state[runner_keys["select_p"]])
+            # print(st.session_state[runner_keys["select_p"]])
             # 通过 checkbox 控制 value
             if checked:
                 # 避免重复添加
