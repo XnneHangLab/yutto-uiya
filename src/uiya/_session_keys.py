@@ -21,4 +21,5 @@ yutto_uiya_keys: YuttoUiyaKeys = {
     "is_running": "is_running",
     "save": "save",
     "flush": "flush",
+    "full_status": "full_status",
 }

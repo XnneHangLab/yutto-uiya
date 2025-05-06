@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from pathlib import Path
 
 import streamlit as st
@@ -31,13 +32,15 @@ if yutto_uiya_keys["flush"] in st.session_state:
     del st.session_state[yutto_uiya_keys["flush"]]
     st.rerun()
 
-
 if yutto_uiya_keys["is_running"] not in st.session_state:
     st.session_state.is_running = False
 
 if yutto_uiya_keys["save"] in st.session_state:
     st.toast("参数已成功保存", icon=":material/verified:")
     del st.session_state[yutto_uiya_keys["save"]]
+
+if yutto_uiya_keys["full_status"] not in st.session_state:
+    st.session_state[yutto_uiya_keys["full_status"]] = full_status
 
 # 这些在 import 时就会被初始化,需要保证它和 import 时的那个保持一致.
 # 之所以这里再写一次是为了防止有时刷新网页后丢失了必要的数据
@@ -100,8 +103,8 @@ def downloader(
     )
     output_placeholder = st.empty()
     if download_button:
-        status = full_status
-        command_generator = CommandGenerator(full_status["url"])  # 占位, 这里还没开始下载
+        status = deepcopy(st.session_state[yutto_uiya_keys["full_status"]])
+        command_generator = CommandGenerator(status["url"])  # 占位, 这里还没开始下载
         status["batch_download"] = False
         status["parse_mode"] = False
         status["require_video"] = require_video
@@ -163,7 +166,7 @@ def bangumi_tab() -> None:
     if batch_parse_btn and not st.session_state[yutto_uiya_keys["is_running"]]:
         st.session_state[yutto_uiya_keys["is_running"]] = True
 
-        status = full_status
+        status = deepcopy(st.session_state[yutto_uiya_keys["full_status"]])
         # 用户自定义参数,由 UI 传入
         status["url"] = url
         status["batch_download"] = True
@@ -180,7 +183,7 @@ def bangumi_tab() -> None:
             st.session_state[yutto_uiya_keys["is_running"]] = False
     if parse_btn and not st.session_state[yutto_uiya_keys["is_running"]]:
         st.session_state[yutto_uiya_keys["is_running"]] = True
-        status = full_status
+        status = deepcopy(st.session_state[yutto_uiya_keys["full_status"]])
         status["url"] = url
         status["batch_download"] = False
         status["parse_mode"] = True
