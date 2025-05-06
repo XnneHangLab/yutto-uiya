@@ -101,6 +101,7 @@ class RunnerKeys(TypedDict):
     """Session keys use in runner.py"""
 
     select_p: str  # 被选中的解析卡片 index, list[int]
+    select_all: str  # 是否全选, bool
     click_p: str  # 被点击的解析卡片 index,  int
     parse_content: str  # 解析的卡片 content , list[dict], EpisodeInfo
     video_name: str  # 整个视频的名称
@@ -116,7 +117,5 @@ class YuttoUiyaKeys(TypedDict):
     is_running: str  # 是否正在运行
 
     save: str  # 是否保存(信息提示)
-
-    flush: str  # 用于刷新页面
 
     full_status: str  # 用于保存完整的状态信息, 防止二次被篡改
