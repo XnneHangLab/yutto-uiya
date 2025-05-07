@@ -42,8 +42,6 @@ if runner_keys["download_content"] not in st.session_state:
     st.session_state[runner_keys["download_content"]] = ""
 if runner_keys["parse_command_status"] not in st.session_state:
     st.session_state[runner_keys["parse_command_status"]] = ""
-if runner_keys["is_running"] not in st.session_state:
-    st.session_state[runner_keys["is_running"]] = False
 if runner_keys["runtime_error"] not in st.session_state:
     st.session_state[runner_keys["runtime_error"]] = ""
 if runner_keys["video_name"] not in st.session_state:
@@ -57,7 +55,6 @@ def initial_keys() -> None:
     st.session_state[runner_keys["parse_content"]] = []
     st.session_state[runner_keys["download_content"]] = ""
     st.session_state[runner_keys["parse_command_status"]] = ""
-    st.session_state[runner_keys["is_running"]] = False
     st.session_state[runner_keys["runtime_error"]] = ""
     st.session_state[runner_keys["video_name"]] = ""
 
@@ -95,6 +92,7 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
     Returns:
         命令执行的退出状态码，如果无法获取则返回 None
     """
+    st.toast("开始下载,再次点击会重新运行,运行中慎用!", icon=":material/verified:")
     output_key = runner_keys["download_content"]
     # 显示初始空输出
     st.session_state[output_key] = ""
@@ -194,9 +192,6 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
         print(error_msg, file=sys.stderr)
         output_placeholder.code(st.session_state[output_key], language="bash")
 
-    finally:
-        st.session_state.is_running = False
-
     return child.exitstatus if child and hasattr(child, "exitstatus") else None  # type: ignore[assignment]
 
 
@@ -215,6 +210,7 @@ def run_parser(command: list[str], debug: bool = False, batch: bool = True) -> Y
     Returns:
         命令执行的退出状态码，如果无法获取则返回 None
     """
+    st.toast("开始解析,再次点击会重新运行,运行中慎用!", icon=":material/verified:")
     key = runner_keys["parse_content"]
     child = None
     parser = YuttoOutputParser()
@@ -289,7 +285,6 @@ def run_parser(command: list[str], debug: bool = False, batch: bool = True) -> Y
         print(error_msg, file=sys.stderr)
     finally:
         if debug:
-            st.session_state.is_running = False
             print([output_text])
             print([parser.result])
             st.session_state[key].append(parser.result["episodes"][show_index])
@@ -299,11 +294,9 @@ def run_parser(command: list[str], debug: bool = False, batch: bool = True) -> Y
         else:
             try:
                 if "url 不正确，也许该 url 仅支持批量下载，如果是这样，请使用参数 -b～" in output_text:
-                    st.session_state[runner_keys["is_running"]] = False
                     output_text += "请尝试使用`全集解析` \r\n"
                     st.session_state[runner_keys["runtime_error"]] = clean_ouput(output_text)
                 else:
-                    st.session_state.is_running = False
                     st.session_state[key].append(parser.result["episodes"][show_index])
                     st.session_state[runner_keys["video_name"]] = parser.result["video_name"]
                     show_index += 1

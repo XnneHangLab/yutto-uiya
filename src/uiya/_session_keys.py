@@ -14,12 +14,10 @@ runner_keys: RunnerKeys = {
     "video_name": "video_name",
     "parse_command_status": "parse_command_status",
     "download_content": "download_content",
-    "is_running": "is_running",
     "runtime_error": "runtime_error",
 }
 
 yutto_uiya_keys: YuttoUiyaKeys = {
-    "is_running": "is_running",
     "save": "save",
     "full_status": "full_status",
 }
