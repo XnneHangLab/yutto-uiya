@@ -98,100 +98,83 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
     st.session_state[output_key] = ""
     output_placeholder.code(st.session_state[output_key], language="bash")
 
-    child = None
-    try:
-        child = pexpect.spawn(  # type: ignore[assignment]
-            command[0],
-            args=command[1:],
-            encoding="utf-8",
-        )
-        # 读取并处理输出
-        buffer: list[str] = []
-        last_update_time: float = time.time()
-        output_text = ""
-        while True:
-            try:
-                # 尝试读取字符
-                index: int = child.expect([".", pexpect.EOF, pexpect.TIMEOUT], timeout=0.1)  # type: ignore[assignment]
+    child = pexpect.spawn(  # type: ignore[assignment]
+        command[0],
+        args=command[1:],
+        encoding="utf-8",
+    )
+    # 读取并处理输出
+    buffer: list[str] = []
+    last_update_time: float = time.time()
+    output_text = ""
+    while True:
+        # 尝试读取字符
+        index: int = child.expect([".", pexpect.EOF, pexpect.TIMEOUT], timeout=0.1)  # type: ignore[assignment]
 
-                if index == 0:  # 读取到一个字符
-                    char: str = str(child.after)  # type: ignore[assignment]
-                    buffer.append(char)
+        if index == 0:  # 读取到一个字符
+            char: str = str(child.after)  # type: ignore[assignment]
+            buffer.append(char)
 
-                    # 定期更新界面
-                    current_time: float = time.time()
-                    line = "".join(buffer)
-                    update_condition: bool = (
-                        (char == "\n") or ("⚡\x1b[0m" in line) or ("[/s\x1b[0m" in line) or ("/s\x1b[0m" in line)
-                    )
+            # 定期更新界面
+            current_time: float = time.time()
+            line = "".join(buffer)
+            update_condition: bool = (
+                (char == "\n") or ("⚡\x1b[0m" in line) or ("[/s\x1b[0m" in line) or ("/s\x1b[0m" in line)
+            )
 
-                    if update_condition:
-                        output_text += line
-                        if "━━" in line:
-                            print("\r" + line + "\r", end="")
-                        else:
-                            print(line, end="")  # 自带 \r\n
-                        output = clean_ouput(line)
-                        st.session_state[output_key] += output
-                        buffer = []
-                        last_update_time = current_time
-                        # 使用 .code() 而不是 text_area，避免key问题
-                        output_placeholder.code(st.session_state[output_key], language="bash")
-
-                elif index == 1:  # EOF，进程结束
-                    if child.before:  # type: ignore[assignment]
-                        buffer.append(child.before)  # type: ignore[assignment]
-                        sys.stdout.write(child.before)  # type: ignore[assignment]
-                        sys.stdout.flush()
-
-                    if buffer:
-                        # 匹配解析时输出的 `投稿视频 ...``
-                        line = "".join(buffer)
-                        output_text += line
-                        if "━━" in line:
-                            print("\r" + line + "\r", end="")
-                        else:
-                            print(line, end="")  # 自带 \r\n 或者 \n
-                        output = clean_ouput(line)
-                        st.session_state[output_key] += output
-                        output_placeholder.code(st.session_state[output_key], language="bash")
-                    break
-
-                elif index == 2:  # 超时
-                    current_time: float = time.time()
-                    if buffer and (current_time - last_update_time) > 0.5:
-                        line = "".join(buffer)
-                        output_text += line
-                        if "━━" in line:
-                            print("\r" + line + "\r", end="")
-                        else:
-                            print(line, end="")  # 自带 \r\n
-                        output = clean_ouput(line)
-                        st.session_state[output_key] += output
-                        buffer = []
-                        last_update_time = current_time
-                        output_placeholder.code(st.session_state[output_key], language="bash")
-                    continue
-
-            except Exception as e:
-                error_msg: str = f"\n读取过程中发生错误: {e}\n"
-                st.session_state[output_key] += error_msg
-                print(error_msg, file=sys.stderr)
+            if update_condition:
+                output_text += line
+                if "━━" in line:
+                    print("\r" + line + "\r", end="")
+                else:
+                    print(line, end="")  # 自带 \r\n
+                output = clean_ouput(line)
+                st.session_state[output_key] += output
+                buffer = []
+                last_update_time = current_time
+                # 使用 .code() 而不是 text_area，避免key问题
                 output_placeholder.code(st.session_state[output_key], language="bash")
-                break
 
-        # 未经处理的原始字符集
-        # print([output_text])
+        elif index == 1:  # EOF，进程结束
+            if child.before:  # type: ignore[assignment]
+                buffer.append(child.before)  # type: ignore[assignment]
+                sys.stdout.write(child.before)  # type: ignore[assignment]
+                sys.stdout.flush()
 
-        # 获取退出状态
-        child.close()  # type:ignore
+            if buffer:
+                # 匹配解析时输出的 `投稿视频 ...``
+                line = "".join(buffer)
+                output_text += line
+                if "━━" in line:
+                    print("\r" + line + "\r", end="")
+                else:
+                    print(line, end="")  # 自带 \r\n 或者 \n
+                output = clean_ouput(line)
+                st.session_state[output_key] += output
+                output_placeholder.code(st.session_state[output_key], language="bash")
+            break
 
-    except Exception as e:
-        error_msg: str = f"\n发生错误: {e}\n"
-        st.session_state[output_key] += error_msg
-        print(error_msg, file=sys.stderr)
-        output_placeholder.code(st.session_state[output_key], language="bash")
+        elif index == 2:  # 超时
+            current_time: float = time.time()
+            if buffer and (current_time - last_update_time) > 0.5:
+                line = "".join(buffer)
+                output_text += line
+                if "━━" in line:
+                    print("\r" + line + "\r", end="")
+                else:
+                    print(line, end="")  # 自带 \r\n
+                output = clean_ouput(line)
+                st.session_state[output_key] += output
+                buffer = []
+                last_update_time = current_time
+                output_placeholder.code(st.session_state[output_key], language="bash")
+            continue
 
+    # 未经处理的原始字符集
+    # print([output_text])
+
+    # 获取退出状态
+    child.close()  # type:ignore
     return child.exitstatus if child and hasattr(child, "exitstatus") else None  # type: ignore[assignment]
 
 
@@ -219,90 +202,79 @@ def run_parser(command: list[str], debug: bool = False, batch: bool = True) -> Y
     buffer: list[str] = []
     output_text = ""
 
-    try:
-        child = pexpect.spawn(  # type: ignore[assignment]
-            command[0],
-            args=command[1:],
-            encoding="utf-8",
-        )
-        # 读取并处理输出
-        while True:
-            try:
-                # 尝试读取字符
-                index: int = child.expect([".", pexpect.EOF, pexpect.TIMEOUT], timeout=0.1)  # type: ignore[assignment]
+    child = pexpect.spawn(  # type: ignore[assignment]
+        command[0],
+        args=command[1:],
+        encoding="utf-8",
+    )
+    # 读取并处理输出
+    while True:
+        # 尝试读取字符
+        index: int = child.expect([".", pexpect.EOF, pexpect.TIMEOUT], timeout=0.1)  # type: ignore[assignment]
 
-                if index == 0:  # 读取到一个字符
-                    char: str = str(child.after)  # type: ignore[assignment]
-                    buffer.append(char)
+        if index == 0:  # 读取到一个字符
+            char: str = str(child.after)  # type: ignore[assignment]
+            buffer.append(char)
 
-                    # 如果是unix-like,直接输出到终端，如果是windows,则需要先处理一下。
-                    sys.stdout.write(char)
-                    sys.stdout.flush()
+            # 如果是unix-like,直接输出到终端，如果是windows,则需要先处理一下。
+            sys.stdout.write(char)
+            sys.stdout.flush()
 
-                    update_condition: bool = "\r\n" in "".join(buffer)
+            update_condition: bool = "\r\n" in "".join(buffer)
 
-                    if update_condition:
-                        output_text += "".join(buffer)
-                        if batch:
-                            parser.batch_parse_line("".join(buffer))
-                        else:
-                            parser.parse_line("".join(buffer))
-                        current_index = parser.current_index
-                        if current_index - show_index == 1:
-                            # 避免加入重复的元素 skip -1
-                            if show_index != -1:
-                                st.session_state[key].append(parser.result["episodes"][show_index])
-                                show_card_container(st.session_state[key][show_index], show_index)
-                            show_index += 1
-
-                        buffer = []
-
-                elif index == 1:  # EOF，进程结束
-                    if child.before:  # type: ignore[assignment]
-                        buffer.append(child.before)  # type: ignore[assignment]
-                        sys.stdout.write(child.before)  # type: ignore[assignment]
-                        sys.stdout.flush()
-
-                    if buffer:
-                        output_text += "".join(buffer)
-                        if batch:
-                            parser.batch_parse_line("".join(buffer))
-                        else:
-                            parser.parse_line("".join(buffer))
-                        current_index = parser.current_index
-                    break
-
-            except Exception as e:
-                error_msg: str = f"\n循环内部出现错误: {e}\n"
-                print(error_msg, file=sys.stderr)
-                break
-
-        # 获取退出状态
-        child.close()  # type:ignore
-
-    except Exception as e:
-        error_msg: str = f"\n发生错误: {e}\n"
-        print(error_msg, file=sys.stderr)
-    finally:
-        if debug:
-            print([output_text])
-            print([parser.result])
-            st.session_state[key].append(parser.result["episodes"][show_index])
-            st.session_state[runner_keys["video_name"]] = parser.result["video_name"]
-            show_index += 1
-            show_card_container(st.session_state[key][-1], show_index)
-        else:
-            try:
-                if "url 不正确，也许该 url 仅支持批量下载，如果是这样，请使用参数 -b～" in output_text:
-                    output_text += "请尝试使用`全集解析` \r\n"
-                    st.session_state[runner_keys["runtime_error"]] = clean_ouput(output_text)
+            if update_condition:
+                output_text += "".join(buffer)
+                if batch:
+                    parser.batch_parse_line("".join(buffer))
                 else:
-                    st.session_state[key].append(parser.result["episodes"][show_index])
-                    st.session_state[runner_keys["video_name"]] = parser.result["video_name"]
+                    parser.parse_line("".join(buffer))
+                current_index = parser.current_index
+                if current_index - show_index == 1:
+                    # 避免加入重复的元素 skip -1
+                    if show_index != -1:
+                        st.session_state[key].append(parser.result["episodes"][show_index])
+                        show_card_container(st.session_state[key][show_index], show_index)
                     show_index += 1
-                    show_card_container(st.session_state[key][-1], show_index)
-            except Exception as e:
-                st.session_state[runner_keys["runtime_error"]] = clean_ouput(output_text) if output_text else str(e)
+
+                buffer = []
+
+        elif index == 1:  # EOF，进程结束
+            if child.before:  # type: ignore[assignment]
+                buffer.append(child.before)  # type: ignore[assignment]
+                sys.stdout.write(child.before)  # type: ignore[assignment]
+                sys.stdout.flush()
+
+            if buffer:
+                output_text += "".join(buffer)
+                if batch:
+                    parser.batch_parse_line("".join(buffer))
+                else:
+                    parser.parse_line("".join(buffer))
+                current_index = parser.current_index
+            break
+
+    # 获取退出状态
+    child.close()  # type:ignore
+
+    if debug:
+        print([output_text])
+        print([parser.result])
+        st.session_state[key].append(parser.result["episodes"][show_index])
+        st.session_state[runner_keys["video_name"]] = parser.result["video_name"]
+        show_index += 1
+        show_card_container(st.session_state[key][-1], show_index)
+    else:
+        try:
+            if "url 不正确，也许该 url 仅支持批量下载，如果是这样，请使用参数 -b～" in output_text:
+                output_text += "请尝试使用`全集解析` \r\n"
+                st.session_state[runner_keys["runtime_error"]] = clean_ouput(output_text)
+            else:
+                st.session_state[key].append(parser.result["episodes"][show_index])
+                st.session_state[runner_keys["video_name"]] = parser.result["video_name"]
+                show_index += 1
+                show_card_container(st.session_state[key][-1], show_index)
+        except Exception as e:
+            st.session_state[runner_keys["runtime_error"]] = clean_ouput(output_text) if output_text else str(e)
 
     return parser.result
 
