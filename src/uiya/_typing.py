@@ -52,6 +52,8 @@ class CommandStatus(TypedDict):
     parse_mode: bool
     no_color: bool
     no_progress: bool
+    custom_proxy_pool: bool
+    proxy_pool: str
     video_quality: VideoQuality
     audio_quality: AudioQuality
 
@@ -71,6 +73,8 @@ full_status: CommandStatus = {
     "no_progress": True,
     "video_quality": "360P 流畅",
     "audio_quality": "320kbps",
+    "custom_proxy_pool": False,
+    "proxy_pool": "",
 }
 
 SupportOS = Literal["windows", "linux", "macos"]

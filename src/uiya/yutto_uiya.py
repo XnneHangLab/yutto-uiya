@@ -287,13 +287,14 @@ def setting_tab() -> None:
             value=settings.download_dir,
             help="下载目录",
         )
-        if st.toggle("自定义输出目录", custom_proxy_pool, key="custom_output_dir"):
+        if st.toggle("自定义代理池", custom_proxy_pool, key="custom_output_dir"):
             proxy_pool = st.text_input(
                 get_setting_title("proxy_pool", UiyaSetting),
                 value=proxy_pool,
-                placeholder="Output Directory",
+                placeholder="<https?://url/to/proxy/server>",
                 key="proxy_pool",
             )
+        st.caption("不开启代理池默认为 auto")
 
     with Save:
         col1, col2, col3 = st.columns([0.7, 0.15, 0.15])
