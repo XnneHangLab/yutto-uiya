@@ -107,15 +107,11 @@ class RunnerKeys(TypedDict):
     video_name: str  # 整个视频的名称
     download_content: str  # 下载 output, 和终端保持一致
     parse_command_status: str  # 解析 CommandStatus 格式
-    is_running: str  # 是否正在运行
     runtime_error: str  # 运行时错误
 
 
 class YuttoUiyaKeys(TypedDict):
     """Session keys use in yutto_uiya.py"""
 
-    is_running: str  # 是否正在运行
-
     save: str  # 是否保存(信息提示)
-
     full_status: str  # 用于保存完整的状态信息, 防止二次被篡改

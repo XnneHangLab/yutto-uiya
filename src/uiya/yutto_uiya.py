@@ -28,9 +28,6 @@ if yutto_uiya_keys["save"] in st.session_state:
     st.toast("参数已成功保存", icon=":material/verified:")
     del st.session_state[yutto_uiya_keys["save"]]
 
-if yutto_uiya_keys["is_running"] not in st.session_state:
-    st.session_state.is_running = False
-
 if yutto_uiya_keys["save"] in st.session_state:
     st.toast("参数已成功保存", icon=":material/verified:")
     del st.session_state[yutto_uiya_keys["save"]]
@@ -94,7 +91,6 @@ def downloader(
     download_button = st.button(
         "开始下载",
         use_container_width=True,
-        disabled=st.session_state[yutto_uiya_keys["is_running"]],
         type="primary",
     )
     output_placeholder = st.empty()
@@ -117,7 +113,6 @@ def downloader(
             command_generator = command_generator.from_status(status)  # 通过from_status来初始化
             command = command_generator.gen_args()
             run_downloader(command=command, output_placeholder=output_placeholder)
-            st.session_state[yutto_uiya_keys["is_running"]] = True
             # 把资源从 tmp_dir 中捞出来
             tmp_dir = Path(command_generator.tmp_dir)
             if tmp_dir.exists():
@@ -139,8 +134,6 @@ def downloader(
                     if file.is_file():
                         file.unlink()
                 tmp_dir.rmdir()
-        st.session_state[yutto_uiya_keys["is_running"]] = False
-        st.rerun()
 
 
 def bangumi_tab() -> None:
@@ -152,16 +145,16 @@ def bangumi_tab() -> None:
             url = st.text_input("URL", key="bangumi_url", placeholder="请输入番剧链接", label_visibility="collapsed")
         with parse_btn_col:
             parse_btn = st.form_submit_button(
-                "单集解析", use_container_width=True, disabled=st.session_state[yutto_uiya_keys["is_running"]]
+                "单集解析",
+                use_container_width=True,
             )
         with batch_parse_btn_col:
             batch_parse_btn = st.form_submit_button(
-                "全集解析", use_container_width=True, disabled=st.session_state[yutto_uiya_keys["is_running"]]
+                "全集解析",
+                use_container_width=True,
             )
     output_placeholder = st.empty()
-    if batch_parse_btn and not st.session_state[yutto_uiya_keys["is_running"]]:
-        st.session_state[yutto_uiya_keys["is_running"]] = True
-
+    if batch_parse_btn:
         status = deepcopy(st.session_state[yutto_uiya_keys["full_status"]])
         # 用户自定义参数,由 UI 传入
         status["url"] = url
@@ -175,10 +168,7 @@ def bangumi_tab() -> None:
             # run_downloader(command, key_name="bangumi_output", output_placeholder=output_placeholder)
             run_parser(command=command, debug=False)
             st.rerun()
-        else:
-            st.session_state[yutto_uiya_keys["is_running"]] = False
-    if parse_btn and not st.session_state[yutto_uiya_keys["is_running"]]:
-        st.session_state[yutto_uiya_keys["is_running"]] = True
+    if parse_btn:
         status = deepcopy(st.session_state[yutto_uiya_keys["full_status"]])
         status["url"] = url
         status["batch_download"] = False
@@ -188,11 +178,6 @@ def bangumi_tab() -> None:
             command = command_generator.gen_args()
             run_parser(command=command, debug=False, batch=False)
             st.rerun()
-        else:
-            st.session_state[yutto_uiya_keys["is_running"]] = False
-
-    if st.session_state[yutto_uiya_keys["is_running"]]:
-        print("正在运行")
 
     if st.session_state[runner_keys["parse_content"]]:
         # 去掉完全相同的元素
