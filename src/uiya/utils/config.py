@@ -4,24 +4,20 @@ import os
 import platform
 import tomllib  # Python 3.11+ 自带
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Any, Literal, get_args
+from typing import TYPE_CHECKING, Annotated, Any, get_args
 
 import tomli_w as tomlw  # 安装 tomli_w 用于写入
 from pydantic import BaseModel, Field
 
 from uiya._dictionary import uiya_setting_dictionary
+from uiya._typing import LoginStrict, VipStrict
 
 toml_loads = tomllib.loads
 toml_dumps = tomlw.dumps  # 使用 tomlw.dumps
 
-
 if TYPE_CHECKING:
     from uiya._dataclass import YuttoSettings
-
-
-# 开放的配置选项
-LoginStrict = Literal["open", "close"]
-VipStrict = Literal["open", "close"]
+    from uiya._typing import UiyaSettingsTitle
 
 
 class UiyaSetting(BaseModel):
@@ -30,6 +26,8 @@ class UiyaSetting(BaseModel):
     download_dir: Annotated[str, Field(default="./downloads", title="下载目录")]
     login_strict: Annotated[LoginStrict, Field(default="close", title="严格校验登陆")]
     vip_strict: Annotated[VipStrict, Field(default="close", title="严格校验大会员")]
+    proxy_pool: Annotated[str, Field(default="", title="代理池")]
+    custom_proxy_pool: Annotated[bool, Field(default=False, title="是否使用自定义代理池")]
 
     def get_zh_option_list(self, key: UiyaSettingsTitle) -> list[str]:
         """获取中文配置项列表"""
@@ -49,25 +47,18 @@ class UiyaSetting(BaseModel):
         else:
             raise ValueError(f"不支持的配置项: {key}")
 
-    def zh_set_value(self, key: UiyaSettingsTitle, value: str):
-        """通过中文设置配置项"""
+    def zh_get_value(self, key: UiyaSettingsTitle, value: str):
+        """通过中文得到对应的 value, 但不直接修改"""
         if key == "login_strict":
-            self.login_strict = get_args(LoginStrict)[
+            login_strict = get_args(LoginStrict)[
                 [uiya_setting_dictionary[x][1] for x in get_args(LoginStrict)].index(value)
             ]
+            return login_strict
         elif key == "vip_strict":
-            self.vip_strict = get_args(VipStrict)[
-                [uiya_setting_dictionary[x][1] for x in get_args(VipStrict)].index(value)
-            ]
-
-
-UiyaSettingsTitle = Literal[
-    "as_package",
-    "SESS_DATA",
-    "download_dir",
-    "login_strict",
-    "vip_strict",
-]
+            vip_strict = get_args(VipStrict)[[uiya_setting_dictionary[x][1] for x in get_args(VipStrict)].index(value)]
+            return vip_strict
+        else:
+            raise ValueError(f"不支持的配置项: {key}")
 
 
 def xdg_config_home() -> Path:

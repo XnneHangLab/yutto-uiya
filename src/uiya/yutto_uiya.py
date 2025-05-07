@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import streamlit as st
 from natsort import natsorted
@@ -24,6 +25,9 @@ from uiya.utils.runner import (
     show_interatable_card_container,
 )
 
+if TYPE_CHECKING:
+    from uiya._typing import LoginStrict, VipStrict
+
 if yutto_uiya_keys["save"] in st.session_state:
     st.toast("参数已成功保存", icon=":material/verified:")
     del st.session_state[yutto_uiya_keys["save"]]
@@ -31,6 +35,17 @@ if yutto_uiya_keys["save"] in st.session_state:
 if yutto_uiya_keys["save"] in st.session_state:
     st.toast("参数已成功保存", icon=":material/verified:")
     del st.session_state[yutto_uiya_keys["save"]]
+
+if yutto_uiya_keys["initial_settings"] not in st.session_state:
+    settings: UiyaSetting = load_settings_file("uiya.toml", UiyaSetting)
+    st.session_state[yutto_uiya_keys["initial_settings"]] = {
+        "login_strict": settings.login_strict,
+        "vip_strict": settings.vip_strict,
+        "download_dir": settings.download_dir,
+        "sess_data": settings.SESS_DATA,
+        "custom_proxy_pool": settings.custom_proxy_pool,
+        "proxy_pool": settings.proxy_pool,
+    }
 
 if yutto_uiya_keys["full_status"] not in st.session_state:
     st.session_state[yutto_uiya_keys["full_status"]] = full_status
@@ -48,6 +63,12 @@ if runner_keys["runtime_error"] not in st.session_state:
 
 if runner_keys["download_content"] not in st.session_state:
     st.session_state[runner_keys["download_content"]] = ""
+
+
+@st.dialog("消息")
+def message_box(title: str, message: str):
+    st.markdown("")
+    st.markdown(f"### {title} \n {message}")
 
 
 @st.dialog(title="下载选项", width="large")
@@ -234,44 +255,85 @@ def setting_tab() -> None:
     Save = st.container()
     Setting = st.container(border=True)
 
+    vip_strict: VipStrict = st.session_state.get(yutto_uiya_keys["vip_strict"], settings.vip_strict)
+    login_strict: LoginStrict = st.session_state.get(yutto_uiya_keys["login_strict"], settings.login_strict)
+    custom_proxy_pool: bool = st.session_state.get(yutto_uiya_keys["custom_proxy_pool"], settings.custom_proxy_pool)
+    download_dir: str = st.session_state.get(yutto_uiya_keys["download_dir"], settings.download_dir)
+    sess_data: str = st.session_state.get(yutto_uiya_keys["sess_data"], settings.SESS_DATA)
+    proxy_pool: str = st.session_state.get(yutto_uiya_keys["proxy_pool"], settings.proxy_pool)
+
     with Setting:
         sess_data = st.text_input(
             get_setting_title("SESS_DATA", UiyaSetting),
             value=settings.SESS_DATA,
             help="如果需要下载大会员视频，必须填写该项。否则无法下载大会员视频。",
         )
-        login_strict = st.selectbox(
+        zh_login_strict = st.selectbox(
             get_setting_title("login_strict", UiyaSetting),
             settings.get_zh_option_list("login_strict"),
             index=settings.get_index("login_strict"),
         )
+        login_strict = settings.zh_get_value("login_strict", zh_login_strict)
         st.caption("如果你要使用 sess_data 登陆，建议开启")
-        vip_strict = st.selectbox(
+        zh_vip_strict = st.selectbox(
             get_setting_title("vip_strict", UiyaSetting),
             settings.get_zh_option_list("vip_strict"),
             index=settings.get_index("vip_strict"),
         )
+        vip_strict = settings.zh_get_value("vip_strict", zh_vip_strict)
         st.caption("如果你填入大会员的 sess_data,建议开启")
         download_dir = st.text_input(
             get_setting_title("download_dir", UiyaSetting),
             value=settings.download_dir,
             help="下载目录",
         )
+        if st.toggle("自定义输出目录", custom_proxy_pool, key="custom_output_dir"):
+            proxy_pool = st.text_input(
+                get_setting_title("proxy_pool", UiyaSetting),
+                value=proxy_pool,
+                placeholder="Output Directory",
+                key="proxy_pool",
+            )
 
     with Save:
-        col1, col2 = st.columns([0.75, 0.25])
+        col1, col2, col3 = st.columns([0.7, 0.15, 0.15])
         st.markdown("")
-        with col2:
+        with col3:
             st.markdown("")
             st.markdown("")
             if st.button("**保存更改**", use_container_width=True, type="primary"):
-                settings.zh_set_value("login_strict", login_strict)
-                settings.zh_set_value("vip_strict", vip_strict)
-                settings.download_dir = download_dir
-                settings.SESS_DATA = sess_data
-                write_settings_file("uiya.toml", settings)
-                st.session_state.save = True
-                st.rerun()
+                current_settings = {
+                    "login_strict": login_strict,
+                    "vip_strict": vip_strict,
+                    "download_dir": download_dir,
+                    "sess_data": sess_data,
+                    "proxy_pool": proxy_pool,
+                    "custom_proxy_pool": custom_proxy_pool,
+                }
+                initial_settings = st.session_state[yutto_uiya_keys["initial_settings"]]
+
+                if current_settings != initial_settings:
+                    settings.login_strict = login_strict
+                    settings.vip_strict = vip_strict
+                    settings.download_dir = download_dir
+                    settings.SESS_DATA = sess_data
+                    settings.proxy_pool = proxy_pool
+                    settings.custom_proxy_pool = custom_proxy_pool
+                    write_settings_file("uiya.toml", settings)
+                    message_box("保存成功！", "你也可以通过手动配置 `uiya.toml` 来修改配置。")
+                    st.session_state.save = True
+                    st.session_state[yutto_uiya_keys["initial_settings"]] = current_settings
+                    st.rerun()
+                else:
+                    message_box("未检测到更改", "配置未发生任何变化，无需保存。")
+        with col2:
+            st.markdown("")
+            st.markdown("")
+            if st.button("**恢复默认设置**", type="secondary", use_container_width=True):
+                settings_path = Path("config") / "uiya.toml"
+                settings_path.unlink()
+                load_settings_file("uiya.toml", UiyaSetting)
+                message_box("恢复成功！", "配置已恢复为默认设置。刷新页面即可查看更改。")
         with col1:
             st.markdown("")
             st.markdown("")
