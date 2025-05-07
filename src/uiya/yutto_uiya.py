@@ -288,12 +288,15 @@ def setting_tab() -> None:
             help="下载目录",
         )
         if st.toggle("自定义代理池", custom_proxy_pool, key="custom_output_dir"):
+            custom_proxy_pool = True
             proxy_pool = st.text_input(
                 get_setting_title("proxy_pool", UiyaSetting),
                 value=proxy_pool,
                 placeholder="<https?://url/to/proxy/server>",
                 key="proxy_pool",
             )
+        else:
+            custom_proxy_pool = False
         st.caption("不开启代理池默认为 auto")
 
     with Save:
@@ -322,9 +325,9 @@ def setting_tab() -> None:
                     settings.custom_proxy_pool = custom_proxy_pool
                     write_settings_file("uiya.toml", settings)
                     message_box("保存成功！", "你也可以通过手动配置 `uiya.toml` 来修改配置。")
-                    st.session_state.save = True
                     st.session_state[yutto_uiya_keys["initial_settings"]] = current_settings
-                    st.rerun()
+                    # PS, st.rerun 不能滥用, 能不用就不用. 会导致 toggle value 自更新失败
+
                 else:
                     message_box("未检测到更改", "配置未发生任何变化，无需保存。")
         with col2:
