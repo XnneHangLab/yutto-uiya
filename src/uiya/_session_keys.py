@@ -20,4 +20,12 @@ runner_keys: RunnerKeys = {
 yutto_uiya_keys: YuttoUiyaKeys = {
     "save": "save",
     "full_status": "full_status",
+    "initial_settings": "initial_settings",
+    "as_package": "as_package",
+    "login_strict": "login_strict",
+    "vip_strict": "vip_strict",
+    "download_dir": "download_dir",
+    "sess_data": "sess_data",
+    "proxy_pool": "proxy_pool",
+    "custom_proxy_pool": "custom_proxy_pool",
 }

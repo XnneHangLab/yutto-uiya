@@ -179,4 +179,8 @@ class CommandGenerator:
             no_progress_args = ["--no-progress"]
             self.args.extend(no_progress_args)
 
+        # =================== proxy_pool
+        if self.uiya_setting.custom_proxy_pool:
+            proxy_pool_args = ["--proxy", self.uiya_setting.proxy_pool]
+            self.args.extend(proxy_pool_args)
         return self.args
