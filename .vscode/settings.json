@@ -4,5 +4,7 @@
   "python.analysis.inlayHints.variableTypes": true,
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff"
-  }
+  },
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode"
 }
