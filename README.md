@@ -1,15 +1,4 @@
-# yutto-uiya
-
-<p align="center">
-   <a href="https://python.org/" target="_blank"><img alt="PyPI - Python Version" src="https://img.shields.io/pypi/pyversions/moelib?logo=python&style=flat-square"></a>
-   <a href="https://pypi.org/project/moelib/" target="_blank"><img src="https://img.shields.io/pypi/v/moelib?style=flat-square" alt="pypi"></a>
-    <a href="https://gradio.app/" target="_blank"><img alt="Gradio" src="https://img.shields.io/badge/Gradio-%20%F0%9F%92%BB-blue?style=flat-square"></a>
-   <br/>
-   <a href="https://github.com/astral-sh/uv"><img alt="uv" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json&style=flat-square"></a>
-   <a href="https://github.com/astral-sh/ruff"><img alt="ruff" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json&style=flat-square"></a>
-   <a href="https://gitmoji.dev"><img alt="Gitmoji" src="https://img.shields.io/badge/gitmoji-%20😜%20😍-FFDD67?style=flat-square"></a>
-   <br/>
-</p>
+# yutto-uiya 
 
 这里是 yutto 的 gradio-webui!<br>
 
@@ -23,15 +12,22 @@
 
 # 支持项:
 
-- [x] [用户投稿单个视频](https://www.bilibili.com/video/BV1mUBXYeE1h/?spm_id_from=333.1387.homepage.video_card.click&vd_source=d7601f0fc447d708fff71aa75186ea10)
-- [x] [用户投稿视频列表](https://www.bilibili.com/video/BV1Hp4y1M7gq/?spm_id_from=333.1387.top_right_bar_window_custom_collection.content.click)
-- [x] [收藏夹](https://space.bilibili.com/100969474/favlist?fid=1306978874&ftype=create)
-- [x] [合集](https://space.bilibili.com/100969474/lists/1947439?type=series)
-- [x] [up 空间](https://space.bilibili.com/100969474)
-- [x] [番剧](https://www.bilibili.com/bangumi/play/ss48029?from_spmid=666.4.mylist.2)
-- [x] [课程](https://www.bilibili.com/cheese/play/ss63429?csource=common_myclass_purchasedlecture_null&spm_id_from=333.874.selfDef.mine_paid_list)
+-  [x] [用户投稿单个视频](https://www.bilibili.com/video/BV1mUBXYeE1h/?spm_id_from=333.1387.homepage.video_card.click&vd_source=d7601f0fc447d708fff71aa75186ea10)
+-  [x] [用户投稿视频列表](https://www.bilibili.com/video/BV1Hp4y1M7gq/?spm_id_from=333.1387.top_right_bar_window_custom_collection.content.click)
+-  [x] [收藏夹](https://space.bilibili.com/100969474/favlist?fid=1306978874&ftype=create)
+-  [x] [合集](https://space.bilibili.com/100969474/lists/1947439?type=series)
+-  [x] [up 空间](https://space.bilibili.com/100969474)
+-  [x] [番剧](https://www.bilibili.com/bangumi/play/ss48029?from_spmid=666.4.mylist.2)
+-  [x] [课程](https://www.bilibili.com/cheese/play/ss63429?csource=common_myclass_purchasedlecture_null&spm_id_from=333.874.selfDef.mine_paid_list)
 
 但有个前提, 所有支持项最终能否被获取到都取决于用户本身是否具有对该资源的访问权限, 比如是否是大会员, 是否是购买了课程.
+
+## 预览：
+
+![](https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505091128956.png)
+![](https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505091128046.png)
+![](https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505091128196.png)
+![](https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505091128791.png)
 
 ## 如何部署它:
 
@@ -113,30 +109,19 @@ uv sync
 uv run streamlit run src/uiya/yutto_uiya.py
 ```
 
-## 预览：
-
-![主界面预览](https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505091128956.png)
-![设置界面](https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505091128046.png)
-![解析](https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505091128196.png)
-![下载选项](https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505091128791.png)
-
 ## 如何使用:
 
-参考[使用手册]()
-
-### 如何用它下载视频:
-
-我为每个功能都在`webui`中写了说明，放心食用~<br>
+参考[使用手册](https://xnnehang.top/posts/default/yutto_uiya_v1_1_2_guide)
 
 ## 待开发:
 
--  [x] 提供单独下载音频、视频、弹幕、封面的勾选项。放在webui中。
+-  [x] 提供单独下载音频、视频、弹幕、封面的勾选项。放在 webui 中。
 -  [x] 结合 nfo 显示部分视频信息。
 -  [x] 提供手动选集。
 -  [ ] 提供不同的保存格式。
 -  [x] 加入覆盖下载。（目前当下载已下载的视频不同清晰度，会跳过。无法下载不同清晰度。）
 -  [x] 首次运行自动创建配置文件
--  [x] Typing，优化代码结构，让代码变得优雅.
+-  [x] Typing, 优化代码结构, 让代码变得优雅.
 -  [x] release as a python lib
 -  [ ] 提高解析速度.
--  [ ] 简化安装步骤
+-  [ ] 简化安装步骤.
