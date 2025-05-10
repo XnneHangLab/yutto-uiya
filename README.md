@@ -1,7 +1,7 @@
 <a href="https://xnnehang.top/">
 
 <div align="center">
-    <img src="https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505101854631.png" alt="yutto-uiya" width="220" height="212">
+    <img src="https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505101919055.png" alt="yutto-uiya" width="180" height="172">
 </div>
 <h1 align="center">yutto-uiya</h1>
 
