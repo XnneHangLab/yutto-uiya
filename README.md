@@ -12,6 +12,8 @@
 <a href="https://github.com/astral-sh/uv"><img alt="uv" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json&style=flat-square"></a>
 <a href="https://github.com/astral-sh/ruff"><img alt="ruff" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json&style=flat-square"></a>
 <a href="https://gitmoji.dev"><img alt="Gitmoji" src="https://img.shields.io/badge/gitmoji-%20😜%20😍-FFDD67?style=flat-square"></a>
+<a href="https://github.com/casey/just"><img alt="just" src="https://img.shields.io/badge/just-🤖-yellow?style=flat-square&logoWidth=20"></a>
+<a href="https://streamlit.io/"><img alt="Streamlit" src="https://img.shields.io/badge/Streamlit-FF4B4B?logo=streamlit&logoColor=white&style=flat-square"></a>
 <br/>
 </div>
 
@@ -22,7 +24,7 @@
 </p>
 
 <p align="center">
-<a href='https://xnnehang.top/posts/default/yutto_uiya_v1_1_2_guide' style='font-size: 20px;'><strong>文档网站</strong></a> ·
+<a href='https://xnnehang.top/posts/default/yutto_uiya_v1_1_2_guide' style='font-size: 20px;'><strong>文档网站(可能还没写全,再等等噢)</strong></a> ·
 <a href='https://space.bilibili.com/556737824'><strong>bilibili视频教程(再等等噢)</strong></a>
 </p>
 <p align="center">
@@ -35,7 +37,7 @@
 
 我先前用过 downkyi,JJdown.共同的问题就是,我自己没能力改源代码。downkyi 是`C#`开发的，而 JJdown 似乎是闭源的。每次 b 站上的朋友问我说"为啥子突然不行了"，我也只能说我去向作者反馈一下，然后去提一个 Issue。<br>
 
-但对于 yutto,我觉得我行了。<br>
+但对于 yutto, 我觉得我行了。<br>
 
 # 支持项:
 
