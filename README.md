@@ -11,6 +11,10 @@
 </div>
 
 <p align="center">
+ 这里是为 [yutto](https://github.com/yutto-dev/yutto) 开发的 WebUI!<br>
+</p>
+
+<p align="center">
 <a href='https://xnnehang.top/posts/default/yutto_uiya_v1_1_2_guide' style='font-size: 20px;'><strong>文档网站</strong></a> ·
 <a href='https://space.bilibili.com/556737824'><strong>bilibili视频教程(再等等噢)</strong></a>
 </p>
@@ -19,8 +23,6 @@
   <a href="#本地部署"><strong>演示</strong></a> ·
   <a href="#如何书用"><strong>如何使用</strong></a>
 </p>
-
-这里是为 [yutto](https://github.com/yutto-dev/yutto) 开发的 WebUI!<br>
 
 ## 为什么开发 ?​
 
