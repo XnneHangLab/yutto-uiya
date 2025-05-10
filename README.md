@@ -36,9 +36,7 @@
 ### 前置:
 
 <details closed>
-<summary>
-
-**ffmpeg #**<br>
+<summary><b>ffmpeg #</b><br>
 
 在合并音视频为视频, 以及转换音视频格式的时候, 均使用到了 `ffmpeg`。其中 yutto 依赖于系统级的 ffmpeg, 所以需要环境变量中直接具有 ffmpeg.<br>
 
@@ -58,10 +56,9 @@ sudo apt install ffmpeg # linux
 之后将 `ffmpeg.exe` 的路径添加到环境变量中。<br>
 
 </details>
-<details closed>
-<summary>
 
-**uv #**<br>
+<details closed>
+<summary><b>uv #</b><br>
 
 本项目完全使用 `uv` 管理, 所以需要安装 `uv`.<br>
 
@@ -79,9 +76,7 @@ uv 0.7.0
 </details>
 
 <details closed>
-<summary>
-
-**Rust tool chain #**<br>
+<summary><b>Rust tool chain #</b><br>
 
 因为本项目联调 `yutto`, 并且总是使用最新特性, 且最新特性并没有全部合入到主分支和发布到 pypi, 所以实时编译最新的 yutto 需要使用到 `rust` 工具链.<br>
 
@@ -104,7 +99,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 </details>
 
 <details closed>
-<summary> **just(可选) #**<br>
+<summary> <b>just(可选) #</b> <br>
 just 是一款用 rust 编写的简单易用的命令执行工具，通过它可以方便地执行一些开发时常用的命令。<br>
 </summary>
 
