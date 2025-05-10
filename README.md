@@ -33,7 +33,7 @@
 
 ## 如何部署它:
 
-### 安装前置:
+### 1.安装前置:
 
 <details closed>
 <summary><b>ffmpeg #</b><br>
@@ -120,14 +120,14 @@ scoop install just # 需要提前安装 scoop, 且正常使用还得依靠具有
 
 </details>
 
-### 克隆仓库
+### 2.克隆仓库
 
 ```shell
 git clone https://github.com/XnneHangLab/yutto-uiya.git
 cd yutto-uiya
 ```
 
-### 启动程序:<br>
+### 3.启动程序:<br>
 
 ```shell
 just start # 如果你安装了 just
