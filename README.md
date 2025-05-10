@@ -104,12 +104,8 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 </details>
 
 <details closed>
-<summary>
-
-**just(可选) #**<br>
-
-just 是一款用 rust 编写的简单易用的命令执行工具，通过它可以方便地执行一些开发时常用的命令。
-
+<summary> **just(可选) #**<br>
+just 是一款用 rust 编写的简单易用的命令执行工具，通过它可以方便地执行一些开发时常用的命令。<br>
 </summary>
 
 对于 `mac/linux` 用户:<br>
