@@ -1,7 +1,12 @@
+<a href="https://xnnehang.top/">
+
 <div align="center">
     <img src="https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202503312014744.svg" alt="魔女の实验室" width="270" height="180">
 </div>
 <h1 align="center">yutto-uiya</h1>
+
+</a>
+<br/>
 
 <div align="center">
 <a href="https://github.com/astral-sh/uv"><img alt="uv" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json&style=flat-square"></a>
@@ -11,7 +16,7 @@
 </div>
 
 <p align="center">
- 这里是为 [yutto](https://github.com/yutto-dev/yutto) 开发的 WebUI!<br>
+ 这里是为 yutto 开发的 WebUI!<br>
 </p>
 
 <p align="center">
