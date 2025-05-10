@@ -15,6 +15,8 @@
 <br/>
 </div>
 
+<p align="center"> <a href="./README_en.md"><b>English Documentation </b></a> </p>
+
 <p align="center">
  这里是为 yutto 开发的 WebUI!<br>
 </p>
@@ -25,8 +27,8 @@
 </p>
 <p align="center">
   <a href="#预览"><strong>预览</strong></a> ·
-  <a href="#本地部署"><strong>演示</strong></a> ·
-  <a href="#如何书用"><strong>如何使用</strong></a>
+  <a href="#本地部署"><strong>本地部署</strong></a> ·
+  <a href="#如何使用"><strong>如何使用</strong></a>
 </p>
 
 ## 为什么开发 ?​
