@@ -33,7 +33,7 @@
 
 ## 如何部署它:
 
-### 前置:
+### 安装前置:
 
 <details closed>
 <summary><b>ffmpeg #</b><br>
@@ -127,7 +127,7 @@ git clone https://github.com/XnneHangLab/yutto-uiya.git
 cd yutto-uiya
 ```
 
-### 启动:<br>
+### 启动程序:<br>
 
 ```shell
 just start # 如果你安装了 just
