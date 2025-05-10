@@ -1,7 +1,7 @@
 <a href="https://xnnehang.top/">
 
 <div align="center">
-    <img src="https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202503312014744.svg" alt="魔女の实验室" width="270" height="180">
+    <img src="https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505101854631.png" alt="yutto-uiya" width="220" height="212">
 </div>
 <h1 align="center">yutto-uiya</h1>
 
