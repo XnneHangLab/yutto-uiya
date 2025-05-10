@@ -4,6 +4,8 @@
 
 原仓库:[https://github.com/yutto-dev/yutto](https://github.com/yutto-dev/yutto).<br>
 
+本仓库:[https://github.com/XnneHangLab/yutto-uiya](https://github.com/XnneHangLab/yutto-uiya)<br>
+
 ## 为什么开发 ?​
 
 我先前用过 downkyi,JJdown.共同的问题就是,我自己没能力改源代码。downkyi 是`C#`开发的，而 JJdown 似乎是闭源的。每次 b 站上的朋友问我说"为啥子突然不行了"，我也只能说我去向作者反馈一下，然后去提一个 Issue。<br>
@@ -36,11 +38,11 @@
 <details closed>
 <summary>
 
-#### ffmpeg:
-
-</summary>
+**ffmpeg #**<br>
 
 在合并音视频为视频, 以及转换音视频格式的时候, 均使用到了 `ffmpeg`。其中 yutto 依赖于系统级的 ffmpeg, 所以需要环境变量中直接具有 ffmpeg.<br>
+
+</summary>
 
 对于`mac/linux`用户:<br>
 
@@ -59,22 +61,31 @@ sudo apt install ffmpeg # linux
 <details closed>
 <summary>
 
-#### uv:
-
-</summary>
+**uv #**<br>
 
 本项目完全使用 `uv` 管理, 所以需要安装 `uv`.<br>
 
+</summary>
+
 请参考它的[**安装文档**](https://docs.astral.sh/uv/getting-started/installation/).
 
+只需要保证全局环境下 uv 可访问即可: <br>
+
+```shell
+xnne@xnne-PC:~$ uv -V
+uv 0.7.0
+```
+
 </details>
+
 <details closed>
 <summary>
 
-#### Rust tool chain
+**Rust tool chain #**<br>
+
+因为本项目联调 `yutto`, 并且总是使用最新特性, 且最新特性并没有全部合入到主分支和发布到 pypi, 所以实时编译最新的 yutto 需要使用到 `rust` 工具链.<br>
 
 </summary>
-因为本项目联调 `yutto`, 并且总是使用最新特性, 且最新特性并没有全部合入到主分支和发布到 pypi, 所以实时编译最新的 yutto 需要使用到 `rust` 工具链.<br>
 
 我也会在 release 中提供各个版本的 `yutto` 的编译好的 `whl` 包, 你可以直接下载使用.(v1.1.2 之后开始)<br>
 
@@ -84,21 +95,22 @@ sudo apt install ffmpeg # linux
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
-安装完成后需要 source.<br>
+安装完成根据提示 source.<br>
 
 对于 `windows` 用户:<br>
 
 [https://www.rust-lang.org/tools/install](https://www.rust-lang.org/tools/install)<br>
 
 </details>
+
 <details closed>
 <summary>
 
-#### just(可选):
-
-</summary>
+**just(可选) #**<br>
 
 just 是一款用 rust 编写的简单易用的命令执行工具，通过它可以方便地执行一些开发时常用的命令。
+
+</summary>
 
 对于 `mac/linux` 用户:<br>
 
