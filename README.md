@@ -20,7 +20,7 @@
   <a href="#如何书用"><strong>如何使用</strong></a>
 </p>
 
-这里是 [yutto](https://github.com/yutto-dev/yutto) 的 WebUI!<br>
+这里是为 [yutto](https://github.com/yutto-dev/yutto) 开发的 WebUI!<br>
 
 ## 为什么开发 ?​
 
