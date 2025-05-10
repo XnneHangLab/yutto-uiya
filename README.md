@@ -56,7 +56,6 @@ sudo apt install ffmpeg # linux
 之后将 `ffmpeg.exe` 的路径添加到环境变量中。<br>
 
 </details>
-
 <details closed>
 <summary>
 
@@ -69,7 +68,6 @@ sudo apt install ffmpeg # linux
 请参考它的[**安装文档**](https://docs.astral.sh/uv/getting-started/installation/).
 
 </details>
-
 <details closed>
 <summary>
 
@@ -93,9 +91,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 [https://www.rust-lang.org/tools/install](https://www.rust-lang.org/tools/install)<br>
 
 </details>
-
 <details closed>
-
 <summary>
 
 #### just(可选):
