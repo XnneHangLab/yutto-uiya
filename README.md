@@ -3,11 +3,24 @@
 </div>
 <h1 align="center">yutto-uiya</h1>
 
-这里是 yutto 的 gradio-webui!<br>
+<div align="center">
+<a href="https://github.com/astral-sh/uv"><img alt="uv" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json&style=flat-square"></a>
+<a href="https://github.com/astral-sh/ruff"><img alt="ruff" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json&style=flat-square"></a>
+<a href="https://gitmoji.dev"><img alt="Gitmoji" src="https://img.shields.io/badge/gitmoji-%20😜%20😍-FFDD67?style=flat-square"></a>
+<br/>
+</div>
 
-原仓库:[https://github.com/yutto-dev/yutto](https://github.com/yutto-dev/yutto).<br>
+<p align="center">
+<a href='https://xnnehang.top/posts/default/yutto_uiya_v1_1_2_guide' style='font-size: 20px;'><strong>文档网站</strong></a> ·
+<a href='https://space.bilibili.com/556737824'><strong>bilibili视频教程(再等等噢)</strong></a>
+</p>
+<p align="center">
+  <a href="#预览"><strong>预览</strong></a> ·
+  <a href="#本地部署"><strong>演示</strong></a> ·
+  <a href="#如何书用"><strong>如何使用</strong></a>
+</p>
 
-本仓库:[https://github.com/XnneHangLab/yutto-uiya](https://github.com/XnneHangLab/yutto-uiya)<br>
+这里是 [yutto](https://github.com/yutto-dev/yutto) 的 WebUI!<br>
 
 ## 为什么开发 ?​
 
@@ -34,7 +47,7 @@
 ![](https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505091128196.png)
 ![](https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505091128791.png)
 
-## 如何部署它:
+## 本地部署:
 
 ### 1.安装前置:
 
