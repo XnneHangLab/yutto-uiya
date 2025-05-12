@@ -10,7 +10,7 @@ import tomli_w as tomlw  # 安装 tomli_w 用于写入
 from pydantic import BaseModel, Field
 
 from uiya._dictionary import uiya_setting_dictionary
-from uiya._typing import LoginStrict, VipStrict
+from uiya._typing import DebugMode, LoginStrict, VipStrict
 
 toml_loads = tomllib.loads
 toml_dumps = tomlw.dumps  # 使用 tomlw.dumps
@@ -28,6 +28,7 @@ class UiyaSetting(BaseModel):
     vip_strict: Annotated[VipStrict, Field(default="close", title="严格校验大会员")]
     proxy_pool: Annotated[str, Field(default="", title="代理池")]
     custom_proxy_pool: Annotated[bool, Field(default=False, title="是否使用自定义代理池")]
+    debug_mode: Annotated[DebugMode, Field(default="close", title="调试模式")]
 
     def get_zh_option_list(self, key: UiyaSettingsTitle) -> list[str]:
         """获取中文配置项列表"""
@@ -35,6 +36,8 @@ class UiyaSetting(BaseModel):
             return [uiya_setting_dictionary[x][1] for x in get_args(LoginStrict)]
         elif key == "vip_strict":
             return [uiya_setting_dictionary[x][1] for x in get_args(VipStrict)]
+        elif key == "debug_mode":
+            return [uiya_setting_dictionary[x][1] for x in get_args(DebugMode)]
         else:
             raise ValueError(f"不支持的配置项: {key}")
 
@@ -44,6 +47,8 @@ class UiyaSetting(BaseModel):
             return get_args(LoginStrict).index(self.login_strict)
         elif key == "vip_strict":
             return get_args(VipStrict).index(self.vip_strict)
+        elif key == "debug_mode":
+            return get_args(DebugMode).index(self.debug_mode)
         else:
             raise ValueError(f"不支持的配置项: {key}")
 
@@ -57,6 +62,9 @@ class UiyaSetting(BaseModel):
         elif key == "vip_strict":
             vip_strict = get_args(VipStrict)[[uiya_setting_dictionary[x][1] for x in get_args(VipStrict)].index(value)]
             return vip_strict
+        elif key == "debug_mode":
+            debug_mode = get_args(DebugMode)[[uiya_setting_dictionary[x][1] for x in get_args(DebugMode)].index(value)]
+            return debug_mode
         else:
             raise ValueError(f"不支持的配置项: {key}")
 
