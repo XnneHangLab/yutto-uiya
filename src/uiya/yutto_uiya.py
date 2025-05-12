@@ -26,7 +26,7 @@ from uiya.utils.runner import (
 )
 
 if TYPE_CHECKING:
-    from uiya._typing import LoginStrict, VipStrict, DebugMode
+    from uiya._typing import DebugMode, LoginStrict, VipStrict
 
 if yutto_uiya_keys["save"] in st.session_state:
     st.toast("参数已成功保存", icon=":material/verified:")
