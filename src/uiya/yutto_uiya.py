@@ -26,7 +26,7 @@ from uiya.utils.runner import (
 )
 
 if TYPE_CHECKING:
-    from uiya._typing import LoginStrict, VipStrict
+    from uiya._typing import LoginStrict, VipStrict, DebugMode
 
 if yutto_uiya_keys["save"] in st.session_state:
     st.toast("参数已成功保存", icon=":material/verified:")
@@ -262,7 +262,7 @@ def setting_tab() -> None:
     download_dir: str = st.session_state.get(yutto_uiya_keys["download_dir"], settings.download_dir)
     sess_data: str = st.session_state.get(yutto_uiya_keys["sess_data"], settings.SESS_DATA)
     proxy_pool: str = st.session_state.get(yutto_uiya_keys["proxy_pool"], settings.proxy_pool)
-    debug_mode: str = st.session_state.get(yutto_uiya_keys["debug_mode"], settings.debug_mode)
+    debug_mode: DebugMode = st.session_state.get(yutto_uiya_keys["debug_mode"], settings.debug_mode)
 
     with Setting:
         sess_data = st.text_input(
@@ -326,12 +326,14 @@ def setting_tab() -> None:
                 initial_settings = st.session_state[yutto_uiya_keys["initial_settings"]]
 
                 if current_settings != initial_settings:
+                    # 记得在这里进行赋值
                     settings.login_strict = login_strict
                     settings.vip_strict = vip_strict
                     settings.download_dir = download_dir
                     settings.SESS_DATA = sess_data
                     settings.proxy_pool = proxy_pool
                     settings.custom_proxy_pool = custom_proxy_pool
+                    settings.debug_mode = debug_mode
                     write_settings_file("uiya.toml", settings)
                     message_box("保存成功！", "你也可以通过手动配置 `uiya.toml` 来修改配置。")
                     st.session_state[yutto_uiya_keys["initial_settings"]] = current_settings
