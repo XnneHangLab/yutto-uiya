@@ -1,3 +1,5 @@
+VERSION := "1.1.3"
+
 start:
   uv lock
   uv sync
@@ -13,7 +15,12 @@ dev:
     uv lock --no-cache --upgrade
     uv run streamlit run src/uiya/yutto_uiya.py
 
-statrt:
+
+release:
+  @echo 'Tagging v{{VERSION}}...'
+  git tag "v{{VERSION}}"
+  @echo 'Push to GitHub to trigger publish process...'
+  git push --tags
 
 
 test-parse:
