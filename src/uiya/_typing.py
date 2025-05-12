@@ -26,6 +26,8 @@ LoginStrict = Literal["open", "close"]
 
 VipStrict = Literal["open", "close"]
 
+DebugMode = Literal["open", "close"]
+
 
 UiyaSettingsTitle = Literal[
     "as_package",
@@ -34,6 +36,7 @@ UiyaSettingsTitle = Literal[
     "login_strict",
     "vip_strict",
     "proxy_pool",
+    "debug_mode",
 ]
 
 
@@ -48,7 +51,6 @@ class CommandStatus(TypedDict):
     require_cover: bool
     require_metadata: bool
     require_subtitle: bool
-    debug_mode: bool
     parse_mode: bool
     no_color: bool
     no_progress: bool
@@ -65,7 +67,6 @@ full_status: CommandStatus = {
     "require_cover": True,
     "require_metadata": True,
     "require_subtitle": True,
-    "debug_mode": False,
     "parse_mode": True,
     "no_color": False,
     "no_progress": True,

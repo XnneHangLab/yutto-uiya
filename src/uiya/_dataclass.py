@@ -81,7 +81,6 @@ class CommandGenerator:
     require_metadata: bool = True
     require_subtitle: bool = True
 
-    debug_mode: bool = False
     parse_mode: bool = True
     no_color: bool = True
     no_progress: bool = True
@@ -157,11 +156,13 @@ class CommandGenerator:
             batch_download_args = ["-b"]
             self.args.extend(batch_download_args)
         # =================== DEBUG MODE
-        if self.debug_mode:
+        if self.uiya_setting.debug_mode == "open":
             print("=================== DEBUG MODE ↓===================")
             print(self.args)
             print(YuttoSetting.basic)
             print(YuttoSetting.resource)
+            debug_arg = ["--debug"]
+            self.args.extend(debug_arg)  # 用 --debug 打印更多信息
             print("=================== DEBUG MODE ↑===================")
 
         # =================== parse
