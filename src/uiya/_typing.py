@@ -140,3 +140,4 @@ class YuttoUiyaKeys(TypedDict):
     sess_data: str
     as_package: str
     custom_proxy_pool: str  # bool
+    debug_mode: str  # bool

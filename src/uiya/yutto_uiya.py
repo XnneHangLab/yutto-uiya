@@ -39,12 +39,13 @@ if yutto_uiya_keys["save"] in st.session_state:
 if yutto_uiya_keys["initial_settings"] not in st.session_state:
     settings: UiyaSetting = load_settings_file("uiya.toml", UiyaSetting)
     st.session_state[yutto_uiya_keys["initial_settings"]] = {
-        "login_strict": settings.login_strict,
-        "vip_strict": settings.vip_strict,
-        "download_dir": settings.download_dir,
-        "sess_data": settings.SESS_DATA,
-        "custom_proxy_pool": settings.custom_proxy_pool,
-        "proxy_pool": settings.proxy_pool,
+        yutto_uiya_keys["login_strict"]: settings.login_strict,
+        yutto_uiya_keys["vip_strict"]: settings.vip_strict,
+        yutto_uiya_keys["download_dir"]: settings.download_dir,
+        yutto_uiya_keys["sess_data"]: settings.SESS_DATA,
+        yutto_uiya_keys["custom_proxy_pool"]: settings.custom_proxy_pool,
+        yutto_uiya_keys["proxy_pool"]: settings.proxy_pool,
+        yutto_uiya_keys["debug_mode"]: settings.debug_mode,
     }
 
 if yutto_uiya_keys["full_status"] not in st.session_state:
@@ -261,6 +262,7 @@ def setting_tab() -> None:
     download_dir: str = st.session_state.get(yutto_uiya_keys["download_dir"], settings.download_dir)
     sess_data: str = st.session_state.get(yutto_uiya_keys["sess_data"], settings.SESS_DATA)
     proxy_pool: str = st.session_state.get(yutto_uiya_keys["proxy_pool"], settings.proxy_pool)
+    debug_mode: str = st.session_state.get(yutto_uiya_keys["debug_mode"], settings.debug_mode)
 
     with Setting:
         sess_data = st.text_input(
@@ -282,6 +284,12 @@ def setting_tab() -> None:
         )
         vip_strict = settings.zh_get_value("vip_strict", zh_vip_strict)
         st.caption("如果你填入大会员的 sess_data,建议开启")
+        zh_debug_mode = st.selectbox(
+            get_setting_title("debug_mode", UiyaSetting),
+            settings.get_zh_option_list("debug_mode"),
+            index=settings.get_index("debug_mode"),
+        )
+        debug_mode = settings.zh_get_value("debug_mode", zh_debug_mode)
         download_dir = st.text_input(
             get_setting_title("download_dir", UiyaSetting),
             value=settings.download_dir,
@@ -307,12 +315,13 @@ def setting_tab() -> None:
             st.markdown("")
             if st.button("**保存更改**", use_container_width=True, type="primary"):
                 current_settings = {
-                    "login_strict": login_strict,
-                    "vip_strict": vip_strict,
-                    "download_dir": download_dir,
-                    "sess_data": sess_data,
-                    "proxy_pool": proxy_pool,
-                    "custom_proxy_pool": custom_proxy_pool,
+                    yutto_uiya_keys["login_strict"]: login_strict,
+                    yutto_uiya_keys["vip_strict"]: vip_strict,
+                    yutto_uiya_keys["download_dir"]: download_dir,
+                    yutto_uiya_keys["sess_data"]: sess_data,
+                    yutto_uiya_keys["proxy_pool"]: proxy_pool,
+                    yutto_uiya_keys["custom_proxy_pool"]: custom_proxy_pool,
+                    yutto_uiya_keys["debug_mode"]: debug_mode,
                 }
                 initial_settings = st.session_state[yutto_uiya_keys["initial_settings"]]
 

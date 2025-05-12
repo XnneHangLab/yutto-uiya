@@ -28,7 +28,7 @@ class UiyaSetting(BaseModel):
     vip_strict: Annotated[VipStrict, Field(default="close", title="严格校验大会员")]
     proxy_pool: Annotated[str, Field(default="", title="代理池")]
     custom_proxy_pool: Annotated[bool, Field(default=False, title="是否使用自定义代理池")]
-    debug_mode: Annotated[DebugMode, Field(default="close", title="是否开启调试模式")]
+    debug_mode: Annotated[DebugMode, Field(default="close", title="调试模式")]
 
     def get_zh_option_list(self, key: UiyaSettingsTitle) -> list[str]:
         """获取中文配置项列表"""

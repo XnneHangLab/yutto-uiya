@@ -28,4 +28,5 @@ yutto_uiya_keys: YuttoUiyaKeys = {
     "sess_data": "sess_data",
     "proxy_pool": "proxy_pool",
     "custom_proxy_pool": "custom_proxy_pool",
+    "debug_mode": "debug_mode",
 }
