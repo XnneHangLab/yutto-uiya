@@ -29,4 +29,5 @@ yutto_uiya_keys: YuttoUiyaKeys = {
     "proxy_pool": "proxy_pool",
     "custom_proxy_pool": "custom_proxy_pool",
     "debug_mode": "debug_mode",
+    "ffmpeg_path": "ffmpeg_path",
 }

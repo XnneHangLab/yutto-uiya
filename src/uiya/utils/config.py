@@ -29,6 +29,7 @@ class UiyaSetting(BaseModel):
     proxy_pool: Annotated[str, Field(default="", title="代理池")]
     custom_proxy_pool: Annotated[bool, Field(default=False, title="是否使用自定义代理池")]
     debug_mode: Annotated[DebugMode, Field(default="close", title="调试模式")]
+    ffmpeg_path: Annotated[str, Field(default="ffmpeg", title="FFmpeg 路径")]
 
     def get_zh_option_list(self, key: UiyaSettingsTitle) -> list[str]:
         """获取中文配置项列表"""
