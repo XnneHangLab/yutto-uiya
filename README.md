@@ -65,7 +65,7 @@
 <details closed>
 <summary><b>ffmpeg #</b><br>
 
-在合并音视频为视频, 以及转换音视频格式的时候, 均使用到了 `ffmpeg`。你可以选择全局安装或者在设置中配置 ffmpeg 的所在路径.<br>
+在合并音视频为视频, 以及转换音视频格式的时候, 均使用到了 `ffmpeg`。你可以选择全局安装或者在设置中配置 `ffmpeg` 的所在路径.<br>
 
 </summary>
 
@@ -80,7 +80,7 @@ sudo apt install ffmpeg # linux
 
 [https://www.ffmpeg.org/download.html](https://www.ffmpeg.org/download.html)
 
-之后将 `ffmpeg.exe` 的路径添加到环境变量中。<br>
+之后将 `ffmpeg.exe` 的路径写到设置的 `ffmpeg_path` 中, 并且保存设置。<br>
 
 </details>
 
