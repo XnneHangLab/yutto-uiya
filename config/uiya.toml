@@ -6,3 +6,4 @@ vip_strict = "close"
 proxy_pool = ""
 custom_proxy_pool = false
 debug_mode = "close"
+ffmpeg_path = "ffmpeg"

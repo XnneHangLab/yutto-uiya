@@ -46,6 +46,7 @@ if yutto_uiya_keys["initial_settings"] not in st.session_state:
         yutto_uiya_keys["custom_proxy_pool"]: settings.custom_proxy_pool,
         yutto_uiya_keys["proxy_pool"]: settings.proxy_pool,
         yutto_uiya_keys["debug_mode"]: settings.debug_mode,
+        yutto_uiya_keys["ffmpeg_path"]: settings.ffmpeg_path,
     }
 
 if yutto_uiya_keys["full_status"] not in st.session_state:
@@ -263,6 +264,7 @@ def setting_tab() -> None:
     sess_data: str = st.session_state.get(yutto_uiya_keys["sess_data"], settings.SESS_DATA)
     proxy_pool: str = st.session_state.get(yutto_uiya_keys["proxy_pool"], settings.proxy_pool)
     debug_mode: DebugMode = st.session_state.get(yutto_uiya_keys["debug_mode"], settings.debug_mode)
+    ffmpeg_path: str = st.session_state.get(yutto_uiya_keys["ffmpeg_path"], settings.ffmpeg_path)
 
     with Setting:
         sess_data = st.text_input(
@@ -295,6 +297,12 @@ def setting_tab() -> None:
             value=settings.download_dir,
             help="下载目录",
         )
+        ffmpeg_path = st.text_input(
+            get_setting_title("ffmpeg_path", UiyaSetting),
+            value=settings.ffmpeg_path,
+            help="FFmpeg 路径",
+        )
+        st.caption("yutto 使用的 ffmpeg, 默认使用环境变量下的首选 `ffmpeg`")
         if st.toggle("自定义代理池", custom_proxy_pool, key="custom_output_dir"):
             custom_proxy_pool = True
             proxy_pool = st.text_input(
@@ -322,6 +330,7 @@ def setting_tab() -> None:
                     yutto_uiya_keys["proxy_pool"]: proxy_pool,
                     yutto_uiya_keys["custom_proxy_pool"]: custom_proxy_pool,
                     yutto_uiya_keys["debug_mode"]: debug_mode,
+                    yutto_uiya_keys["ffmpeg_path"]: ffmpeg_path,
                 }
                 initial_settings = st.session_state[yutto_uiya_keys["initial_settings"]]
 
@@ -334,6 +343,7 @@ def setting_tab() -> None:
                     settings.proxy_pool = proxy_pool
                     settings.custom_proxy_pool = custom_proxy_pool
                     settings.debug_mode = debug_mode
+                    settings.ffmpeg_path = ffmpeg_path
                     write_settings_file("uiya.toml", settings)
                     message_box("保存成功！", "你也可以通过手动配置 `uiya.toml` 来修改配置。")
                     st.session_state[yutto_uiya_keys["initial_settings"]] = current_settings

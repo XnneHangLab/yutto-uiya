@@ -180,6 +180,11 @@ class CommandGenerator:
             no_progress_args = ["--no-progress"]
             self.args.extend(no_progress_args)
 
+        # =================== ffmpeg-path
+        if self.uiya_setting.ffmpeg_path:
+            ffmpeg_args = ["--ffmpeg-path", self.uiya_setting.ffmpeg_path]
+            self.args.extend(ffmpeg_args)
+
         # =================== proxy_pool
         if self.uiya_setting.custom_proxy_pool:
             proxy_pool_args = ["--proxy", self.uiya_setting.proxy_pool]
