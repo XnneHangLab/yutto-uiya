@@ -66,7 +66,38 @@ wheels = [
 [[package]]
 name = "biliass"
 version = "2.2.2"
-source = { git = "https://github.com/MrXnneHang/yutto.git?subdirectory=packages%2Fbiliass&rev=parse#9bdc36a223f5fe6d348ee31418c985941d9da888" }
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/af/f7/26ec2805e4bd212497fba5d1fd6ca189c0c9e936953ba24eaa05faf28fa6/biliass-2.2.2.tar.gz", hash = "sha256:4da1609a565568a3d9d8a9e56c2a10de95519606795860019fcc2f70360366c2", size = 44309, upload-time = "2025-04-03T17:32:06.618Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4a/a0/5be5b7a7546f6cd78cf86dd4912d4ff166dce63e4750e1005ae092fd10ba/biliass-2.2.2-cp313-cp313t-macosx_10_12_x86_64.whl", hash = "sha256:56034e6b50bb7378a0dd51a5f701aceb6a77f9a49e8ad699eabd9b2ecce17f36", size = 911133, upload-time = "2025-04-03T17:31:24.83Z" },
+    { url = "https://files.pythonhosted.org/packages/b5/55/80a70952d542be720620103c992b522d0dabd2da81d2537987a8dddc5d8a/biliass-2.2.2-cp313-cp313t-macosx_11_0_arm64.whl", hash = "sha256:17fff3ea849c91025aa7153c00f1fe7d5e9802522dd418103f60f8aca6a256c8", size = 867397, upload-time = "2025-04-03T17:31:26.587Z" },
+    { url = "https://files.pythonhosted.org/packages/be/b6/3e22dbe5446335b2f3defc3c2332fe744723f5c79131dd1b7eef4e3dbe74/biliass-2.2.2-cp313-cp313t-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:839300f6fb592b965a7e63df3f2117b3968c4c53ea55998e71ef22192c636d16", size = 951850, upload-time = "2025-04-03T17:31:28.103Z" },
+    { url = "https://files.pythonhosted.org/packages/da/fb/af5e49b0e5ca4dca804a409b3c7822efe3695819dcd74ccd0efbca815c00/biliass-2.2.2-cp313-cp313t-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:cb3d77141af956c582a21751546c50a2ed09f030941c0befd0e9683deaf77022", size = 931860, upload-time = "2025-04-03T17:31:29.792Z" },
+    { url = "https://files.pythonhosted.org/packages/54/67/cd602723a2d9cea4eb0ca28257003414f43f9ceabea6d442563bfb1d1724/biliass-2.2.2-cp313-cp313t-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:2814a2f6d4944f20998eea4d223c85b922b5513047315098ae91912217155c42", size = 923816, upload-time = "2025-04-03T17:31:31.278Z" },
+    { url = "https://files.pythonhosted.org/packages/14/e4/92df49292acc937f1397f37f7f0b954a69a0d814864110b51d6417818511/biliass-2.2.2-cp313-cp313t-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:e55ac276e9ef97380ad032f99433e2f6ead62d754dd979f96575ca90bfd1c6b2", size = 991953, upload-time = "2025-04-03T17:31:33.434Z" },
+    { url = "https://files.pythonhosted.org/packages/ff/b2/f94fb31eaa6df262d4a47aa6974f4d8cc6dfd19623e5112eac0fca511af0/biliass-2.2.2-cp313-cp313t-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:12fbf85be97133f202c0075a11c4530533e6ce4c84b6ae5d976095543df0fe06", size = 1049148, upload-time = "2025-04-03T17:31:35.4Z" },
+    { url = "https://files.pythonhosted.org/packages/a7/c5/fc27f1c0a07bf8dfc0c950e3a14286055d08d0bc36896094f906bef01783/biliass-2.2.2-cp313-cp313t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3fa6a0e7e105449034b662d827b5b2b4c6688830122e36d4f6df866a4bf9638c", size = 963843, upload-time = "2025-04-03T17:31:36.715Z" },
+    { url = "https://files.pythonhosted.org/packages/bb/ce/7ae40fb59627a044e8e70cd0c90f082991f31445c51774aefdc6f6420153/biliass-2.2.2-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:b84ec1a80d12277330c28e48c7e63a5432209a7973613717a255461f9cb2a6d8", size = 1108492, upload-time = "2025-04-03T17:31:38.531Z" },
+    { url = "https://files.pythonhosted.org/packages/9f/b9/86170eb19b86dc599a4d3555c8b9b013c98b180bab61f22d46faad9c0b2f/biliass-2.2.2-cp313-cp313t-musllinux_1_2_armv7l.whl", hash = "sha256:31efb1da57ea6940490d2f538481f947b6bb1ff29919a6d6d7a018ef2cae047b", size = 1185968, upload-time = "2025-04-03T17:31:39.752Z" },
+    { url = "https://files.pythonhosted.org/packages/78/86/683c59551cc3e72f1a4f1238929156707ba89bc41f8a3d16ac305290d3c5/biliass-2.2.2-cp313-cp313t-musllinux_1_2_i686.whl", hash = "sha256:3aba4673c95adc4279450353bc5c8fa6b78c789f123f41813523f190f0a9b86d", size = 1113213, upload-time = "2025-04-03T17:31:41.025Z" },
+    { url = "https://files.pythonhosted.org/packages/7d/a0/32135ce23853f6198e26d2b9092be37b27b364035c5fae261c90815268b7/biliass-2.2.2-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:0b1e9ec333d571efa6fa851bbe504568e5cdc9f3b2b6609294e307dee85bde3d", size = 1133332, upload-time = "2025-04-03T17:31:42.624Z" },
+    { url = "https://files.pythonhosted.org/packages/5a/a6/a84f85dc3857b6fffc465c31ded1d3ed04dd47d71994fbc23599d54222ea/biliass-2.2.2-cp313-cp313t-win32.whl", hash = "sha256:7e67e7d6eeb306212cafb87c1c020ee21581ef5fc3f5c1a88f8a3927c9d0d802", size = 690581, upload-time = "2025-04-03T17:31:43.843Z" },
+    { url = "https://files.pythonhosted.org/packages/da/5f/ff3212f3d4a7fb6298160c9a1728da8964a6f10a7a64c8bc0e25b317cc9d/biliass-2.2.2-cp313-cp313t-win_amd64.whl", hash = "sha256:c19c4fa5cefbc83df8dcd30e63264243c7a4ed9a061de426233ecb761c9099e1", size = 751719, upload-time = "2025-04-03T17:31:45.522Z" },
+    { url = "https://files.pythonhosted.org/packages/73/1c/ced811318b6193e473f72122875923405fb16d475882d53f4b31463b385f/biliass-2.2.2-cp39-abi3-macosx_10_12_x86_64.whl", hash = "sha256:bc24b63ef1893aaaf1896c00395d1cf51ca104d5c90df174edcbe5d70b26fa5a", size = 916834, upload-time = "2025-04-03T17:31:47.053Z" },
+    { url = "https://files.pythonhosted.org/packages/31/2f/d7ff638b31ad824fd1051afa3cbd668bbc4c79b2008b9b90c21cb299d808/biliass-2.2.2-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:082e5aca79d9fb19a78072dc7709a0de564a12ac08ce421cf5eef1b18644ab2c", size = 872001, upload-time = "2025-04-03T17:31:48.547Z" },
+    { url = "https://files.pythonhosted.org/packages/2a/ad/a397ac782c3910d590004ec45d5fd3f65a0c8223537ff79637c5e830b570/biliass-2.2.2-cp39-abi3-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:1014f7ab10927fdac379493009e1cc110a2529245c5a15f5889af5e76d46b05d", size = 955794, upload-time = "2025-04-03T17:31:50.912Z" },
+    { url = "https://files.pythonhosted.org/packages/25/5e/70d945d808f3f00ac12d7793100e8b5a051063745319e366a0b3b941e66c/biliass-2.2.2-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8869b0b12066861739044181eceaa4904ed4f671c4716504bafe0a2c40ffe125", size = 937660, upload-time = "2025-04-03T17:31:52.123Z" },
+    { url = "https://files.pythonhosted.org/packages/37/12/2537041d7a2fbb25709b934239e4986cc7c3a0a5dbd59de61f6ea97ad1d3/biliass-2.2.2-cp39-abi3-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:2089813a9aba3808e884211e78b17333428cae1413cbc58d1cd1f0e352c45955", size = 928809, upload-time = "2025-04-03T17:31:53.387Z" },
+    { url = "https://files.pythonhosted.org/packages/24/3c/ece960a83f533b295700e059ee7297ee75cf6209ca6d9f3c1ad37915a0d5/biliass-2.2.2-cp39-abi3-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:d4544f75f6571e09200fcdbf9dc8ad80b4aca51173bc72038b0669d00eb3e5b7", size = 997871, upload-time = "2025-04-03T17:31:55.052Z" },
+    { url = "https://files.pythonhosted.org/packages/04/f6/68fc0c1753905f84639ce742581f7c9a8ca9aa7fe354b90378510176473b/biliass-2.2.2-cp39-abi3-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:341824a1d35aab284de2d5add0ac3f7e1b71d7d40ba1761ecf59649db2e0878b", size = 1054629, upload-time = "2025-04-03T17:31:56.309Z" },
+    { url = "https://files.pythonhosted.org/packages/5f/ab/fcfba52fe370fb489ba26c5b7c9b34332e2d9387373d5362da70d475474a/biliass-2.2.2-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3ba96805a8fa25897b09862a76261151790a2b58b81d92475b11323fff0dae05", size = 968757, upload-time = "2025-04-03T17:31:57.876Z" },
+    { url = "https://files.pythonhosted.org/packages/de/0e/020762fb77567f14cb51ac87bde51108ea235733e58c74236d218873bbe4/biliass-2.2.2-cp39-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:4ca3e83ada3e63499d051a44c223ea930d6283692ae8f6b913a24b6bf4a286e0", size = 1115378, upload-time = "2025-04-03T17:31:59.497Z" },
+    { url = "https://files.pythonhosted.org/packages/30/90/cbd2dc373cd03a97f5d54af9ed60bce00fc37a87438cce0483774fdb41e4/biliass-2.2.2-cp39-abi3-musllinux_1_2_armv7l.whl", hash = "sha256:7635886b6bd40f81e7b20c4bfa50fe98de2f6670a3fff203959b41e98d00f63e", size = 1190854, upload-time = "2025-04-03T17:32:00.736Z" },
+    { url = "https://files.pythonhosted.org/packages/e3/1f/16b9715c8ac995873c01f24f12067713c3ddb594933ef24d3a2e75919c11/biliass-2.2.2-cp39-abi3-musllinux_1_2_i686.whl", hash = "sha256:3206b3112163e79032a7bc57ceff2abf86949f29566fb36e482bd8ab0a31793d", size = 1118916, upload-time = "2025-04-03T17:32:01.955Z" },
+    { url = "https://files.pythonhosted.org/packages/5c/bf/f2c3afbfb312f95101f3d62e7e9444bc54f6bff0f57018d1e4acef63b30d/biliass-2.2.2-cp39-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:adcde45e932f05d39e9beb55598d56332db49b7b57993c6f2bb6c35a5f273a1b", size = 1138794, upload-time = "2025-04-03T17:32:03.353Z" },
+    { url = "https://files.pythonhosted.org/packages/34/4e/c36615532335a3f81af203f8d00023855b4ef7cce32abffe1083eb22828c/biliass-2.2.2-cp39-abi3-win32.whl", hash = "sha256:dc34096b26cebdf4d89dd2a6c7c25918fa14d77977d629bd70c650bbc28b5449", size = 693565, upload-time = "2025-04-03T17:32:04.544Z" },
+    { url = "https://files.pythonhosted.org/packages/ba/52/dbddeba6d36d438930ef7b59158925ad0ab0ddc75b3fa33b813db13c0b17/biliass-2.2.2-cp39-abi3-win_amd64.whl", hash = "sha256:c953baf0c71632e51c7067aa6d4db93f0880509867e83314e2537af396e6dd0e", size = 755902, upload-time = "2025-04-03T17:32:05.582Z" },
+]
 
 [[package]]
 name = "blinker"
@@ -1118,6 +1149,25 @@ wheels = [
 ]
 
 [[package]]
+name = "uiya-yutto"
+version = "0.0.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "aiofiles" },
+    { name = "biliass" },
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "dict2xml" },
+    { name = "httpx", extra = ["http2", "socks"] },
+    { name = "pydantic" },
+    { name = "returns" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a0/95/b017488049db4ec040a108d923be5ed80f1a83d0848c8c70eb53c1a611fe/uiya_yutto-0.0.1.tar.gz", hash = "sha256:55fa457d2387aeede167a3605b5f738b27c60706a7cfb7898dd0bd0c63c1b0a5", size = 334213, upload-time = "2025-05-12T13:24:37.374Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4e/70/d2a1017893cc43fe123faf02a080b6434d68b13ba02df5cd8a2ef0e601f8/uiya_yutto-0.0.1-py3-none-any.whl", hash = "sha256:6c63078b3a5bff93db3c56bcda2b4778aa3864d14c9a5e055fdcb02896602547", size = 104068, upload-time = "2025-05-12T13:24:36.386Z" },
+]
+
+[[package]]
 name = "urllib3"
 version = "2.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1169,23 +1219,8 @@ wheels = [
 ]
 
 [[package]]
-name = "yutto"
-version = "2.0.3"
-source = { git = "https://github.com/MrXnneHang/yutto.git?rev=parse#9bdc36a223f5fe6d348ee31418c985941d9da888" }
-dependencies = [
-    { name = "aiofiles" },
-    { name = "biliass" },
-    { name = "colorama", marker = "sys_platform == 'win32'" },
-    { name = "dict2xml" },
-    { name = "httpx", extra = ["http2", "socks"] },
-    { name = "pydantic" },
-    { name = "returns" },
-    { name = "typing-extensions" },
-]
-
-[[package]]
 name = "yutto-uiya"
-version = "1.1.2"
+version = "1.1.3"
 source = { editable = "." }
 dependencies = [
     { name = "httpx", extra = ["http2", "socks"] },
@@ -1194,8 +1229,8 @@ dependencies = [
     { name = "pydantic" },
     { name = "streamlit" },
     { name = "tomli-w" },
+    { name = "uiya-yutto" },
     { name = "wexpect-uv", marker = "sys_platform == 'win32'" },
-    { name = "yutto" },
 ]
 
 [package.dev-dependencies]
@@ -1214,8 +1249,8 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.10.6" },
     { name = "streamlit", specifier = "==1.43.2" },
     { name = "tomli-w", specifier = "==1.2.0" },
+    { name = "uiya-yutto", specifier = "==0.0.1" },
     { name = "wexpect-uv", marker = "sys_platform == 'win32'", specifier = "==0.0.4" },
-    { name = "yutto", git = "https://github.com/MrXnneHang/yutto.git?rev=parse" },
 ]
 
 [package.metadata.requires-dev]
