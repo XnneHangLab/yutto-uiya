@@ -54,7 +54,7 @@
 ## 预览：
 
 ![](https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505091128956.png)
-![](https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505091128046.png)
+![](https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505131622249.png)
 ![](https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505091128196.png)
 ![](https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505091128791.png)
 
@@ -65,7 +65,7 @@
 <details closed>
 <summary><b>ffmpeg #</b><br>
 
-在合并音视频为视频, 以及转换音视频格式的时候, 均使用到了 `ffmpeg`。其中 yutto 依赖于系统级的 ffmpeg, 所以需要环境变量中直接具有 ffmpeg.<br>
+在合并音视频为视频, 以及转换音视频格式的时候, 均使用到了 `ffmpeg`。你可以选择全局安装或者在设置中配置 `ffmpeg` 的所在路径.<br>
 
 </summary>
 
@@ -80,7 +80,7 @@ sudo apt install ffmpeg # linux
 
 [https://www.ffmpeg.org/download.html](https://www.ffmpeg.org/download.html)
 
-之后将 `ffmpeg.exe` 的路径添加到环境变量中。<br>
+之后将 `ffmpeg.exe` 的路径写到设置的 `ffmpeg_path` 中, 并且保存设置。<br>
 
 </details>
 
@@ -99,29 +99,6 @@ sudo apt install ffmpeg # linux
 xnne@xnne-PC:~$ uv -V
 uv 0.7.0
 ```
-
-</details>
-
-<details closed>
-<summary><b>Rust tool chain #</b><br>
-
-因为本项目联调 `yutto`, 并且总是使用最新特性, 且最新特性并没有全部合入到主分支和发布到 pypi, 所以实时编译最新的 yutto 需要使用到 `rust` 工具链.<br>
-
-</summary>
-
-我也会在 release 中提供各个版本的 `yutto` 的编译好的 `whl` 包, 你可以直接下载使用.(v1.1.2 之后开始)<br>
-
-对于 `mac/linux` 用户:<br>
-
-```shell
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-```
-
-安装完成根据提示 source.<br>
-
-对于 `windows` 用户:<br>
-
-[https://www.rust-lang.org/tools/install](https://www.rust-lang.org/tools/install)<br>
 
 </details>
 
@@ -180,4 +157,4 @@ uv run streamlit run src/uiya/yutto_uiya.py
 -  [x] Typing, 优化代码结构, 让代码变得优雅.
 -  [x] release as a python lib
 -  [ ] 提高解析速度.
--  [ ] 简化安装步骤.
+-  [x] 简化安装步骤.
