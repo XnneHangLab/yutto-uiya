@@ -157,4 +157,4 @@ uv run streamlit run src/uiya/yutto_uiya.py
 -  [x] Typing, 优化代码结构, 让代码变得优雅.
 -  [x] release as a python lib
 -  [ ] 提高解析速度.
--  [ ] 简化安装步骤.
+-  [x] 简化安装步骤.
