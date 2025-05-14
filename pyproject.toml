@@ -50,6 +50,18 @@ dev = [
 test = "uiya.test:main"
 tmp = "uiya.tmp:main"
 
+[tool.uv]
+# 下载 Python 的镜像
+python-install-mirror = "https://github.com/astral-sh/python-build-standalone/releases/download" # 使用官方的镜像, 需要连接外网
+# python-install-mirror = "https://mirror.nju.edu.cn/github-release/indygreg/python-build-standalone/" # 使用南京大学的镜像, 可能需要更新 uv 到新版本.
+
+
+# 取消注释可以默认使用清华源当作 package 源
+# [[tool.uv.index]]
+# name = "tsinghua"
+# url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+# default = true
+
 [tool.uv.sources]
 # uiya-yutto = { path = "./packages/yutto/dist/uiya_yutto-0.0.1-py3-none-any.whl"}
 # wexpect-uv = {path="./packages/wexpect-uv/dist/wexpect_uv-0.0.4-py3-none-any.whl"}
