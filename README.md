@@ -190,6 +190,8 @@ uv sync
 uv run streamlit run src/uiya/yutto_uiya.py
 ```
 
+该过程会自动安装依赖, 第一次启动可能较久, 你只需要耐心等待即可. 有安装问题欢迎反馈~
+
 ## 如何使用:
 
 参考[使用手册](https://xnnehang.top/posts/default/yutto_uiya_v1_1_2_guide)
