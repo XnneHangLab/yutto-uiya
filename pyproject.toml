@@ -52,7 +52,7 @@ tmp = "uiya.tmp:main"
 
 [tool.uv]
 # 下载 Python 的镜像
-python-install-mirror = "https://github.com/astral-sh/python-build-standalone/releases/download" # 使用官方的镜像, 直接从 github 安装, 需要连接外网, 默认配置
+python-install-mirror = "https://github.com/astral-sh/python-build-standalone/releases/download" # 使用官方的镜像, 直接从 github 安装, 需要连接外网, 官方默认配置
 # python-install-mirror = "https://mirror.nju.edu.cn/github-release/indygreg/python-build-standalone/" # 使用南京大学的镜像, 可能需要更新 uv 到新版本.
 
 
@@ -63,10 +63,11 @@ python-install-mirror = "https://github.com/astral-sh/python-build-standalone/re
 # url = "https://pypi.tuna.tsinghua.edu.cn/simple"
 # default = true
 
-# pypi 源, 默认实际上就是这个配置, 不写也行
+# pypi 源, 官方默认实际上就是这个配置
 name = "pypi"
 url = "https://pypi.org/simple"
 default= true
+
 
 [tool.uv.sources]
 # uiya-yutto = { path = "./packages/yutto/dist/uiya_yutto-0.0.1-py3-none-any.whl"}
