@@ -131,7 +131,55 @@ git clone https://github.com/XnneHangLab/yutto-uiya.git
 cd yutto-uiya
 ```
 
-### 3.启动程序:<br>
+### 3.使用镜像源(可选)
+
+默认使用的 python 下载源是从 github, packages index 是 pypi.
+
+如果你的机器在国内, 你可以通过修改 `pyproject.toml` 来使用国内的源.
+
+修改这几行:
+
+```toml
+[tool.uv]
+# 下载 Python 的镜像
+python-install-mirror = "https://github.com/astral-sh/python-build-standalone/releases/download" # 使用官方的镜像, 直接从 github 安装, 需要连接外网, 官方默认配置
+# python-install-mirror = "https://mirror.nju.edu.cn/github-release/indygreg/python-build-standalone/" # 使用南京大学的镜像, 可能需要更新 uv 到新版本.
+
+
+# 默认使用 pypi 源
+[[tool.uv.index]]
+# 清华源
+# name = "tsinghua"
+# url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+# default = true
+
+# pypi 源, 官方默认实际上就是这个配置
+name = "pypi"
+url = "https://pypi.org/simple"
+default= true
+```
+
+改为这样即可:
+
+```toml
+[tool.uv]
+# python-install-mirror = "https://github.com/astral-sh/python-build-standalone/releases/download" # 使用官方的镜像, 直接从 github 安装, 需要连接外网, 官方默认配置
+python-install-mirror = "https://mirror.nju.edu.cn/github-release/indygreg/python-build-standalone/" # 使用南京大学的镜像, 可能需要更新 uv 到新版本.
+
+# 默认使用 pypi 源
+[[tool.uv.index]]
+# 清华源
+name = "tsinghua"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default = true
+
+# pypi 源, 官方默认实际上就是这个配置
+# name = "pypi"
+# url = "https://pypi.org/simple"
+# default= true
+```
+
+### 4.启动程序:<br>
 
 ```shell
 just start # 如果你安装了 just
@@ -141,6 +189,8 @@ uv lock
 uv sync
 uv run streamlit run src/uiya/yutto_uiya.py
 ```
+
+该过程会自动安装依赖, 第一次启动可能较久, 你只需要耐心等待即可. 有安装问题欢迎反馈~
 
 ## 如何使用:
 
@@ -158,3 +208,7 @@ uv run streamlit run src/uiya/yutto_uiya.py
 -  [x] release as a python lib
 -  [ ] 提高解析速度.
 -  [x] 简化安装步骤.
+
+```
+
+```
