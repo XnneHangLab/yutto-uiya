@@ -161,7 +161,7 @@ default= true
 
 改为这样即可:
 
-````toml
+```toml
 [tool.uv]
 # python-install-mirror = "https://github.com/astral-sh/python-build-standalone/releases/download" # 使用官方的镜像, 直接从 github 安装, 需要连接外网, 官方默认配置
 python-install-mirror = "https://mirror.nju.edu.cn/github-release/indygreg/python-build-standalone/" # 使用南京大学的镜像, 可能需要更新 uv 到新版本.
@@ -179,7 +179,6 @@ default = true
 # default= true
 ```
 
-
 ### 4.启动程序:<br>
 
 ```shell
@@ -189,7 +188,7 @@ just start # 如果你安装了 just
 uv lock
 uv sync
 uv run streamlit run src/uiya/yutto_uiya.py
-````
+```
 
 ## 如何使用:
 
@@ -207,3 +206,7 @@ uv run streamlit run src/uiya/yutto_uiya.py
 -  [x] release as a python lib
 -  [ ] 提高解析速度.
 -  [x] 简化安装步骤.
+
+```
+
+```
