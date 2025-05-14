@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 from copy import deepcopy
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -146,9 +147,9 @@ def downloader(
                     if file.is_file():
                         new_file_name = f"{episode_info['title']}"
                         new_file_path = file.with_name(f"{new_file_name}{file.suffix}".replace("\r", ""))
-                        file.rename(new_file_path)
+                        shutil.move(str(file), str(new_file_path))
                         # 移动到指定目录 dwonload_dir 并且覆盖同名文件如果存在
-                        new_file_path.replace(download_dir / new_file_path.name)
+                        shutil.move(str(new_file_path), str(download_dir / new_file_path.name))
                         st.success(f"文件已保存到: {download_dir / new_file_path.name}")
             output_placeholder.code("", language="bash")
             # 删除 tmp_dir
