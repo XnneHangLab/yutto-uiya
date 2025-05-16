@@ -194,7 +194,7 @@ uv run streamlit run src/uiya/yutto_uiya.py
 
 ## 如何使用:
 
-参考[使用手册](https://xnnehang.top/posts/default/yutto_uiya_v1_1_2_guide)
+参考[使用手册](docs/guide.md)
 
 ## 待开发:
 
