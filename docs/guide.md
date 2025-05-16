@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="#交互"><strong>交互</strong></a>
-  <a href="#设置"><strong>设置</strong></a>
+  <a href="#设置参数"><strong>设置参数</strong></a>
 </p>
 
 ## 交互
