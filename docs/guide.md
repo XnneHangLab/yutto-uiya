@@ -26,7 +26,7 @@
 
 ![](https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505160826883.png)
 
-> [!note warning]
+> [!warning]
 > 任何时候, 你在修改完配置项后, 都应该点击`保存更改`. 不然不会生效.
 
 ### SESS_DATA
