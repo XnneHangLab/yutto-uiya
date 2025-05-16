@@ -1,5 +1,10 @@
 <h1 align="center">yutto-uiya 使用手册</h1>
 
+<p align="center">
+  <a href="#交互"><strong>交互</strong></a>
+  <a href="#设置"><strong>设置</strong></a>
+</p>
+
 ## 交互
 
 ![主界面](https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505160825264.png)
@@ -21,19 +26,32 @@
 
 ![](https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505160826883.png)
 
-### SESS_DATA
+`SESS_DATA`:
 
 `SESS_DATA`用于伪装登陆, 决定可访问权限, 比如没有提供 `SESS_DATA`, 那么是作为游客身份下载的, 也就是只能下载 `480P` 及以下的视频, 同时无法解析大会员视频. 另外普通用户的 `SESS_DATA` 则是 `1080P`及以下, 以及无法解析大会员视频.
 
-如何获取 SESS_DATA:
+<details closed>
+<summary>
 
-### 严格校验大会员 / 严格校验登陆
+获取 SESS_DATA 的方式
+
+</summary>
+
+这里用 Chrome 作为示例，其它浏览器请尝试类似方法。
+
+首先，用你的帐号登录 B 站，然后随便打开一个 B 站网页，比如首页。
+
+按 F12 打开开发者工具，切换到 Network 栏，刷新页面，此时第一个加载的资源应该就是当前页面的 html，选中该资源，在右侧 「Request Headers」 中找到 「cookie」，在其中找到类似于 SESSDATA=d8bc7493%2C2843925707%2C08c3e*81; 的一串字符串，复制这里的 d8bc7493%2C2843925707%2C08c3e*81，这就是你需要的 SESSDATA。
+
+</details>
+
+`严格校验大会员 / 严格校验登陆`
 
 `vip_strict` 和 `login_strict` 用于开启校验 `SESS_DATA` , 如果你提供了大会员的 `SESS_DATA` 但是发现无法享受大会员权限, 可以考虑把两个都开启. 如果你发现提供了用户权限的 `SESS_DATA` 但是依然是游客身份, 可以考虑只打开 `login_strict`(严格校验登陆).
 
 一般不需要动, 默认关闭即可.
 
-### 调试模式
+`调试模式`
 
 任何时候你试图反馈一个 bug, 你应该先打开调试模式.
 
@@ -80,19 +98,19 @@ require_video=True require_audio=True require_danmaku=True require_subtitle=True
  封面  http://i1.hdslb.com/bfs/archive/9d73675ac3ce53263b264ac74ecbc2c72f3ab16e.jpg
 ```
 
-### 下载目录
+`下载目录`
 
 下载后最终存放的目录, 可自定义, 可以用相对路径, 也可以用绝对路径.
 
 下载时的路径(缓存路径)位于 `.cache/`.
 
-### FFmpeg 路径
+`FFmpeg 路径`
 
 可以使用相对路径也可以使用绝对路径, 为了照顾 windows 用户配置环境变量太麻烦, 可以直接添加可执行 exe 的路径.
 
 如果你想要直接用系统环境变量中的 `ffmpeg` , 那么只需要填入 `ffmpeg` 即可, 这个似乎也是默认.
 
-### 代理池
+`代理池`
 
 仅支持 https 代理, 目前不支持 socks5 代理.
 
