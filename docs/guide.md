@@ -22,9 +22,12 @@
 
 勾选和想要的资源项后即可开始开始下载. 视频和音频质量和你所配置的 `SESS_DATA` 相关.
 
-## 设置
+## 设置参数
 
 ![](https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505160826883.png)
+
+> [!note warning]
+> 任何时候, 你在修改完配置项后, 都应该点击`保存更改`. 不然不会生效.
 
 ### SESS_DATA
 
