@@ -10,22 +10,8 @@ from uiya._typing import AudioQuality, VideoQuality, YuttoParseResult
 
 
 def clean_ansi_codes(line: str) -> str:
-    """
-    移除字符串中的 ANSI 转义序列（如 \x1b[30m、\x1b[0m 等）。
-
-    参数:
-        line (str): 输入的字符串，可能包含 ANSI 转义序列
-
-    返回:
-        str: 移除 ANSI 转义序列后的纯文本字符串
-    """
     if not line:
         return line
-
-    import re
-
-    # 使用正则表达式匹配 ANSI 转义序列
-    # \x1b\[ 匹配转义序列开头，[\d;]* 匹配数字和分号，[a-zA-Z] 匹配结尾字母（如 m）
     cleaned_line = re.sub(r"\x1b\[[\d;]*[a-zA-Z]", "", line)
     return cleaned_line
 
