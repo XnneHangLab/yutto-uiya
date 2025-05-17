@@ -60,6 +60,17 @@ class YuttoOutputParser:
         self.current_value = ""
         self.current_type = ""
         self.current_index = -1
+        self.video_name_types = [
+            "投稿视频",
+            "番剧",
+            "视频合集",
+            "收藏夹",
+            "用户收藏夹",
+            "课程",
+            "视频列表",
+            "UP 主投稿视频",
+            "稍后再看",
+        ]
 
     # 只解析单集
     def parse_line(self, line: str) -> None:
@@ -86,11 +97,9 @@ class YuttoOutputParser:
             )
 
         # 提取视频名称
-        if line.startswith(" 投稿视频 "):
-            if " 投稿视频 " in line:
-                self.current_value = line[6:].replace(" ", "")
-                # else:
-                #     self.current_value = line.split("\x1b[30m\x1b[46m 投稿视频 \x1b[0m")[1].replace(" ", "")
+        for video_name_type in self.video_name_types:
+            if line.startswith(f" {video_name_type} "):
+                self.current_value = line[len(video_name_type) + 2].replace(" ", "")
                 self.current_type = "video_name"
                 self.result[self.current_type] = self.current_value.strip()
                 self.result["episodes"][0]["title"] = self.current_value.strip()
@@ -169,9 +178,10 @@ class YuttoOutputParser:
         """
         # 清理行
         # 提取视频名称
-        if line.startswith(" 投稿视频 "):
-            if " 投稿视频 " in line:
-                self.current_value = line[6:].replace(" ", "")
+        # 提取视频名称
+        for video_name_type in self.video_name_types:
+            if line.startswith(f" {video_name_type} "):
+                self.current_value = line[len(video_name_type) + 2].replace(" ", "")
                 self.current_type = "video_name"
                 self.result[self.current_type] = self.current_value.strip()
                 return None
