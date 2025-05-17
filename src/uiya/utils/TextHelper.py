@@ -3,11 +3,9 @@ from __future__ import annotations
 import ast
 import platform
 import re
-from typing import TYPE_CHECKING, get_args
+from typing import get_args
 
 from uiya._dictionary import emoji
-
-
 from uiya._typing import AudioQuality, VideoQuality, YuttoParseResult
 
 
