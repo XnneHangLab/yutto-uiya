@@ -224,10 +224,7 @@ def run_parser(command: list[str], debug: bool = False, batch: bool = True) -> Y
 
             if update_condition:
                 output_text += "".join(buffer)
-                if batch:
-                    parser.batch_parse_line("".join(buffer))
-                else:
-                    parser.parse_line("".join(buffer))
+                parser.parse_line(line="".join(buffer), is_batch=batch)
                 current_index = parser.current_index
                 if current_index - show_index == 1:
                     # 避免加入重复的元素 skip -1
@@ -246,10 +243,7 @@ def run_parser(command: list[str], debug: bool = False, batch: bool = True) -> Y
 
             if buffer:
                 output_text += "".join(buffer)
-                if batch:
-                    parser.batch_parse_line("".join(buffer))
-                else:
-                    parser.parse_line("".join(buffer))
+                parser.parse_line(line="".join(buffer), is_batch=batch)
                 current_index = parser.current_index
             break
 
