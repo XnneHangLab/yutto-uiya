@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import streamlit as st
 
 from uiya._session_keys import runner_keys
-from uiya.utils.TextHelper import YuttoOutputParser, clean_ouput, split_into_words
+from uiya.utils.TextHelper import YuttoOutputParser, clean_output, split_into_words
 
 if TYPE_CHECKING:
     from streamlit.delta_generator import DeltaGenerator
@@ -80,6 +80,19 @@ def parse_status(status: CommandStatus, output_placeholder: DeltaGenerator) -> b
         return True
 
 
+def flush_download_content(output: str, output_key: str) -> None:
+    output = clean_output(output)
+    if "╸━" in output:
+        output = output.replace("╸━", "]")
+    if st.session_state[output_key]:  # 防止空列表
+        if (
+            "━━━" in st.session_state[output_key][-1] and "━━━" in output
+        ):  # 如果两行都是进度条， 那么在同一行刷新， 不换行
+            st.session_state[output_key][-1] = output
+            return
+    st.session_state[output_key].append(output)
+
+
 # TODO child 的类型不明确，可能需要找时间修复
 def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> int | None:
     """
@@ -95,8 +108,8 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
     st.toast("开始下载,再次点击会重新运行,运行中慎用!", icon=":material/verified:")
     output_key = runner_keys["download_content"]
     # 显示初始空输出
-    st.session_state[output_key] = ""
-    output_placeholder.code(st.session_state[output_key], language="bash")
+    st.session_state[output_key] = []  # list[str]
+    output_placeholder.code("".join(st.session_state[output_key]), language="bash")
 
     child = pexpect.spawn(  # type: ignore[assignment]
         command[0],
@@ -128,12 +141,11 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
                     print("\r" + line + "\r", end="")
                 else:
                     print(line, end="")  # 自带 \r\n
-                output = clean_ouput(line)
-                st.session_state[output_key] += output
-                buffer = []
+                flush_download_content(line, output_key)
+                buffer = []  # 清空 buffer
                 last_update_time = current_time
+                output_placeholder.code("".join(st.session_state[output_key]), language="bash")
                 # 使用 .code() 而不是 text_area，避免key问题
-                output_placeholder.code(st.session_state[output_key], language="bash")
 
         elif index == 1:  # EOF，进程结束
             if child.before:  # type: ignore[assignment]
@@ -149,9 +161,10 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
                     print("\r" + line + "\r", end="")
                 else:
                     print(line, end="")  # 自带 \r\n 或者 \n
-                output = clean_ouput(line)
-                st.session_state[output_key] += output
-                output_placeholder.code(st.session_state[output_key], language="bash")
+                flush_download_content(line, output_key)
+                buffer = []  # 清空 buffer
+                last_update_time = time.time()
+                output_placeholder.code("".join(st.session_state[output_key]), language="bash")
             break
 
         elif index == 2:  # 超时
@@ -163,11 +176,10 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
                     print("\r" + line + "\r", end="")
                 else:
                     print(line, end="")  # 自带 \r\n
-                output = clean_ouput(line)
-                st.session_state[output_key] += output
-                buffer = []
+                flush_download_content(line, output_key)
+                buffer = []  # 清空 buffer
                 last_update_time = current_time
-                output_placeholder.code(st.session_state[output_key], language="bash")
+                output_placeholder.code("".join(st.session_state[output_key]), language="bash")
             continue
 
     # 未经处理的原始字符集
@@ -261,14 +273,14 @@ def run_parser(command: list[str], debug: bool = False, batch: bool = True) -> Y
         try:
             if "url 不正确，也许该 url 仅支持批量下载，如果是这样，请使用参数 -b～" in output_text:
                 output_text += "请尝试使用`全集解析` \r\n"
-                st.session_state[runner_keys["runtime_error"]] = clean_ouput(output_text)
+                st.session_state[runner_keys["runtime_error"]] = clean_output(output_text)
             else:
                 st.session_state[key].append(parser.result["episodes"][show_index])
                 st.session_state[runner_keys["video_name"]] = parser.result["video_name"]
                 show_index += 1
                 show_card_container(st.session_state[key][-1], show_index)
         except Exception as e:
-            st.session_state[runner_keys["runtime_error"]] = clean_ouput(output_text) if output_text else str(e)
+            st.session_state[runner_keys["runtime_error"]] = clean_output(output_text) if output_text else str(e)
 
     return parser.result
 

@@ -16,38 +16,16 @@ def clean_ansi_codes(line: str) -> str:
     return cleaned_line
 
 
-def clean_ouput(output: str):
+def clean_output(output: str):
     # ignore emoji
+    # print(output)
     for ignore_value in emoji:
         output = output.replace(ignore_value, "")
-    # ignore space
-    output = output.replace(" ", "")
-
-    # ignore color
-    # output = output.replace("\x1b[33m", "")  # WARNING
-    # output = output.replace("\x1b[31;1m", "")  # ERROR
-    output = output.replace("\x1b[94m", "[")
-    output = output.replace("\x1b[93m", "[")
-    output = output.replace("\x1b[91m", "[")
-    output = output.replace("\x1b[92m", "[")
-    output = output.replace("\x1b[97m\x1b[45m", "[")
-    output = output.replace("\x1b[30m\x1b[46m", "[")
-    output = output.replace("\x1b[0m", "] ")
-    output = output.replace("\x1b[90m", "]")
-    output = output.replace("\x1b[30;46m", "[")
-    output = output.replace("\x1b[32;1m", "")
-    output = output.replace("\x1b[38;2;64;64;64m", "")
-    output = output.replace("\x1b[32m", "")
-    output = output.replace("\x1b[33m", "")
-    output = output.replace("\x1b[31;1m", "")
-    output = output.replace("\x1b[34m*", ">")
-    output = output.replace("\x1b[35m*", ">")
-    output = output.replace("\x1b[0m", "")
-    output = output.replace("\x1b[36m", "")
-
+    output = clean_ansi_codes(output)
     # Add line break for process line
     if "━━━" in output:
         output = output + "\n" if platform.system() != "windows" else output + "\r\n"
+        output = output.replace(" ", "")
     return output
 
 
