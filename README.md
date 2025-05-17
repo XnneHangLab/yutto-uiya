@@ -208,3 +208,4 @@ uv run streamlit run src/uiya/yutto_uiya.py
 -  [x] release as a python lib
 -  [ ] 提高解析速度.
 -  [x] 简化安装步骤.
+-  [ ] 可增添的任务列表 / 按任务列表启动下载
