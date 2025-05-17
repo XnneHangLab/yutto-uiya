@@ -132,7 +132,11 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
             current_time: float = time.time()
             line = "".join(buffer)
             update_condition: bool = (
-                (char == "\n") or ("⚡\x1b[0m" in line) or ("[/s\x1b[0m" in line) or ("/s\x1b[0m" in line)
+                (char == "\n")
+                or ("⚡\x1b[0m" in line)
+                or ("/s\x1b[0m" in line)
+                or ("/s\x1b[37m" in line)
+                or ("⚡\x1b[37m" in line)
             )
 
             if update_condition:

@@ -208,7 +208,5 @@ uv run streamlit run src/uiya/yutto_uiya.py
 -  [x] release as a python lib
 -  [ ] 提高解析速度.
 -  [x] 简化安装步骤.
-
-```
-
-```
+-  [ ] 可增添的任务列表 / 按任务列表启动下载
+-  [ ] 取消 yutto 的 10MB/s 以上的闪电标志(并且以 text 而不是 color 作为 update_condition 判断条件)
