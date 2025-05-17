@@ -184,6 +184,7 @@ def bangumi_tab() -> None:
         status["url"] = url
         status["batch_download"] = True
         status["parse_mode"] = True
+        status["no_color"] = True
         if parse_status(status, output_placeholder=output_placeholder):  # 解析状态
             command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
             command = command_generator.gen_args()
@@ -197,6 +198,7 @@ def bangumi_tab() -> None:
         status["url"] = url
         status["batch_download"] = False
         status["parse_mode"] = True
+        status["no_color"] = True
         if parse_status(status, output_placeholder=output_placeholder):
             command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
             command = command_generator.gen_args()
