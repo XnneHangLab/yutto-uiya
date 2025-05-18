@@ -218,8 +218,10 @@ def bangumi_tab() -> None:
                 # 使用HTML标签显示图片并控制大小
                 st.markdown(
                     f"""
-                    ![image](https://image.baidu.com/search/down?url={current_episode["cover_link"]})
-                    """
+                    <img src="https://image.baidu.com/search/down?url={current_episode["cover_link"]}"
+                        style="height:300px; width:auto;" />
+                    """,
+                    unsafe_allow_html=True,
                 )
             st.markdown(f"### {current_episode['title']}")
             if current_episode["metadata"]:
