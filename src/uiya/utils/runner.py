@@ -186,7 +186,7 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
             continue
 
     # 未经处理的原始字符集
-    print([output_text])
+    # print([output_text])
 
     # 获取退出状态
     child.close()  # type:ignore
