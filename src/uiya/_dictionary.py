@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import platform
 from typing import TypedDict
 
 
@@ -21,15 +22,30 @@ uiya_setting_dictionary: UiyaSettingDictionary = {
 }
 
 # 参考 yutto/src/yutto/utils/console/status_bar.py 和 logger.py
-emoji = [
-    "(\u3000´･ω) \r",
-    "( \u3000´･) \r",
-    "( \u3000 ´) \r",
-    "(     ) \r",
-    "(`\u3000  ) \r",
-    "(･`   ) \r",
-    "(ω･`\u3000) \r",
-    "(･ω･` ) \r",
-    "(´･ω･`) \r",
-    "( ´･ω･) \r",
-]
+emoji = (
+    [
+        "(\u3000´･ω) \r",
+        "( \u3000´･) \r",
+        "( \u3000 ´) \r",
+        "(     ) \r",
+        "(`\u3000  ) \r",
+        "(･`   ) \r",
+        "(ω･`\u3000) \r",
+        "(･ω･` ) \r",
+        "(´･ω･`) \r",
+        "( ´･ω･) \r",
+    ]
+    if platform.system() != "Windows"
+    else [
+        "(\u3000´･ω)",
+        "( \u3000´･)",
+        "( \u3000 ´)",
+        "(     )",
+        "(`\u3000  )",
+        "(･`   )",
+        "(ω･`\u3000)",
+        "(･ω･` )",
+        "(´･ω･`)",
+        "( ´･ω･)",
+    ]
+)  # windows 使用 wexpect-uv , 所有单独的 \r 均不会被捕获
