@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import streamlit as st
 
 from uiya._session_keys import runner_keys
-from uiya.utils.TextHelper import YuttoOutputParser, clean_output, split_into_words
+from uiya.utils.TextHelper import YuttoOutputParser, clean_ansi_codes, clean_output, split_into_words
 
 if TYPE_CHECKING:
     from streamlit.delta_generator import DeltaGenerator
@@ -131,12 +131,11 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
             # 定期更新界面
             current_time: float = time.time()
             line = "".join(buffer)
+            # 参考 yutto/src/yutto/downloader/progressbar.py
             update_condition: bool = (
-                (char == "\n")
-                or ("⚡\x1b[0m" in line)
-                or ("/s\x1b[0m" in line)
-                or ("/s\x1b[37m" in line)
-                or ("⚡\x1b[37m" in line)
+                ((char == "\n") or ("/⚡  \r" in clean_ansi_codes(line)) or ("/s  \r" in clean_ansi_codes(line)))
+                if platform.system() != "Windows"
+                else ((char == "\n") or ("/⚡  " in clean_ansi_codes(line)) or ("/s  " in clean_ansi_codes(line)))
             )
 
             if update_condition:
@@ -187,7 +186,7 @@ def run_downloader(command: list[str], output_placeholder: DeltaGenerator) -> in
             continue
 
     # 未经处理的原始字符集
-    # print([output_text])
+    print([output_text])
 
     # 获取退出状态
     child.close()  # type:ignore
