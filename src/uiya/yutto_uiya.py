@@ -84,6 +84,8 @@ def downloader(
     settings = load_settings_file("uiya.toml", UiyaSetting)
     download_dir = settings.download_dir
     video_name = st.session_state[runner_keys["video_name"]]
+    download_dir = Path(download_dir) / video_name
+    download_dir.mkdir(parents=True, exist_ok=True)
     columns = st.columns([1, 1, 1, 1])
     if need_sort:
         audio_quality = natsorted(audio_quality)
@@ -140,8 +142,6 @@ def downloader(
             # 把资源从 tmp_dir 中捞出来
             tmp_dir = Path(command_generator.tmp_dir)
             if tmp_dir.exists():
-                download_dir = Path(download_dir) / video_name
-                download_dir.mkdir(parents=True, exist_ok=True)
                 # print(download_dir)
                 for file in tmp_dir.iterdir():
                     if file.is_file():
