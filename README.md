@@ -24,8 +24,8 @@
 </p>
 
 <p align="center">
-<a href='https://xnnehang.top/posts/default/yutto_uiya_v1_1_2_guide' style='font-size: 20px;'><strong>文档网站(可能还没写全,再等等噢)</strong></a> ·
-<a href='https://space.bilibili.com/556737824'><strong>bilibili视频教程(再等等噢)</strong></a>
+<a href='https://xnnehang.top/posts/default/yutto_uiya_v1_1_2_guide' style='font-size: 20px;'><strong>文档</strong></a> ·
+<a href='https://www.bilibili.com/video/BV1vzEtzNEAx/'><strong>演示视频</strong></a>
 </p>
 <p align="center">
   <a href="#预览"><strong>预览</strong></a> ·
@@ -205,8 +205,7 @@ uv run streamlit run src/uiya/yutto_uiya.py
 -  [x] 加入覆盖下载。（目前当下载已下载的视频不同清晰度，会跳过。无法下载不同清晰度。）
 -  [x] 首次运行自动创建配置文件
 -  [x] Typing, 优化代码结构, 让代码变得优雅.
--  [x] release as a python lib
+-  [ ] release as a python lib
 -  [ ] 提高解析速度.
 -  [x] 简化安装步骤.
 -  [ ] 可增添的任务列表 / 按任务列表启动下载
--  [ ] 取消 yutto 的 10MB/s 以上的闪电标志(并且以 text 而不是 color 作为 update_condition 判断条件)
