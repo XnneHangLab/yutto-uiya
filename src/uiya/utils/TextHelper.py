@@ -16,9 +16,15 @@ def clean_ansi_codes(line: str) -> str:
     return cleaned_line
 
 
+def replace_r_spaces_r(text: str):
+    # 如果 \r \r 之间只有空格或者什么都没有,那么把它替换成空字符串. 消除 status.clear()
+    result = re.sub(r"\r\s*\r", "", text)
+    return result
+
+
 def clean_output(output: str):
     # ignore emoji
-    # print(output)
+    # print([output])
     for ignore_value in emoji:
         output = output.replace(ignore_value, "")
     output = clean_ansi_codes(output)
@@ -26,6 +32,8 @@ def clean_output(output: str):
     if "━━━" in output:
         output = output + "\n" if platform.system() != "windows" else output + "\r\n"
         output = output.replace(" ", "")
+    output = replace_r_spaces_r(output)
+    print([output])
     return output
 
 

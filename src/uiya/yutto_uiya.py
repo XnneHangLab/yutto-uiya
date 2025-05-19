@@ -130,7 +130,7 @@ def downloader(
         status["require_metadata"] = require_metadata
         status["video_quality"] = video
         status["audio_quality"] = audio
-        status["no_progress"] = False
+        status["no_progress"] = False  # 当 no_progress 为 False 时, status_bar 会被开启
         for index, url in enumerate(download_urls):
             episode_info = st.session_state[runner_keys["parse_content"]][index]
             status["url"] = url
