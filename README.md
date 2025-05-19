@@ -17,8 +17,6 @@
 <br/>
 </div>
 
-<p align="center"> <a href="./README_en.md"><b>English Documentation </b></a> </p>
-
 <p align="center">
  这里是为 yutto 开发的 WebUI!<br>
 </p>
