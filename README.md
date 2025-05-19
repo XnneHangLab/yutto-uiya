@@ -17,15 +17,13 @@
 <br/>
 </div>
 
-<p align="center"> <a href="./README_en.md"><b>English Documentation </b></a> </p>
-
 <p align="center">
  这里是为 yutto 开发的 WebUI!<br>
 </p>
 
 <p align="center">
-<a href='https://xnnehang.top/posts/default/yutto_uiya_v1_1_2_guide' style='font-size: 20px;'><strong>文档网站(可能还没写全,再等等噢)</strong></a> ·
-<a href='https://space.bilibili.com/556737824'><strong>bilibili视频教程(再等等噢)</strong></a>
+<a href='https://xnnehang.top/posts/default/yutto_uiya_v1_1_2_guide' style='font-size: 20px;'><strong>文档</strong></a> ·
+<a href='https://www.bilibili.com/video/BV1vzEtzNEAx/'><strong>演示视频</strong></a>
 </p>
 <p align="center">
   <a href="#预览"><strong>预览</strong></a> ·
@@ -37,7 +35,7 @@
 
 我先前用过 downkyi,JJdown.共同的问题就是,我自己没能力改源代码。downkyi 是`C#`开发的，而 JJdown 似乎是闭源的。每次 b 站上的朋友问我说"为啥子突然不行了"，我也只能说我去向作者反馈一下，然后去提一个 Issue。<br>
 
-但对于 yutto, 我觉得我行了。<br>
+但对于 yutto, 我可以尝试自己修复和维护, 也从中学到了很多。<br>
 
 # 支持项:
 
@@ -55,8 +53,8 @@
 
 ![](https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505091128956.png)
 ![](https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505131622249.png)
-![](https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505091128196.png)
-![](https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505091128791.png)
+![](https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505191248006.png)
+![](https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505191249700.png)
 
 ## 本地部署:
 
@@ -205,8 +203,7 @@ uv run streamlit run src/uiya/yutto_uiya.py
 -  [x] 加入覆盖下载。（目前当下载已下载的视频不同清晰度，会跳过。无法下载不同清晰度。）
 -  [x] 首次运行自动创建配置文件
 -  [x] Typing, 优化代码结构, 让代码变得优雅.
--  [x] release as a python lib
+-  [ ] release as a python lib
 -  [ ] 提高解析速度.
 -  [x] 简化安装步骤.
 -  [ ] 可增添的任务列表 / 按任务列表启动下载
--  [ ] 取消 yutto 的 10MB/s 以上的闪电标志(并且以 text 而不是 color 作为 update_condition 判断条件)
