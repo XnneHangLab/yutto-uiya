@@ -32,7 +32,7 @@ def clean_output(output: str):
     if "━━━" in output:
         output = output + "\r\n"
     output = replace_r_spaces_r(output)
-    print([output])
+    # print([output])
     return output
 
 
