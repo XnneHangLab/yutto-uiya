@@ -30,8 +30,7 @@ def clean_output(output: str):
     output = clean_ansi_codes(output)
     # Add line break for process line
     if "━━━" in output:
-        output = output + "\n" if platform.system() != "windows" else output + "\r\n"
-        output = output.replace(" ", "")
+        output = output + "\r\n"
     output = replace_r_spaces_r(output)
     print([output])
     return output
