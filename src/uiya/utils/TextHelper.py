@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-import platform
 import re
 from typing import get_args
 
