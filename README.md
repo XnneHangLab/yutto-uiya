@@ -96,11 +96,12 @@ scoop install ffmpeg # windows
 
 请参考它的[**安装文档**](https://docs.astral.sh/uv/getting-started/installation/).
 
-只需要保证全局环境下 uv 可访问即可: <br>
-
 ```shell
 scoop install uv # windows
+curl -LsSf https://astral.sh/uv/install.sh | sh # linux / mac
 ```
+
+只需要保证全局环境下 uv 可访问即可: <br>
 
 ```shell
 xnne@xnne-PC:~$ uv -V
