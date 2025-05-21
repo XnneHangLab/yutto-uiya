@@ -110,7 +110,6 @@ uv 0.7.0
 </details>
 
 <details closed>
-
 <summary> <b>just(可选) #</b> <br>
 just 是一款用 rust 编写的简单易用的命令执行工具，通过它可以方便地执行一些开发时常用的命令。<br>
 </summary>
@@ -128,8 +127,6 @@ scoop install just # windows
 对于 windows 用户来说, 也可以考虑写入 `.bat` 文件来替代.
 
 </details>
-
-<details closed>
 
 ### 2.克隆仓库
 
