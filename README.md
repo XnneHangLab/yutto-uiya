@@ -87,6 +87,7 @@ scoop install ffmpeg # windows
 
 </details>
 
+<details closed>
 <summary><b>uv #</b><br>
 
 本项目完全使用 `uv` 管理, 所以需要安装 `uv`.<br>
