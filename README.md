@@ -60,10 +60,13 @@
 
 ### 1.安装前置:
 
-> 如果你是 windows 用户, 那么可以考虑先安装 [scoop](https://scoop.sh/) ,它可以让你更方便的安装下面的工具.
-> 仅需在 powershell 中运行:
+> 如果你是 windows 用户, 那么可以考虑先安装 [scoop](https://scoop.sh/) ,它可以让你更方便的安装下面的工具.<br>
+> 仅需在 powershell 中运行:<br>
+>
+> ```
 > Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-> Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
+> Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expressionb
+> ```
 
 <details closed>
 <summary><b>ffmpeg #</b><br>
