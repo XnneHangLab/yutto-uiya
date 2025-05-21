@@ -60,6 +60,14 @@
 
 ### 1.安装前置:
 
+> 如果你是 windows 用户, 那么可以考虑先安装 [scoop](https://scoop.sh/) ,它可以让你更方便的安装下面的工具.<br>
+> 仅需在 powershell 中运行:<br>
+>
+> ```
+> Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+> Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expressionb
+> ```
+
 <details closed>
 <summary><b>ffmpeg #</b><br>
 
@@ -72,13 +80,10 @@
 ```shell
 brew install ffmpeg # mac
 sudo apt install ffmpeg # linux
+scoop install ffmpeg # windows
 ```
 
-对于 `windows` 用户:<br>
-
-[https://www.ffmpeg.org/download.html](https://www.ffmpeg.org/download.html)
-
-之后将 `ffmpeg.exe` 的路径写到设置的 `ffmpeg_path` 中, 并且保存设置。<br>
+或者你也可以直接把 `ffmpeg` 可执行文件路径写到设置的 `ffmpeg_path` 中, 并且保存设置。<br>
 
 </details>
 
@@ -90,6 +95,11 @@ sudo apt install ffmpeg # linux
 </summary>
 
 请参考它的[**安装文档**](https://docs.astral.sh/uv/getting-started/installation/).
+
+```shell
+scoop install uv # windows
+curl -LsSf https://astral.sh/uv/install.sh | sh # linux / mac
+```
 
 只需要保证全局环境下 uv 可访问即可: <br>
 
@@ -110,15 +120,12 @@ just 是一款用 rust 编写的简单易用的命令执行工具，通过它可
 ```shell
 brew install just # mac
 sudo apt install just # linux
+
+scoop install git # 先利用 git 获取 sh 的特性
+scoop install just # windows
 ```
 
-对于 `windows` 用户:<br>
-
-```shell
-scoop install just # 需要提前安装 scoop, 且正常使用还得依靠具有 sh 特性的终端, 可以通过 git bash 来实现.
-```
-
-对于 windows 用户来说, 安装相当麻烦, 可以考虑写入 `.bat` 文件来替代.
+对于 windows 用户来说, 也可以考虑写入 `.bat` 文件来替代.
 
 </details>
 
