@@ -9,7 +9,7 @@ dependencies = [
     "tomli_w==1.2.0",
     "streamlit==1.43.2",
     # special
-    "uiya-yutto==0.0.2-pre",
+    "uiya-yutto==0.0.2-pre.2",
     # "uiya-yutto",
     "httpx[http2,socks]>=0.28.1",
     "pexpect==4.9.0;sys_platform!='win32'",
@@ -70,7 +70,7 @@ default= true
 
 
 [tool.uv.sources]
-# uiya-yutto = { path = "./packages/yutto/dist/uiya_yutto-0.0.1-py3-none-any.whl"}
+# uiya-yutto = { path = "./packages/yutto/dist/uiya_yutto-0.0.2rc0-py3-none-any.whl"}
 # wexpect-uv = {path="./packages/wexpect-uv/dist/wexpect_uv-0.0.4-py3-none-any.whl"}
 # uiya-yutto = {git = "https://github.com/MrXnneHang/yutto.git" , rev = "win10-parse"}
 

@@ -128,11 +128,6 @@ class YuttoOutputParser:
         if line.startswith(" LINK"):
             value = line[6:].replace(" ", "").replace("\r\n", "")
             self.result["episodes"][self.current_index]["link"] = value
-            if not is_batch and "p=" in value:
-                page_match = re.search(r"p=(\d+)", value)
-                if page_match:
-                    page = int(page_match.group(1))
-                    self.result["video_name"] += f"(p={page})"
 
         # 弹幕、字幕、章节信息
         if line.startswith(" 弹幕 "):
