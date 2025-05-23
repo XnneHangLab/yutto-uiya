@@ -84,6 +84,8 @@ def downloader(
     settings = load_settings_file("uiya.toml", UiyaSetting)
     download_dir = settings.download_dir
     video_name = st.session_state[runner_keys["video_name"]]
+    if "/" in video_name:
+        video_name = video_name.replace("/", "|")  # 避免多级目录
     download_dir = Path(download_dir) / video_name
     download_dir.mkdir(parents=True, exist_ok=True)
     columns = st.columns([1, 1, 1, 1])
@@ -151,6 +153,7 @@ def downloader(
                         # 移动到指定目录 dwonload_dir 并且覆盖同名文件如果存在
                         shutil.move(str(new_file_path), str(download_dir / new_file_path.name))
                         st.success(f"文件已保存到: {download_dir / new_file_path.name}")
+                        shutil.rmtree(str(tmp_dir), ignore_errors=True)
             output_placeholder.code("", language="bash")
             # 删除 tmp_dir
             if tmp_dir.exists():

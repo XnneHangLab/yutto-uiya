@@ -120,7 +120,14 @@ class CommandGenerator:
         self.tmp_dir = str(tmp_dir)
         # ================== RESOURCES
         # [] [] [], no resource required
-        if not self.require_video and not self.require_audio and not self.require_danmaku and not self.require_cover:
+        if (
+            not self.require_video
+            and not self.require_audio
+            and not self.require_danmaku
+            and not self.require_cover
+            and not self.require_metadata
+            and not self.require_subtitle
+        ):
             raise ValueError("No resource required")
 
         else:
