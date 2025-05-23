@@ -9,7 +9,7 @@ dependencies = [
     "tomli_w==1.2.0",
     "streamlit==1.43.2",
     # special
-    "uiya-yutto==0.0.2-pre.1",
+    "uiya-yutto==0.0.2-pre.2",
     # "uiya-yutto",
     "httpx[http2,socks]>=0.28.1",
     "pexpect==4.9.0;sys_platform!='win32'",
