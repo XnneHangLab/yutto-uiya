@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import platform
 import shutil
 from copy import deepcopy
 from pathlib import Path
 from typing import TYPE_CHECKING
-import platform
+
 import streamlit as st
 from natsort import natsorted
 
