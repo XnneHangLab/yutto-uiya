@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import platform
 import shutil
 from copy import deepcopy
 from pathlib import Path
@@ -25,6 +26,7 @@ from uiya.utils.runner import (
     select_card_container,
     show_interatable_card_container,
 )
+from uiya.utils.TextHelper import resolve_path
 
 if TYPE_CHECKING:
     from uiya._typing import DebugMode, LoginStrict, VipStrict
@@ -86,6 +88,8 @@ def downloader(
     video_name = st.session_state[runner_keys["video_name"]]
     if "/" in video_name:
         video_name = video_name.replace("/", "|")  # 避免多级目录
+        if platform.system() == "Windows":
+            video_name = resolve_path(video_name)  # Windows 下的路径名不能包含特殊字符
     download_dir = Path(download_dir) / video_name
     download_dir.mkdir(parents=True, exist_ok=True)
     columns = st.columns([1, 1, 1, 1])

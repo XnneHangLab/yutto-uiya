@@ -193,3 +193,15 @@ def split_into_words(text: str) -> list[str]:
     words = pattern.findall(text)
 
     return words
+
+
+def resolve_path(path_str: str):
+    """
+    清理路径名中的特殊字符，使其符合 Windows 文件命名规则。
+    """
+    invalid_chars = '<>:"/\\|?*'
+    for char in invalid_chars:
+        path_str = path_str.replace(char, "_")
+    path_str = path_str.strip()
+    path_str = re.sub(r"\.+", ".", path_str)
+    return path_str
