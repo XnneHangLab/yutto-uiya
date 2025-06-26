@@ -117,6 +117,7 @@ class RunnerKeys(TypedDict):
     download_content: str  # 下载 output, 和终端保持一致
     parse_command_status: str  # 解析 CommandStatus 格式
     runtime_error: str  # 运行时错误
+    long_space: str
 
 
 class YuttoUiyaKeys(TypedDict):

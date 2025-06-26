@@ -4,6 +4,8 @@ import ast
 import re
 from typing import get_args
 
+from yutto.utils.console.logger import Logger
+
 from uiya._dictionary import emoji
 from uiya._typing import AudioQuality, VideoQuality, YuttoParseResult
 
@@ -62,22 +64,29 @@ class YuttoOutputParser:
         ]
 
     def parse_line(self, line: str, is_batch: bool = False) -> None:
+        print([line])
         line = clean_ansi_codes(line)
         # print([line])
         # 批量时解析总集数
         if is_batch and line.startswith(" 全集 "):
+            Logger.debug("解析全集数")
             episodes_count_match = re.search(r"全\s+(\d+)\s+话", line)
             if episodes_count_match:
                 self.result["episodes_count"] = int(episodes_count_match.group(1))
+                Logger.debug(f"全集数: {self.result['episodes_count']}")
+            else:
+                Logger.error("全集数解析失败")
             return
 
         # 批量模式下判断新的一集
         if is_batch and line.startswith(" ["):
+            Logger.debug("解析新的一集")
             pattern = r"\[(\d+)/(\d+)\]\s+(.*)"
             episode_start_match = re.search(pattern, line)
             if episode_start_match:
                 self.result["current_episode_index"] = int(episode_start_match.group(1)) - 1
                 title = episode_start_match.group(3).replace("\x1b[0m", "").replace(" ", "")
+                Logger.debug(f"解析到:{title}")
                 self.result["episodes"].append(
                     {
                         "title": title,
@@ -120,6 +129,7 @@ class YuttoOutputParser:
             if line.startswith(f" {video_name_type} "):
                 value = line[len(video_name_type) + 2 :].replace(" ", "")
                 self.result["video_name"] = value.strip()
+                Logger.debug(f"解析到 video_name: {value}")
                 if not is_batch:
                     self.result["episodes"][self.current_index]["title"] = value.strip()
                 return
@@ -128,6 +138,7 @@ class YuttoOutputParser:
         if line.startswith(" LINK"):
             value = line[6:].replace(" ", "").replace("\r\n", "")
             self.result["episodes"][self.current_index]["link"] = value
+            Logger.debug(f"解析到 link: {value}")
 
         # 弹幕、字幕、章节信息
         if line.startswith(" 弹幕 "):
@@ -152,6 +163,7 @@ class YuttoOutputParser:
         if line.startswith(" 封面 ") and "http" in line:
             cover_link = line[4:].replace(" ", "").replace("\r\n", "")
             self.result["episodes"][self.current_index]["cover_link"] = cover_link
+            Logger.debug(f"解析到 cover_link: {cover_link}")
 
         # 视频质量
         if line.startswith(" 视频质量 "):

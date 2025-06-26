@@ -6,6 +6,7 @@ import time
 from typing import TYPE_CHECKING
 
 import streamlit as st
+from yutto.utils.console.logger import Logger, set_logger_debug
 
 from uiya._session_keys import runner_keys
 from uiya.utils.TextHelper import YuttoOutputParser, clean_ansi_codes, clean_output, split_into_words
@@ -46,6 +47,8 @@ if runner_keys["runtime_error"] not in st.session_state:
     st.session_state[runner_keys["runtime_error"]] = ""
 if runner_keys["video_name"] not in st.session_state:
     st.session_state[runner_keys["video_name"]] = ""
+if runner_keys["long_space"] not in st.session_state:
+    st.session_state[runner_keys["long_space"]] = ""
 
 
 def initial_keys() -> None:
@@ -197,6 +200,20 @@ def truncate(text: str, max_len: int):
     return text if len(text) <= max_len else text[:max_len] + "…"
 
 
+def start_counting_space():
+    st.session_state[runner_keys["long_space"]] = " "
+
+
+def pending_space():
+    st.session_state[runner_keys["long_space"]] += " "
+
+
+def clean_long_space():
+    update_condition: bool = len(st.session_state[runner_keys["long_space"]]) > 5
+    st.session_state[runner_keys["long_space"]] = ""
+    return update_condition
+
+
 def run_parser(command: list[str], debug: bool = False, batch: bool = True) -> YuttoParseResult:
     """
     使用 pexpect 运行命令并实时更新 Streamlit 界面，同时保留终端原始输出
@@ -208,6 +225,9 @@ def run_parser(command: list[str], debug: bool = False, batch: bool = True) -> Y
     Returns:
         命令执行的退出状态码，如果无法获取则返回 None
     """
+    if debug:
+        Logger.info("设置 debug 模式")
+        set_logger_debug()
     st.toast("开始解析,再次点击会重新运行,运行中慎用!", icon=":material/verified:")
     key = runner_keys["parse_content"]
     child = None
@@ -216,6 +236,7 @@ def run_parser(command: list[str], debug: bool = False, batch: bool = True) -> Y
     initial_keys()
     buffer: list[str] = []
     output_text = ""
+    last_char = ""
 
     child = pexpect.spawn(  # type: ignore[assignment]
         command[0],
@@ -229,17 +250,42 @@ def run_parser(command: list[str], debug: bool = False, batch: bool = True) -> Y
 
         if index == 0:  # 读取到一个字符
             char: str = str(child.after)  # type: ignore[assignment]
+            if last_char == "":
+                last_char = char
+            else:
+                # windows 高带宽输出连续空格的临时处理
+                if char == " " and last_char != " ":
+                    start_counting_space()
+                elif char == " " and last_char == " ":
+                    pending_space()
+                elif char != " " and last_char == " ":
+                    update_condition = clean_long_space()
+                    last_char = ""
+                    if update_condition:
+                        while buffer[-1] == " ":
+                            buffer.pop()
+                        buffer.append("\r\n")
+                last_char = char
             buffer.append(char)
 
             # 如果是unix-like,直接输出到终端，如果是windows,则需要先处理一下。
-            sys.stdout.write(char)
-            sys.stdout.flush()
+            # sys.stdout.write(char)
+            # sys.stdout.flush()
 
             update_condition: bool = "\r\n" in "".join(buffer)
 
             if update_condition:
-                output_text += "".join(buffer)
-                parser.parse_line(line="".join(buffer), is_batch=batch)
+                if "".join(buffer).split("\r\n")[-1] != "":
+                    line = "".join("".join(buffer).split("\r\n")[:-1])
+                    buffer = ["".join(buffer).split("\r\n")[-1]]
+                else:
+                    line = "".join(buffer)
+                    buffer = []
+                output_text += "".join(line)
+
+                sys.stdout.write(line)
+                sys.stdout.flush()
+                parser.parse_line(line=line, is_batch=batch)
                 current_index = parser.current_index
                 if current_index - show_index == 1:
                     # 避免加入重复的元素 skip -1
@@ -247,8 +293,6 @@ def run_parser(command: list[str], debug: bool = False, batch: bool = True) -> Y
                         st.session_state[key].append(parser.result["episodes"][show_index])
                         show_card_container(st.session_state[key][show_index], show_index)
                     show_index += 1
-
-                buffer = []
 
         elif index == 1:  # EOF，进程结束
             if child.before:  # type: ignore[assignment]
