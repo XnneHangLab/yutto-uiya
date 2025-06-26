@@ -4,9 +4,10 @@ import ast
 import re
 from typing import get_args
 
+from yutto.utils.console.logger import Logger
+
 from uiya._dictionary import emoji
 from uiya._typing import AudioQuality, VideoQuality, YuttoParseResult
-from yutto.utils.console.logger import Logger
 
 
 def clean_ansi_codes(line: str) -> str:

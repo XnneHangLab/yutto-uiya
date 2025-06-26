@@ -6,10 +6,10 @@ import time
 from typing import TYPE_CHECKING
 
 import streamlit as st
+from yutto.utils.console.logger import Logger, set_logger_debug
 
 from uiya._session_keys import runner_keys
 from uiya.utils.TextHelper import YuttoOutputParser, clean_ansi_codes, clean_output, split_into_words
-from yutto.utils.console.logger import set_logger_debug, Logger
 
 if TYPE_CHECKING:
     from streamlit.delta_generator import DeltaGenerator
