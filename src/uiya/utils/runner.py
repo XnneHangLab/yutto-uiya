@@ -46,6 +46,8 @@ if runner_keys["runtime_error"] not in st.session_state:
     st.session_state[runner_keys["runtime_error"]] = ""
 if runner_keys["video_name"] not in st.session_state:
     st.session_state[runner_keys["video_name"]] = ""
+if runner_keys["long_space"] not in st.session_state:
+    st.session_state[runner_keys["long_space"]] = ""
 
 
 def initial_keys() -> None:
@@ -197,6 +199,20 @@ def truncate(text: str, max_len: int):
     return text if len(text) <= max_len else text[:max_len] + "…"
 
 
+def start_counting_space():
+    st.session_state[runner_keys["long_space"]] = " "
+
+
+def pending_space():
+    st.session_state[runner_keys["long_space"]] += " "
+
+
+def clean_long_space():
+    update_condition: bool = len(st.session_state[runner_keys["long_space"]]) > 5
+    st.session_state[runner_keys["long_space"]] = ""
+    return update_condition
+
+
 def run_parser(command: list[str], debug: bool = False, batch: bool = True) -> YuttoParseResult:
     """
     使用 pexpect 运行命令并实时更新 Streamlit 界面，同时保留终端原始输出
@@ -216,6 +232,7 @@ def run_parser(command: list[str], debug: bool = False, batch: bool = True) -> Y
     initial_keys()
     buffer: list[str] = []
     output_text = ""
+    last_char = ""
 
     child = pexpect.spawn(  # type: ignore[assignment]
         command[0],
@@ -229,16 +246,34 @@ def run_parser(command: list[str], debug: bool = False, batch: bool = True) -> Y
 
         if index == 0:  # 读取到一个字符
             char: str = str(child.after)  # type: ignore[assignment]
+            if last_char == "":
+                last_char = char
+            else:
+                # windows 高带宽输出连续空格的临时处理
+                if char == " " and last_char != " ":
+                    start_counting_space()
+                elif char == " " and last_char == " ":
+                    pending_space()
+                elif char != " " and last_char == " ":
+                    update_condition = clean_long_space()
+                    last_char = ""
+                    if update_condition:
+                        while buffer[-1] == " ":
+                            buffer.pop()
+                        buffer.append("\r\n")
+                last_char = char
             buffer.append(char)
 
             # 如果是unix-like,直接输出到终端，如果是windows,则需要先处理一下。
-            sys.stdout.write(char)
-            sys.stdout.flush()
+            # sys.stdout.write(char)
+            # sys.stdout.flush()
 
             update_condition: bool = "\r\n" in "".join(buffer)
 
             if update_condition:
                 output_text += "".join(buffer)
+                sys.stdout.write(output_text)
+                sys.stdout.flush()
                 parser.parse_line(line="".join(buffer), is_batch=batch)
                 current_index = parser.current_index
                 if current_index - show_index == 1:

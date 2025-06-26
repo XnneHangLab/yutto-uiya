@@ -15,6 +15,7 @@ runner_keys: RunnerKeys = {
     "parse_command_status": "parse_command_status",
     "download_content": "download_content",
     "runtime_error": "runtime_error",
+    "long_space": "long_space",
 }
 
 yutto_uiya_keys: YuttoUiyaKeys = {
