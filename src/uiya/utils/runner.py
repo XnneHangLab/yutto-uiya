@@ -9,6 +9,7 @@ import streamlit as st
 
 from uiya._session_keys import runner_keys
 from uiya.utils.TextHelper import YuttoOutputParser, clean_ansi_codes, clean_output, split_into_words
+from yutto.utils.console.logger import set_logger_debug, Logger
 
 if TYPE_CHECKING:
     from streamlit.delta_generator import DeltaGenerator
@@ -224,6 +225,9 @@ def run_parser(command: list[str], debug: bool = False, batch: bool = True) -> Y
     Returns:
         命令执行的退出状态码，如果无法获取则返回 None
     """
+    if debug:
+        Logger.info("设置 debug 模式")
+        set_logger_debug()
     st.toast("开始解析,再次点击会重新运行,运行中慎用!", icon=":material/verified:")
     key = runner_keys["parse_content"]
     child = None
@@ -271,10 +275,17 @@ def run_parser(command: list[str], debug: bool = False, batch: bool = True) -> Y
             update_condition: bool = "\r\n" in "".join(buffer)
 
             if update_condition:
-                output_text += "".join(buffer)
-                sys.stdout.write(output_text)
+                if "".join(buffer).split("\r\n")[-1] != "":
+                    line = "".join("".join(buffer).split("\r\n")[:-1])
+                    buffer = ["".join(buffer).split("\r\n")[-1]]
+                else:
+                    line = "".join(buffer)
+                    buffer = []
+                output_text += "".join(line)
+
+                sys.stdout.write(line)
                 sys.stdout.flush()
-                parser.parse_line(line="".join(buffer), is_batch=batch)
+                parser.parse_line(line=line, is_batch=batch)
                 current_index = parser.current_index
                 if current_index - show_index == 1:
                     # 避免加入重复的元素 skip -1
@@ -282,8 +293,6 @@ def run_parser(command: list[str], debug: bool = False, batch: bool = True) -> Y
                         st.session_state[key].append(parser.result["episodes"][show_index])
                         show_card_container(st.session_state[key][show_index], show_index)
                     show_index += 1
-
-                buffer = []
 
         elif index == 1:  # EOF，进程结束
             if child.before:  # type: ignore[assignment]

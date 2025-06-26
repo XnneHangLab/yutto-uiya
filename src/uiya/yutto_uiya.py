@@ -193,7 +193,7 @@ def bangumi_tab() -> None:
 
             # 使用特定的key名称
             # run_downloader(command, key_name="bangumi_output", output_placeholder=output_placeholder)
-            run_parser(command=command, debug=False)
+            run_parser(command=command, debug=True)
             st.rerun()
     if parse_btn:
         status = deepcopy(st.session_state[yutto_uiya_keys["full_status"]])
@@ -203,7 +203,7 @@ def bangumi_tab() -> None:
         if parse_status(status, output_placeholder=output_placeholder):
             command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
             command = command_generator.gen_args()
-            run_parser(command=command, debug=False, batch=False)
+            run_parser(command=command, debug=True, batch=False)
             st.rerun()
 
     if st.session_state[runner_keys["parse_content"]]:
