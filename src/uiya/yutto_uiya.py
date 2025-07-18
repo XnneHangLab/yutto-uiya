@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import platform
 import shutil
 from copy import deepcopy
 from pathlib import Path
