@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import platform
 import shutil
 from copy import deepcopy
 from pathlib import Path
@@ -19,6 +18,7 @@ from uiya._typing import (
 )
 from uiya.styles.global_style import style
 from uiya.utils.config import UiyaSetting, get_setting_title, load_settings_file, write_settings_file
+from uiya.utils.resolve_path import repair_filename
 from uiya.utils.runner import (
     parse_status,
     run_downloader,
@@ -26,7 +26,6 @@ from uiya.utils.runner import (
     select_card_container,
     show_interatable_card_container,
 )
-from uiya.utils.TextHelper import resolve_path
 
 if TYPE_CHECKING:
     from uiya._typing import DebugMode, LoginStrict, VipStrict
@@ -86,10 +85,8 @@ def downloader(
     settings = load_settings_file("uiya.toml", UiyaSetting)
     download_dir = settings.download_dir
     video_name = st.session_state[runner_keys["video_name"]]
-    if "/" in video_name:
-        video_name = video_name.replace("/", "|")  # 避免多级目录
-        if platform.system() == "Windows":
-            video_name = resolve_path(video_name)  # Windows 下的路径名不能包含特殊字符
+    video_name = video_name.replace("/", "|")  # 避免多级目录
+    video_name = repair_filename(video_name)  # Windows 下的路径名不能包含特殊字符
     download_dir = Path(download_dir) / video_name
     download_dir.mkdir(parents=True, exist_ok=True)
     columns = st.columns([1, 1, 1, 1])
@@ -147,7 +144,7 @@ def downloader(
             run_downloader(command=command, output_placeholder=output_placeholder)
             # 把资源从 tmp_dir 中捞出来
             tmp_dir = Path(command_generator.tmp_dir)
-            if tmp_dir.exists():
+            if tmp_dir.exists():  # 这个 tmp_dir 里的是 yutto 下载下来后存放的地址，file_name 已经 resolve 过了。
                 # print(download_dir)
                 for file in tmp_dir.iterdir():
                     if file.is_file():
