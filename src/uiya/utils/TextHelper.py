@@ -64,7 +64,7 @@ class YuttoOutputParser:
         ]
 
     def parse_line(self, line: str, is_batch: bool = False) -> None:
-        print([line])
+        # print([line])
         line = clean_ansi_codes(line)
         # print([line])
         # 批量时解析总集数
@@ -205,15 +205,3 @@ def split_into_words(text: str) -> list[str]:
     words = pattern.findall(text)
 
     return words
-
-
-def resolve_path(path_str: str):
-    """
-    清理路径名中的特殊字符，使其符合 Windows 文件命名规则。
-    """
-    invalid_chars = '<>:"/\\|?*'
-    for char in invalid_chars:
-        path_str = path_str.replace(char, "_")
-    path_str = path_str.strip()
-    path_str = re.sub(r"\.+", ".", path_str)
-    return path_str
