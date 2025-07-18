@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import streamlit as st
 from natsort import natsorted
+from yutto.utils.console.logger import Logger
 
 from uiya._dataclass import CommandGenerator
 from uiya._session_keys import runner_keys, yutto_uiya_keys
@@ -148,8 +149,9 @@ def downloader(
                 # print(download_dir)
                 for file in tmp_dir.iterdir():
                     if file.is_file():
-                        new_file_name = f"{episode_info['title']}"
+                        new_file_name = repair_filename(f"{episode_info['title']}")
                         new_file_path = file.with_name(f"{new_file_name}{file.suffix}".replace("\r", ""))
+                        Logger.debug(f"移动文件: {file.absolute()} 到 {new_file_path.absolute()}")
                         shutil.move(str(file), str(new_file_path))
                         # 移动到指定目录 dwonload_dir 并且覆盖同名文件如果存在
                         shutil.move(str(new_file_path), str(download_dir / new_file_path.name))
@@ -194,7 +196,7 @@ def bangumi_tab() -> None:
 
             # 使用特定的key名称
             # run_downloader(command, key_name="bangumi_output", output_placeholder=output_placeholder)
-            run_parser(command=command, debug=True)
+            run_parser(command=command, debug=False)
             st.rerun()
     if parse_btn:
         status = deepcopy(st.session_state[yutto_uiya_keys["full_status"]])
@@ -204,7 +206,7 @@ def bangumi_tab() -> None:
         if parse_status(status, output_placeholder=output_placeholder):
             command_generator = CommandGenerator.from_status(status)  # 通过from_status来初始化
             command = command_generator.gen_args()
-            run_parser(command=command, debug=True, batch=False)
+            run_parser(command=command, debug=False, batch=False)
             st.rerun()
 
     if st.session_state[runner_keys["parse_content"]]:
