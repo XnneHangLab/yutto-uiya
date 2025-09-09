@@ -262,7 +262,7 @@ def run_parser(command: list[str], debug: bool = False, batch: bool = True) -> Y
                     update_condition = clean_long_space()
                     last_char = ""
                     if update_condition:
-                        while buffer[-1] == " ":
+                        while buffer and buffer[-1] == " ":
                             buffer.pop()
                         buffer.append("\r\n")
                 last_char = char
