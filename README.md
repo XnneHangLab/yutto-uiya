@@ -1,11 +1,9 @@
-<a href="https://xnnehang.top/">
-
-<div align="center">
-    <img src="https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505101919055.png" alt="yutto-uiya" width="180" height="172">
-</div>
+<p align="center">
+  <a href="https://xnnehang.top/">
+    <img src="./assets/logo-full.jpg" alt="yutto-uiya" width="180">
+  </a>
+</p>
 <h1 align="center">yutto-uiya</h1>
-
-</a>
 <br/>
 
 <div align="center">
