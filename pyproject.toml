@@ -14,6 +14,7 @@ dependencies = [
     "httpx[http2,socks]>=0.28.1",
     "pexpect==4.9.0;sys_platform!='win32'",
     "wexpect-uv==0.0.6;sys_platform=='win32'",
+    "setuptools;sys_platform=='win32'",
     # "wexpect-uv;sys_platform=='win32'",
     "natsort>=8.4.0",
 ]

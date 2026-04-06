@@ -1,11 +1,9 @@
-<a href="https://xnnehang.top/">
-
-<div align="center">
-    <img src="https://fastly.jsdelivr.net/gh/MrXnneHang/blog_img/BlogHosting/img/25/02/202505101919055.png" alt="yutto-uiya" width="180" height="172">
-</div>
+<p align="center">
+  <a href="https://xnnehang.top/">
+    <img src="./assets/logo-full.jpg" alt="yutto-uiya" width="360">
+  </a>
+</p>
 <h1 align="center">yutto-uiya</h1>
-
-</a>
 <br/>
 
 <div align="center">
@@ -214,3 +212,17 @@ uv run streamlit run src/uiya/yutto_uiya.py
 -  [ ] 提高解析速度.
 -  [x] 简化安装步骤.
 -  [ ] 可增添的任务列表 / 按任务列表启动下载
+
+## 重构计划 (v2)
+
+当前版本基于 Streamlit + pexpect/wexpect，在跨平台终端捕获上存在持续的维护负担（Windows/Linux 行为不一致、依赖链问题）。
+
+我们计划将 yutto-uiya 重构为基于 **Tauri** 的桌面应用：
+
+- **前端**：React + TypeScript
+- **后端**：Rust（通过 `std::process::Command` piped stdout 捕获 yutto 输出，彻底替换 pexpect/wexpect）
+- **分发**：yutto 以 PyInstaller sidecar 形式打包，用户无需配置 Python 环境，一键安装
+
+主要收益：跨平台捕获行为完全一致、原生安装包分发（.exe / .dmg / .deb）。
+
+详见 [RFC issue #43](https://github.com/XnneHangLab/yutto-uiya/issues/43)。
