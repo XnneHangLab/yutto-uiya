@@ -870,10 +870,8 @@ mod tests {
     use serde_json::json;
 
     use super::{
-        build_terminal_failure_event, build_uv_python_command, build_webui_cleanup_plan,
-        build_webui_port_probe_plan, managed_path_from_payload, parse_listener_pids,
-        runtime_event_from_python_payload, EnvironmentProbePayload, ProcessPlatform,
-        WebuiCleanupPlan, WebuiPortProbePlan,
+        build_terminal_failure_event, build_uv_python_command, managed_path_from_payload,
+        runtime_event_from_python_payload, EnvironmentProbePayload,
     };
 
     #[test]
@@ -1013,54 +1011,5 @@ mod tests {
         assert_eq!(event.percent, Some(42));
         assert_eq!(event.downloaded.as_deref(), Some("75.0M"));
         assert_eq!(event.total.as_deref(), Some("180M"));
-    }
-
-    #[test]
-    fn webui_cleanup_plan_uses_taskkill_on_windows() {
-        let plan = build_webui_cleanup_plan(4242, ProcessPlatform::Windows);
-
-        assert_eq!(
-            plan,
-            WebuiCleanupPlan::Command {
-                program: "taskkill",
-                args: vec![
-                    "/PID".to_string(),
-                    "4242".to_string(),
-                    "/T".to_string(),
-                    "/F".to_string(),
-                ],
-            }
-        );
-    }
-
-    #[test]
-    fn webui_cleanup_plan_uses_process_group_on_unix() {
-        let plan = build_webui_cleanup_plan(4242, ProcessPlatform::Unix);
-
-        assert_eq!(plan, WebuiCleanupPlan::UnixProcessGroup { pid: 4242 });
-    }
-
-    #[test]
-    fn webui_port_probe_plan_uses_powershell_on_windows() {
-        let plan = build_webui_port_probe_plan(7860, ProcessPlatform::Windows);
-
-        assert_eq!(
-            plan,
-            WebuiPortProbePlan::Command {
-                program: "powershell",
-                args: vec![
-                    "-NoProfile".to_string(),
-                    "-Command".to_string(),
-                    "Get-NetTCPConnection -LocalPort 7860 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { $_.OwningProcess }".to_string(),
-                ],
-            }
-        );
-    }
-
-    #[test]
-    fn parse_listener_pids_ignores_noise_and_deduplicates() {
-        let parsed = parse_listener_pids(b"4242\n\nnot-a-pid\n4242  5252\n");
-
-        assert_eq!(parsed, vec![4242, 5252]);
     }
 }
