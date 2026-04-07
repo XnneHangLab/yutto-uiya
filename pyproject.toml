@@ -1,107 +1,77 @@
 [project]
-name = "XnneHangLabTTS"
-version = "0.1.0"
-description = "Lightweight TTS showcase repository for GSV-Lite, Genie-TTS, and faster-qwen-tts"
+name = "yutto-uiya"
+version = "0.0.3"
+description = "yutto-uiya: Tauri-based desktop frontend for yutto Bilibili downloader"
 readme = "README.md"
-requires-python = ">=3.11,<3.12"
+requires-python = ">=3.11"
 dependencies = [
-  "gradio>=5.24.0",
-  "pydantic>=2.10.6",
-  "loguru>=0.7.3",
-  "soundfile>=0.13.1",
-  "python-dotenv>=1.1.1",
-  "tomli_w>=1.2.0",
-  "modelscope",
+    "pydantic>=2.10.6",
+    "tomli_w>=1.2.0",
+    "uiya-yutto==0.0.3",
+    "httpx[http2,socks]>=0.28.1",
+    "natsort>=8.4.0",
 ]
 authors = [{ name = "MrXnneHang", email = "XnneHang@gmail.com" }]
+keywords = []
 license = { text = "MIT" }
+classifiers = [
+  "Operating System :: OS Independent",
+  "License :: OSI Approved :: MIT License",
+  "Typing :: Typed",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: Implementation :: CPython",
+]
 
 [project.urls]
-Homepage = "https://github.com/XnneHangLab/XnneHangLabTTS"
-Repository = "https://github.com/XnneHangLab/XnneHangLabTTS"
-Issues = "https://github.com/XnneHangLab/XnneHangLabTTS/issues"
+Homepage = "https://github.com/MrXnneHang/yutto-uiya"
+Documentation = "https://github.com/MrXnneHang/yutto-uiya"
+Repository = "https://github.com/MrXnneHang/yutto-uiya"
+Issues = "https://github.com/MrXnneHang/yutto-uiya/issues"
 
 [dependency-groups]
-base = [
-  "numpy==1.26.4",
-  "torch>=2.6.0",
-  "torchaudio>=2.6.0",
-]
-
 dev = [
-  "pytest>=8.3.4",
-  "ruff>=0.9.3",
   "pyright>=1.1.391",
-]
-
-genie-tts = [
-  "modelscope",
-  "onnx",
-  "onnxruntime==1.22.1",
-  "tokenizers",
-  "pyyaml",
-  "huggingface_hub[hf_xet]",
-  "pyopenjtalk-plus",
-  "nltk",
-  "pypinyin",
-  "jieba_fast",
-  "g2pM",
-  "jamo",
-  "ko_pron",
-  "g2pk2",
-  "eunjeon; sys_platform == 'win32'",
-  "fast_langdetect",
-  "soxr>=1.0.0",
-  "sounddevice>=0.5.2",
-]
-
-gsv-lite = [
-  "gsv-tts-lite==0.3.8",
-]
-
-qwen-tts = [
-  "faster-qwen3-tts>=0.2.5",
-  "soxr>=1.0.0",
-  "sounddevice>=0.5.2",
+  "ruff>=0.9.3",
+  "pytest>=8.3.4",
+  "pytest-rerunfailures>=15.0",
 ]
 
 [tool.uv]
-default-groups = ["base", "dev", "genie-tts"]
-
-# ── PyTorch 索引 ─────────────────────────────────────────────────────────────
-# Windows → pytorch-gpu；Linux → pytorch-cpu
-# 切换 GPU 版本请使用 just use-cu118 / use-cu124 / use-cu128 / use-cpu
-[[tool.uv.index]]
-name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
-explicit = true
+python-install-mirror = "https://github.com/astral-sh/python-build-standalone/releases/download"
 
 [[tool.uv.index]]
-name = "pytorch-gpu"
-url = "https://download.pytorch.org/whl/cu128"  # SWITCH: just use-cu118/cu124/cu128/use-cpu
-explicit = true
+name = "pypi"
+url = "https://pypi.org/simple"
+default = true
 
-[tool.uv.sources]
-torch = [
-  { index = "pytorch-gpu", marker = "sys_platform == 'win32'" },
-  { index = "pytorch-cpu", marker = "sys_platform != 'win32'" },
-]
-torchaudio = [
-  { index = "pytorch-gpu", marker = "sys_platform == 'win32'" },
-  { index = "pytorch-cpu", marker = "sys_platform != 'win32'" },
-]
-
+[tool.pyright]
+include = ["python/uiya"]
+pythonVersion = "3.11"
+typeCheckingMode = "strict"
+reportMissingTypeStubs = false
 
 [tool.ruff]
 line-length = 120
 target-version = "py311"
 
-[tool.pyright]
-pythonVersion = "3.11"
-typeCheckingMode = "basic"
+[tool.ruff.lint]
+select = ["F", "E", "W", "I", "C4", "T100", "UP", "PYI", "B", "PLE", "SIM101", "PTH", "PGH004", "TC", "RSE", "FURB", "FA", "RUF100"]
+ignore = ["E501", "F401", "F841"]
+
+[tool.ruff.lint.isort]
+required-imports = ["from __future__ import annotations"]
+known-first-party = ["uiya"]
+combine-as-imports = true
+
+[tool.ruff.lint.flake8-type-checking]
+runtime-evaluated-base-classes = ["pydantic.BaseModel"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/xnnehanglab_tts"]
+packages = ["python/uiya"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

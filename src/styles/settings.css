@@ -1,0 +1,394 @@
+.settings-shell {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 14px;
+  height: 100%;
+  min-height: 0;
+}
+
+.settings-shell .settings-tabs {
+  display: flex;
+  gap: 18px;
+  padding: 2px 6px 0;
+  color: var(--text);
+  font-size: 15px;
+  border-bottom: 1px solid var(--line);
+}
+
+.settings-shell .settings-tab {
+  position: relative;
+  padding: 10px 2px 14px;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  opacity: 0.8;
+}
+
+.settings-shell .settings-tab.active,
+.settings-shell .settings-tab[aria-selected='true'] {
+  opacity: 1;
+}
+
+.settings-shell .settings-tab.active::after,
+.settings-shell .settings-tab[aria-selected='true']::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.settings-shell .settings-wrap {
+  overflow: auto;
+  min-height: 0;
+  padding-right: 4px;
+}
+
+.settings-shell .group-title {
+  margin: 10px 0 12px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.settings-shell .group-title--standalone {
+  margin-top: 0;
+}
+
+.settings-shell .setting-card {
+  margin-bottom: 14px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: linear-gradient(180deg, var(--card-bg-start), var(--card-bg-end));
+  border: 1px solid var(--line);
+}
+
+.settings-shell .setting-row {
+  min-height: 70px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 20px;
+  align-items: center;
+  padding: 16px 20px;
+  border-top: 1px solid var(--line);
+}
+
+.settings-shell .setting-row:first-child {
+  border-top: 0;
+}
+
+.settings-shell .setting-main {
+  min-width: 0;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.settings-shell .setting-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: linear-gradient(
+    180deg,
+    var(--icon-panel-bg-start),
+    var(--icon-panel-bg-end)
+  );
+  color: var(--icon-panel-text);
+  border: 1px solid var(--icon-panel-border);
+  flex: none;
+}
+
+.settings-shell .setting-text {
+  min-width: 0;
+}
+
+.settings-shell .setting-text.inset {
+  padding-left: 52px;
+}
+
+.settings-shell .setting-name {
+  margin-bottom: 4px;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.settings-shell .setting-desc {
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.settings-shell .setting-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-shell .setting-chevron {
+  opacity: 0.6;
+}
+
+.settings-shell .proxy-input {
+  width: 230px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 9px;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--input-text);
+  outline: none;
+  font-size: 14px;
+}
+
+.settings-shell .workspace-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.settings-shell .workspace-input {
+  width: 320px;
+}
+
+.settings-shell .workspace-button {
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 9px;
+  border: 1px solid var(--input-border);
+  background: var(--card-bg-start);
+  color: var(--text);
+  font-size: 14px;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    opacity 0.16s ease;
+}
+
+.settings-shell .workspace-button:hover:not(:disabled) {
+  background: var(--panel-3);
+  border-color: rgba(121, 161, 221, 0.8);
+}
+
+.settings-shell .workspace-button:active:not(:disabled) {
+  background: var(--panel-2);
+}
+
+.settings-shell .workspace-button--secondary {
+  font-size: 13px;
+  color: var(--muted);
+  border-color: var(--line);
+  background: transparent;
+}
+
+.settings-shell .workspace-button--secondary:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--panel-2);
+  border-color: var(--input-border);
+}
+
+.settings-shell .workspace-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.settings-shell .env-info-card {
+  margin-bottom: 14px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.settings-shell .env-info-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--line);
+}
+
+.settings-shell .env-info-row:first-child {
+  border-top: 0;
+}
+
+.settings-shell .env-info-label {
+  min-width: 80px;
+  font-size: 13px;
+  color: var(--muted);
+  flex: none;
+}
+
+.settings-shell .env-info-value {
+  font-size: 14px;
+  color: var(--text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-shell .env-info-mono {
+  font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+  font-size: 13px;
+}
+
+.settings-shell .env-info-path {
+  opacity: 0.7;
+}
+
+.settings-shell .env-info-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--line);
+  background: var(--panel-3);
+  color: var(--muted);
+}
+
+.settings-shell .env-info-badge--ready {
+  color: #7ec87a;
+  border-color: rgba(100, 180, 90, 0.28);
+  background: rgba(100, 180, 90, 0.07);
+}
+
+.settings-shell .env-info-badge--warn {
+  color: #f4b86a;
+  border-color: rgba(240, 160, 60, 0.28);
+  background: rgba(240, 160, 60, 0.07);
+}
+
+.settings-shell .switch {
+  position: relative;
+  width: 42px;
+  height: 22px;
+  border: 0;
+  border-radius: 999px;
+  background: #3b4350;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.settings-shell .switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #e9edf4;
+  transition: 0.2s ease;
+}
+
+.settings-shell .switch.on,
+.settings-shell .switch[aria-pressed='true'] {
+  background: linear-gradient(180deg, #36a3ff, #2488f7);
+}
+
+.settings-shell .switch.on::after,
+.settings-shell .switch[aria-pressed='true']::after {
+  left: 23px;
+}
+
+.settings-shell .driver-select-wrap {
+  display: flex;
+  gap: 8px;
+}
+
+.settings-shell .driver-option {
+  height: 34px;
+  padding: 0 18px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.settings-shell .driver-option:hover {
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+.settings-shell .driver-option--active {
+  background: rgba(52, 155, 255, 0.12);
+  border-color: rgba(52, 155, 255, 0.5);
+  color: #5ab4ff;
+}
+
+.settings-shell .settings-save-row {
+  display: flex;
+  justify-content: flex-end;
+  margin: 16px 0 8px;
+}
+
+.settings-shell .settings-save-button {
+  height: 38px;
+  padding: 0 20px;
+  border-radius: 9px;
+  border: 1px solid rgba(52, 155, 255, 0.4);
+  background: rgba(52, 155, 255, 0.1);
+  color: #5ab4ff;
+  font-size: 14px;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.settings-shell .settings-save-button:hover {
+  background: rgba(52, 155, 255, 0.2);
+  border-color: rgba(52, 155, 255, 0.7);
+}
+
+.settings-shell .settings-save-button:active {
+  background: rgba(52, 155, 255, 0.3);
+}
+
+.settings-shell .about-card {
+  padding: 24px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, var(--card-bg-start), var(--card-bg-end));
+  border: 1px solid var(--line);
+}
+
+.settings-shell .about-card p {
+  margin: 0 0 12px;
+  line-height: 1.8;
+  color: var(--muted);
+}
+
+.settings-shell .about-card p:last-child {
+  margin-bottom: 0;
+}
+
+.settings-shell .footer-space {
+  height: 20px;
+}
+
+@media (max-width: 900px) {
+  .settings-shell .proxy-input {
+    width: 170px;
+  }
+
+  .settings-shell .workspace-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .settings-shell .workspace-input {
+    width: 220px;
+  }
+}

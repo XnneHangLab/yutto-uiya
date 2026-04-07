@@ -1,7 +1,0 @@
-workspace_root = "."
-models_root = "models"
-cache_root = "models/cache"
-logs_root = "logs"
-default_backend = "genie-tts"
-runtime_driver = "uv"
-python_path = ""

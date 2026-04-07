@@ -1,0 +1,201 @@
+.models-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.models-page__header {
+  padding: 22px 24px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--card-bg-start), var(--card-bg-end));
+  border-radius: 20px;
+}
+
+.models-page__header h1 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.models-page__header p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.models-page__header-warn {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #f4b86a;
+}
+
+.models-page__section-title {
+  margin: 0 0 14px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.models-page__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.models-page__queue {
+  padding: 20px 22px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--card-bg-start), var(--card-bg-end));
+  border-radius: 20px;
+}
+
+.models-page__queue h2 {
+  margin: 0 0 16px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.models-page__queue-empty {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.models-page__task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.models-page__task {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+
+.models-page__task:first-child {
+  border-top: 0;
+}
+
+.models-page__task-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.models-page__task-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.models-page__task-msg {
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.models-page__task-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex: none;
+}
+
+.models-page__task-status {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--muted);
+}
+
+.models-page__task-status--downloading,
+.models-page__task-status--preparing,
+.models-page__task-status--queued {
+  color: var(--accent);
+  border-color: rgba(63, 163, 255, 0.28);
+  background: rgba(63, 163, 255, 0.07);
+}
+
+.models-page__task-status--verifying {
+  color: #f4b86a;
+  border-color: rgba(240, 160, 60, 0.28);
+  background: rgba(240, 160, 60, 0.07);
+}
+
+.models-page__task-status--completed {
+  color: #7ec87a;
+  border-color: rgba(100, 180, 90, 0.28);
+  background: rgba(100, 180, 90, 0.07);
+}
+
+.models-page__task-status--failed,
+.models-page__task-status--cancelled {
+  color: #ff9b9b;
+  border-color: rgba(255, 100, 100, 0.28);
+  background: rgba(255, 100, 100, 0.07);
+}
+
+.models-page__task-progress {
+  font-size: 12px;
+  color: var(--muted);
+  font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+}
+
+.models-page__file-progress {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 2px;
+}
+
+.models-page__file-progress-bar {
+  height: 3px;
+  background: var(--line);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.models-page__file-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.25s ease;
+}
+
+.models-page__file-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.models-page__file-progress-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+}
+
+.models-page__file-progress-info {
+  flex-shrink: 0;
+  font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+}

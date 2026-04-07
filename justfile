@@ -1,40 +1,41 @@
-# 同步 git 子模块
-sync-submodule:
-  git submodule sync --recursive
-  git submodule update --init --recursive
-  git submodule absorbgitdirs
+# ── 开发环境 ──────────────────────────────────────────────────────────────────
 
-# ── PyTorch 版本切换 ──────────────────────────────────────────────────────────
-_use variant:
-    sed -i '/# SWITCH:/ s|whl/[^"]*"|whl/{{variant}}"|' pyproject.toml
-    rm -rf .venv || (echo "Error: 无法删除 .venv，请关闭占用该目录的程序（VS Code、Python 进程、终端等）后重试" && exit 1)
-    rm -f uv.lock
-
-# 无独显 / 纯测试
-use-cpu: (_use "cpu")
+# 安装 Python 依赖
+sync:
     uv sync
 
-# GTX 10xx ~ RTX 20/30 系，驱动 CUDA ≤ 11.8
-use-cu118: (_use "cu118")
-    uv sync
+# 运行 Python 测试
+test-py:
+    uv run pytest tests/ -q
 
-# RTX 20/30/40 系新驱动，CUDA 12.4
-use-cu124: (_use "cu124")
-    uv sync
+# 运行 Rust 测试
+test-rs:
+    cargo test --manifest-path src-tauri/Cargo.toml
 
-# RTX 50 系 Blackwell，CUDA ≥ 12.8（默认）
-use-cu128: (_use "cu128")
-    uv sync
+# 运行所有测试
+test: test-py test-rs
 
-# 验证 torch 是否装好，顺手看 CUDA 是否可用
-torch-check:
-  uv run --no-sync python -c "import torch; print('torch:', torch.__version__); print('cuda available:', torch.cuda.is_available()); print('cuda version:', torch.version.cuda)"
+# ── Tauri 开发 ────────────────────────────────────────────────────────────────
 
-# ── 资源下载 ──────────────────────────────────────────────────────────────────
-# 下载 Genie 基础资源（speaker_encoder / chinese-hubert-base / G2P 等，约 1 GB）
-download-genie-base:
-  uv run --no-sync xnnehanglab-tts download genie-base
+# 安装 npm 依赖
+npm-install:
+    npm install
 
-# 下载 GSV-Lite 推理依赖（chinese-hubert-base / roberta / g2p / sv，约 2 GB）
-download-gsv-lite:
-  uv run --no-sync xnnehanglab-tts download gsv-lite
+# 启动 Tauri 开发模式（需先 npm-install + sync）
+dev:
+    npm run tauri dev
+
+# 构建 Tauri 应用
+build:
+    npm run tauri build
+
+# ── Python 工具 ───────────────────────────────────────────────────────────────
+
+# 检查 uiya 环境（输出版本和 ffmpeg 状态）
+inspect:
+    uv run --no-sync python -m uiya.cli inspect-runtime | python -m json.tool
+
+# 代码格式化
+fmt:
+    uv run ruff format python/
+    uv run ruff check --fix python/
