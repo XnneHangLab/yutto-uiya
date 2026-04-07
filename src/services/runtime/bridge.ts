@@ -44,12 +44,16 @@ export function exportConsoleLogs(contents: string) {
   return invoke<string>('export_console_logs', { contents });
 }
 
-export function setRuntimeDriver(driver: string, pythonPath: string | null) {
-  return invoke<EnvironmentProbe>('set_runtime_driver', { driver, pythonPath });
+export function setRuntimeDriver(driver: string, pythonPath: string | null, ffmpegPath: string | null) {
+  return invoke<EnvironmentProbe>('set_runtime_driver', { driver, pythonPath, ffmpegPath });
 }
 
 export function pickPythonPath() {
   return invoke<string | null>('pick_python_path_command');
+}
+
+export function pickFfmpegPath() {
+  return invoke<string | null>('pick_ffmpeg_path_command');
 }
 
 export async function subscribeRuntimeEvents(

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 
@@ -89,8 +90,10 @@ def cmd_download(target: str) -> None:
     command: list[str] = ["uv", "run", "--no-sync", "yutto", target, "--no-color"]
     if yutto_toml:
         command += ["--config", str(yutto_toml)]
-    if settings.ffmpeg_path and settings.ffmpeg_path != "ffmpeg":
-        command += ["--ffmpeg-path", settings.ffmpeg_path]
+    # UIYA_FFMPEG_PATH env var (set by Rust) takes priority over uiya.toml value
+    ffmpeg_path = (os.environ.get("UIYA_FFMPEG_PATH") or settings.ffmpeg_path or "").strip()
+    if ffmpeg_path and ffmpeg_path != "ffmpeg":
+        command += ["--ffmpeg-path", ffmpeg_path]
     if settings.debug_mode == "open":
         command.append("--debug")
     if settings.custom_proxy_pool and settings.proxy_pool:

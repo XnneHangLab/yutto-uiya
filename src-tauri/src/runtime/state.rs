@@ -163,6 +163,7 @@ pub struct RuntimeState {
     pub workspace_root: Arc<Mutex<PathBuf>>,
     pub queue: Arc<Mutex<QueueState>>,
     pub driver_config: Arc<Mutex<RuntimeDriverConfig>>,
+    pub ffmpeg_path: Arc<Mutex<String>>,
     pub webui: Arc<Mutex<WebuiProcessState>>,
 }
 
@@ -173,6 +174,7 @@ impl RuntimeState {
             workspace_root: Arc::new(Mutex::new(workspace_root)),
             queue: Arc::new(Mutex::new(QueueState::default())),
             driver_config: Arc::new(Mutex::new(RuntimeDriverConfig::Uv)),
+            ffmpeg_path: Arc::new(Mutex::new("ffmpeg".to_string())),
             webui: Arc::new(Mutex::new(WebuiProcessState::default())),
         }
     }
@@ -191,6 +193,14 @@ impl RuntimeState {
 
     pub fn set_driver_config(&self, next: RuntimeDriverConfig) {
         *self.driver_config.lock().unwrap() = next;
+    }
+
+    pub fn current_ffmpeg_path(&self) -> String {
+        self.ffmpeg_path.lock().unwrap().clone()
+    }
+
+    pub fn set_ffmpeg_path(&self, next: String) {
+        *self.ffmpeg_path.lock().unwrap() = next;
     }
 
     pub fn register_webui_process(&self, pid: u32) -> WebuiProcessRecord {

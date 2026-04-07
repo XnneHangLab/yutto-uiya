@@ -9,6 +9,7 @@ describe('SettingsPage', () => {
     const onChooseWorkspaceRoot = vi.fn();
     const onUseRepoWorkspaceRoot = vi.fn();
     const onChoosePythonExe = vi.fn().mockResolvedValue(null);
+    const onChooseFfmpegExe = vi.fn().mockResolvedValue(null);
     const onSave = vi.fn();
 
     render(
@@ -30,6 +31,9 @@ describe('SettingsPage', () => {
         runtimeDriver="uv"
         pythonExePath=""
         onChoosePythonExe={onChoosePythonExe}
+        ffmpegMode="system"
+        ffmpegExePath=""
+        onChooseFfmpegExe={onChooseFfmpegExe}
         onSave={onSave}
       />,
     );
@@ -59,7 +63,7 @@ describe('SettingsPage', () => {
     expect(onUseRepoWorkspaceRoot).toHaveBeenCalledTimes(1);
 
     await user.click(screen.getByRole('button', { name: '保存并重新检测' }));
-    expect(onSave).toHaveBeenCalledWith('uv', '');
+    expect(onSave).toHaveBeenCalledWith('uv', '', 'system', '');
 
     await user.click(screen.getByRole('tab', { name: '关于' }));
     expect(screen.getByRole('tabpanel', { name: '关于' })).toHaveAttribute(
@@ -91,6 +95,9 @@ describe('SettingsPage', () => {
         runtimeDriver="uv"
         pythonExePath=""
         onChoosePythonExe={vi.fn().mockResolvedValue(null)}
+        ffmpegMode="system"
+        ffmpegExePath=""
+        onChooseFfmpegExe={vi.fn().mockResolvedValue(null)}
         onSave={vi.fn()}
       />,
     );
@@ -112,6 +119,9 @@ describe('SettingsPage', () => {
         runtimeDriver="uv"
         pythonExePath=""
         onChoosePythonExe={vi.fn().mockResolvedValue(null)}
+        ffmpegMode="system"
+        ffmpegExePath=""
+        onChooseFfmpegExe={vi.fn().mockResolvedValue(null)}
         onSave={vi.fn()}
       />,
     );

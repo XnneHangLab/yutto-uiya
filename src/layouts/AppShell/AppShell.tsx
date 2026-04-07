@@ -16,6 +16,7 @@ import {
   listDownloadTasks,
   listManagedFolders,
   openManagedPath,
+  pickFfmpegPath,
   pickPythonPath,
   probeEnvironment,
   setRuntimeDriver as setRuntimeDriverApi,
@@ -59,6 +60,8 @@ export function AppShell() {
   const [wrapLines, setWrapLines] = useState(true);
   const [runtimeDriver, setRuntimeDriver] = useState<RuntimeDriver>('uv');
   const [pythonExePath, setPythonExePath] = useState('');
+  const [ffmpegMode, setFfmpegMode] = useState<'system' | 'local'>('system');
+  const [ffmpegExePath, setFfmpegExePath] = useState('');
 
   useEffect(() => {
     writeStoredTheme(theme);
@@ -79,6 +82,13 @@ export function AppShell() {
         }
         setInspection(nextInspection);
         setFolders(buildFolderItemsFromPaths(paths));
+        if (nextInspection.ffmpegPath && nextInspection.ffmpegPath !== 'ffmpeg') {
+          setFfmpegMode('local');
+          setFfmpegExePath(nextInspection.ffmpegPath);
+        } else {
+          setFfmpegMode('system');
+          setFfmpegExePath('');
+        }
       } catch (error) {
         if (disposed) {
           return;
@@ -215,6 +225,13 @@ export function AppShell() {
     ]);
     setInspection(nextInspection);
     setFolders(buildFolderItemsFromPaths(paths));
+    if (nextInspection.ffmpegPath && nextInspection.ffmpegPath !== 'ffmpeg') {
+      setFfmpegMode('local');
+      setFfmpegExePath(nextInspection.ffmpegPath);
+    } else {
+      setFfmpegMode('system');
+      setFfmpegExePath('');
+    }
   }
 
   async function handleChooseWorkspaceRoot() {
@@ -267,11 +284,31 @@ export function AppShell() {
     }
   }
 
-  async function handleSaveSettings(driver: RuntimeDriver, exePath: string) {
+  async function handleChooseFfmpegExe(): Promise<string | null> {
     try {
-      const nextProbe = await setRuntimeDriverApi(driver, exePath || null);
+      return await pickFfmpegPath();
+    } catch (error) {
+      setLogs((current) => [
+        ...current,
+        createConsoleLog('stderr', `选择 FFmpeg 路径失败: ${toErrorMessage(error)}`),
+      ]);
+      return null;
+    }
+  }
+
+  async function handleSaveSettings(
+    driver: RuntimeDriver,
+    exePath: string,
+    nextFfmpegMode: 'system' | 'local',
+    nextFfmpegExePath: string,
+  ) {
+    const ffmpegPath = nextFfmpegMode === 'local' ? nextFfmpegExePath : null;
+    try {
+      const nextProbe = await setRuntimeDriverApi(driver, exePath || null, ffmpegPath);
       setRuntimeDriver(driver);
       setPythonExePath(exePath);
+      setFfmpegMode(nextFfmpegMode);
+      setFfmpegExePath(nextFfmpegExePath);
       if (nextProbe) {
         await handleWorkspaceProbe(nextProbe);
       }
@@ -343,6 +380,9 @@ export function AppShell() {
               onUseRepoWorkspaceRoot: handleUseRepoWorkspaceRoot,
               pythonExePath,
               onChoosePythonExe: handleChoosePythonExe,
+              ffmpegMode,
+              ffmpegExePath,
+              onChooseFfmpegExe: handleChooseFfmpegExe,
               onSave: handleSaveSettings,
               onSetAutoScroll: setAutoScroll,
               onSetWrapLines: setWrapLines,

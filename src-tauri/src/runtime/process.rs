@@ -12,6 +12,7 @@ use super::state::{RuntimeDriverConfig, RuntimeState};
 const ENVIRONMENT_PROBE_SCRIPT: &str = r#"
 import importlib
 import json
+import os
 import subprocess
 
 result = {
@@ -32,9 +33,10 @@ except Exception as error:
     result["issues"].append(str(error))
     result["message"] = "uiya 不可用，请检查 Python 环境"
 
+ffmpeg_cmd = os.environ.get("UIYA_FFMPEG_PATH") or "ffmpeg"
 try:
     proc = subprocess.run(
-        ["ffmpeg", "-version"],
+        [ffmpeg_cmd, "-version"],
         capture_output=True,
         timeout=5,
     )
@@ -101,7 +103,7 @@ pub fn run_inspect_command(repo_root: &Path, workspace_root: &Path, driver: &Run
     Ok(envelope.payload)
 }
 
-pub fn run_probe_command(repo_root: &Path, workspace_root: &Path, driver: &RuntimeDriverConfig, app: &AppHandle) -> Result<EnvironmentProbePayload, String> {
+pub fn run_probe_command(repo_root: &Path, workspace_root: &Path, driver: &RuntimeDriverConfig, ffmpeg_path: &str, app: &AppHandle) -> Result<EnvironmentProbePayload, String> {
     emit_raw_log(app, "[probe] 开始检测运行环境 …");
 
     if !workspace_root.is_dir() {
@@ -203,6 +205,7 @@ pub fn run_probe_command(repo_root: &Path, workspace_root: &Path, driver: &Runti
     }
 
     let output = build_python_command_for_driver(repo_root, workspace_root, driver, ["-c", ENVIRONMENT_PROBE_SCRIPT])
+        .env("UIYA_FFMPEG_PATH", ffmpeg_path)
         .output()
         .map_err(|error| format!("failed to run environment probe: {error}"))?;
 
@@ -243,9 +246,10 @@ pub fn ensure_environment_ready(
     repo_root: &Path,
     workspace_root: &Path,
     driver: &RuntimeDriverConfig,
+    ffmpeg_path: &str,
     app: &AppHandle,
 ) -> Result<EnvironmentProbePayload, String> {
-    let probe = run_probe_command(repo_root, workspace_root, driver, app)?;
+    let probe = run_probe_command(repo_root, workspace_root, driver, ffmpeg_path, app)?;
     if probe.status == "ready" {
         Ok(probe)
     } else {
@@ -260,13 +264,18 @@ pub fn run_download_command(
     target: String,
 ) -> Result<(), String> {
     let driver = state.current_driver_config();
+    let ffmpeg_path = state.current_ffmpeg_path();
     let mut command = build_python_command_for_driver(
         &state.repo_root,
         &state.current_workspace_root(),
         &driver,
         ["-m", "uiya.cli", "download"],
     );
-    command.arg(&target).stdout(Stdio::piped()).stderr(Stdio::piped());
+    command
+        .arg(&target)
+        .env("UIYA_FFMPEG_PATH", &ffmpeg_path)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
 
     let mut child = command
         .spawn()
@@ -358,6 +367,7 @@ pub fn drain_download_queue(app: AppHandle, state: RuntimeState) {
                 workspace_root: state.workspace_root.clone(),
                 queue: state.queue.clone(),
                 driver_config: state.driver_config.clone(),
+                ffmpeg_path: state.ffmpeg_path.clone(),
                 webui: state.webui.clone(),
             },
             task.task_id.clone(),
@@ -1075,6 +1085,90 @@ pub fn pick_python_path() -> Result<Option<PathBuf>, String> {
         }
 
         Err("failed to open python path picker: no supported dialog program found".to_string())
+    }
+}
+
+pub fn pick_ffmpeg_path() -> Result<Option<PathBuf>, String> {
+    #[cfg(target_os = "windows")]
+    {
+        let output = Command::new("powershell")
+            .args([
+                "-NoProfile",
+                "-Command",
+                "Add-Type -AssemblyName System.Windows.Forms; $dialog = New-Object System.Windows.Forms.OpenFileDialog; $dialog.Title = '选择 FFmpeg 可执行文件'; $dialog.Filter = 'FFmpeg 可执行文件 (ffmpeg.exe)|ffmpeg.exe|所有可执行文件 (*.exe)|*.exe'; if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Write-Output $dialog.FileName }",
+            ])
+            .output()
+            .map_err(|error| format!("failed to open ffmpeg path picker: {error}"))?;
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            return Err(if stderr.is_empty() {
+                "failed to open ffmpeg path picker".to_string()
+            } else {
+                stderr
+            });
+        }
+        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        return if stdout.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(PathBuf::from(stdout)))
+        };
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let output = Command::new("osascript")
+            .args([
+                "-e",
+                "POSIX path of (choose file with prompt \"选择 FFmpeg 可执行文件\")",
+            ])
+            .output()
+            .map_err(|error| format!("failed to open ffmpeg path picker: {error}"))?;
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            return Err(if stderr.is_empty() {
+                "failed to open ffmpeg path picker".to_string()
+            } else {
+                stderr
+            });
+        }
+        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let path = stdout.trim_end_matches('\n');
+        return if path.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(PathBuf::from(path)))
+        };
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        for (program, args) in [
+            (
+                "zenity",
+                vec![
+                    "--file-selection",
+                    "--title=选择 FFmpeg 可执行文件",
+                ],
+            ),
+            ("kdialog", vec!["--getopenfilename", "."]),
+        ] {
+            let output = Command::new(program).args(args).output();
+            let Ok(output) = output else {
+                continue;
+            };
+            if !output.status.success() {
+                continue;
+            }
+            let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            return if stdout.is_empty() {
+                Ok(None)
+            } else {
+                Ok(Some(PathBuf::from(stdout)))
+            };
+        }
+
+        Err("failed to open ffmpeg path picker: no supported dialog program found".to_string())
     }
 }
 

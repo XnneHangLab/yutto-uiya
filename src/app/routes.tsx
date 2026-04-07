@@ -36,7 +36,10 @@ interface RenderPageOptions {
   onUseRepoWorkspaceRoot: () => void;
   pythonExePath: string;
   onChoosePythonExe: () => Promise<string | null>;
-  onSave: (driver: RuntimeDriver, pythonExePath: string) => void;
+  ffmpegMode: 'system' | 'local';
+  ffmpegExePath: string;
+  onChooseFfmpegExe: () => Promise<string | null>;
+  onSave: (driver: RuntimeDriver, pythonExePath: string, ffmpegMode: 'system' | 'local', ffmpegExePath: string) => void;
   onSetAutoScroll: (next: boolean) => void;
   onSetWrapLines: (next: boolean) => void;
   onClearLogs: () => void;
@@ -67,6 +70,9 @@ export function renderPage(
           runtimeDriver={options.runtimeDriver}
           pythonExePath={options.pythonExePath}
           onChoosePythonExe={options.onChoosePythonExe}
+          ffmpegMode={options.ffmpegMode}
+          ffmpegExePath={options.ffmpegExePath}
+          onChooseFfmpegExe={options.onChooseFfmpegExe}
           onSave={options.onSave}
         />
       );

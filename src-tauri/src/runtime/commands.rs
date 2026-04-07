@@ -2,7 +2,7 @@ use tauri::{AppHandle, State};
 
 use super::process::{
     drain_download_queue,
-    ensure_environment_ready, open_path, pick_python_path, pick_workspace_root,
+    ensure_environment_ready, open_path, pick_ffmpeg_path, pick_python_path, pick_workspace_root,
     resolve_managed_path, run_inspect_command, run_probe_command,
     write_console_log,
 };
@@ -16,8 +16,9 @@ pub async fn inspect_runtime(
     let repo_root = state.repo_root.clone();
     let workspace_root = state.current_workspace_root();
     let driver = state.current_driver_config();
+    let ffmpeg_path = state.current_ffmpeg_path();
     run_blocking_runtime_action(move || {
-        ensure_environment_ready(&repo_root, &workspace_root, &driver, &app)?;
+        ensure_environment_ready(&repo_root, &workspace_root, &driver, &ffmpeg_path, &app)?;
         run_inspect_command(&repo_root, &workspace_root, &driver, &app)
     })
     .await
@@ -31,8 +32,9 @@ pub async fn probe_environment(
     let repo_root = state.repo_root.clone();
     let workspace_root = state.current_workspace_root();
     let driver = state.current_driver_config();
+    let ffmpeg_path = state.current_ffmpeg_path();
     run_blocking_runtime_action(move || {
-        let probe = run_probe_command(&repo_root, &workspace_root, &driver, &app)?;
+        let probe = run_probe_command(&repo_root, &workspace_root, &driver, &ffmpeg_path, &app)?;
         serde_json::to_value(probe).map_err(|error| error.to_string())
     })
     .await
@@ -69,9 +71,10 @@ pub async fn enqueue_download(
     let repo_root = state.repo_root.clone();
     let workspace_root = state.current_workspace_root();
     let driver = state.current_driver_config();
+    let ffmpeg_path = state.current_ffmpeg_path();
     let app_for_ensure = app.clone();
     run_blocking_runtime_action(move || {
-        ensure_environment_ready(&repo_root, &workspace_root, &driver, &app_for_ensure)
+        ensure_environment_ready(&repo_root, &workspace_root, &driver, &ffmpeg_path, &app_for_ensure)
             .map(|_| ())
     })
     .await?;
@@ -89,6 +92,7 @@ pub async fn enqueue_download(
             workspace_root: state.workspace_root.clone(),
             queue: state.queue.clone(),
             driver_config: state.driver_config.clone(),
+            ffmpeg_path: state.ffmpeg_path.clone(),
             webui: state.webui.clone(),
         };
 
@@ -149,6 +153,7 @@ pub async fn set_runtime_driver(
     state: State<'_, RuntimeState>,
     driver: String,
     python_path: Option<String>,
+    ffmpeg_path: Option<String>,
 ) -> Result<serde_json::Value, String> {
     let driver_config = match driver.as_str() {
         "uv" => RuntimeDriverConfig::Uv,
@@ -164,10 +169,16 @@ pub async fn set_runtime_driver(
     };
     state.set_driver_config(driver_config.clone());
 
+    let resolved_ffmpeg = ffmpeg_path
+        .map(|p| p.trim().to_string())
+        .filter(|p| !p.is_empty())
+        .unwrap_or_else(|| "ffmpeg".to_string());
+    state.set_ffmpeg_path(resolved_ffmpeg.clone());
+
     let repo_root = state.repo_root.clone();
     let workspace_root = state.current_workspace_root();
     run_blocking_runtime_action(move || {
-        let probe = run_probe_command(&repo_root, &workspace_root, &driver_config, &app)?;
+        let probe = run_probe_command(&repo_root, &workspace_root, &driver_config, &resolved_ffmpeg, &app)?;
         serde_json::to_value(probe).map_err(|error| error.to_string())
     })
     .await
@@ -177,6 +188,15 @@ pub async fn set_runtime_driver(
 pub async fn pick_python_path_command() -> Result<Option<String>, String> {
     run_blocking_runtime_action(move || {
         let path = pick_python_path()?;
+        Ok(path.map(|p| p.display().to_string()))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn pick_ffmpeg_path_command() -> Result<Option<String>, String> {
+    run_blocking_runtime_action(move || {
+        let path = pick_ffmpeg_path()?;
         Ok(path.map(|p| p.display().to_string()))
     })
     .await
@@ -218,8 +238,9 @@ async fn switch_workspace_root(
 
     let repo_root = state.repo_root.clone();
     let driver = state.current_driver_config();
+    let ffmpeg_path = state.current_ffmpeg_path();
     run_blocking_runtime_action(move || {
-        let probe = run_probe_command(&repo_root, &next_workspace_root, &driver, &app)?;
+        let probe = run_probe_command(&repo_root, &next_workspace_root, &driver, &ffmpeg_path, &app)?;
         serde_json::to_value(probe).map_err(|error| error.to_string())
     })
     .await

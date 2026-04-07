@@ -22,7 +22,10 @@ interface SettingsPageProps {
   runtimeDriver: RuntimeDriver;
   pythonExePath: string;
   onChoosePythonExe: () => Promise<string | null>;
-  onSave: (driver: RuntimeDriver, pythonExePath: string) => void;
+  ffmpegMode: 'system' | 'local';
+  ffmpegExePath: string;
+  onChooseFfmpegExe: () => Promise<string | null>;
+  onSave: (driver: RuntimeDriver, pythonExePath: string, ffmpegMode: 'system' | 'local', ffmpegExePath: string) => void;
 }
 
 export function SettingsPage({
@@ -34,11 +37,16 @@ export function SettingsPage({
   runtimeDriver,
   pythonExePath,
   onChoosePythonExe,
+  ffmpegMode,
+  ffmpegExePath,
+  onChooseFfmpegExe,
   onSave,
 }: SettingsPageProps) {
   const [activeTab, setActiveTab] = useState<SettingsTabId>('general');
   const [localDriver, setLocalDriver] = useState<RuntimeDriver>(runtimeDriver);
   const [localPythonExePath, setLocalPythonExePath] = useState(pythonExePath);
+  const [localFfmpegMode, setLocalFfmpegMode] = useState<'system' | 'local'>(ffmpegMode);
+  const [localFfmpegExePath, setLocalFfmpegExePath] = useState(ffmpegExePath);
 
   const environmentLabel = environmentProbe
     ? formatEnvironmentStatus(environmentProbe.status)
@@ -53,6 +61,14 @@ export function SettingsPage({
     const picked = await onChoosePythonExe();
     if (picked) {
       setLocalPythonExePath(picked);
+    }
+  }
+
+  async function handleBrowseFfmpegExe() {
+    const picked = await onChooseFfmpegExe();
+    if (picked) {
+      setLocalFfmpegExePath(picked);
+      setLocalFfmpegMode('local');
     }
   }
 
@@ -84,6 +100,16 @@ export function SettingsPage({
                 <div className="env-info-row">
                   <span className="env-info-label">详情</span>
                   <span className="env-info-value">{environmentProbe.message}</span>
+                </div>
+              ) : null}
+              {environmentProbe?.issues && environmentProbe.issues.length > 0 ? (
+                <div className="env-info-row env-info-row--issues">
+                  <span className="env-info-label">诊断</span>
+                  <ul className="env-issues-list">
+                    {environmentProbe.issues.map((issue, idx) => (
+                      <li key={idx} className="env-issue">{issue}</li>
+                    ))}
+                  </ul>
                 </div>
               ) : null}
               <div className="env-info-row">
@@ -178,13 +204,61 @@ export function SettingsPage({
                   </div>
                 </SettingRow>
               ) : null}
+
+              <SettingRow
+                name="FFmpeg 来源"
+                description="system 使用环境变量中的 ffmpeg；local 指定可执行文件路径"
+                icon="🎬"
+              >
+                <div className="driver-select-wrap">
+                  <button
+                    type="button"
+                    className={`driver-option ${localFfmpegMode === 'system' ? 'driver-option--active' : ''}`}
+                    onClick={() => setLocalFfmpegMode('system')}
+                  >
+                    系统 ffmpeg
+                  </button>
+                  <button
+                    type="button"
+                    className={`driver-option ${localFfmpegMode === 'local' ? 'driver-option--active' : ''}`}
+                    onClick={() => setLocalFfmpegMode('local')}
+                  >
+                    本地 ffmpeg
+                  </button>
+                </div>
+              </SettingRow>
+
+              {localFfmpegMode === 'local' ? (
+                <SettingRow
+                  name="FFmpeg 可执行文件"
+                  description="指定 ffmpeg 或 ffmpeg.exe 的完整路径"
+                  icon="🎬"
+                >
+                  <div className="workspace-actions">
+                    <input
+                      className="proxy-input workspace-input"
+                      aria-label="FFmpeg 可执行文件路径"
+                      value={localFfmpegExePath}
+                      onChange={(event) => setLocalFfmpegExePath(event.target.value)}
+                      placeholder="例：C:\tools\ffmpeg\bin\ffmpeg.exe"
+                    />
+                    <button
+                      type="button"
+                      className="workspace-button"
+                      onClick={handleBrowseFfmpegExe}
+                    >
+                      浏览
+                    </button>
+                  </div>
+                </SettingRow>
+              ) : null}
             </SettingCard>
 
             <div className="settings-save-row">
               <button
                 type="button"
                 className="settings-save-button"
-                onClick={() => onSave(localDriver, localPythonExePath)}
+                onClick={() => onSave(localDriver, localPythonExePath, localFfmpegMode, localFfmpegExePath)}
               >
                 保存并重新检测
               </button>

@@ -267,6 +267,28 @@
   background: rgba(240, 160, 60, 0.07);
 }
 
+.settings-shell .env-info-row--issues {
+  align-items: flex-start;
+}
+
+.settings-shell .env-issues-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.settings-shell .env-issue {
+  font-size: 13px;
+  color: #f4b86a;
+  font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
 .settings-shell .switch {
   position: relative;
   width: 42px;
