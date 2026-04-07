@@ -111,52 +111,6 @@ impl QueueState {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct WebuiProcessRecord {
-    pub launch_id: u64,
-    pub pid: u32,
-}
-
-#[derive(Default)]
-pub struct WebuiProcessState {
-    next_launch_id: u64,
-    active: Option<WebuiProcessRecord>,
-}
-
-impl WebuiProcessState {
-    #[cfg(test)]
-    pub fn current(&self) -> Option<WebuiProcessRecord> {
-        self.active.clone()
-    }
-
-    pub fn register(&mut self, pid: u32) -> WebuiProcessRecord {
-        self.next_launch_id += 1;
-        let record = WebuiProcessRecord {
-            launch_id: self.next_launch_id,
-            pid,
-        };
-        self.active = Some(record.clone());
-        record
-    }
-
-    pub fn clear_if_launch_matches(&mut self, launch_id: u64) -> bool {
-        if self
-            .active
-            .as_ref()
-            .is_some_and(|record| record.launch_id == launch_id)
-        {
-            self.active = None;
-            true
-        } else {
-            false
-        }
-    }
-
-    pub fn take_active(&mut self) -> Option<WebuiProcessRecord> {
-        self.active.take()
-    }
-}
-
 #[derive(Clone)]
 pub struct RuntimeState {
     pub repo_root: PathBuf,
@@ -164,7 +118,6 @@ pub struct RuntimeState {
     pub queue: Arc<Mutex<QueueState>>,
     pub driver_config: Arc<Mutex<RuntimeDriverConfig>>,
     pub ffmpeg_path: Arc<Mutex<String>>,
-    pub webui: Arc<Mutex<WebuiProcessState>>,
 }
 
 impl RuntimeState {
@@ -175,7 +128,6 @@ impl RuntimeState {
             queue: Arc::new(Mutex::new(QueueState::default())),
             driver_config: Arc::new(Mutex::new(RuntimeDriverConfig::Uv)),
             ffmpeg_path: Arc::new(Mutex::new("ffmpeg".to_string())),
-            webui: Arc::new(Mutex::new(WebuiProcessState::default())),
         }
     }
 
@@ -201,21 +153,6 @@ impl RuntimeState {
 
     pub fn set_ffmpeg_path(&self, next: String) {
         *self.ffmpeg_path.lock().unwrap() = next;
-    }
-
-    pub fn register_webui_process(&self, pid: u32) -> WebuiProcessRecord {
-        self.webui.lock().unwrap().register(pid)
-    }
-
-    pub fn clear_webui_process_if_matches(&self, launch_id: u64) -> bool {
-        self.webui
-            .lock()
-            .unwrap()
-            .clear_if_launch_matches(launch_id)
-    }
-
-    pub fn take_webui_process(&self) -> Option<WebuiProcessRecord> {
-        self.webui.lock().unwrap().take_active()
     }
 }
 
@@ -245,7 +182,7 @@ pub fn resolve_workspace_root(repo_root: &PathBuf) -> Result<PathBuf, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{QueueState, TaskStatus, WebuiProcessState};
+    use super::{QueueState, TaskStatus};
 
     #[test]
     fn enqueue_adds_a_task_and_keeps_it_queued() {
@@ -323,29 +260,5 @@ mod tests {
         queue.apply_update(&task.task_id, TaskStatus::Completed, "完成".to_string(), 3, 3);
         queue.worker_running = false;
         assert!(!queue.has_active_tasks());
-    }
-
-    #[test]
-    fn register_webui_process_replaces_previous_pid_and_bumps_launch_id() {
-        let mut webui = WebuiProcessState::default();
-
-        let first = webui.register(7860);
-        let second = webui.register(7861);
-
-        assert!(second.launch_id > first.launch_id);
-        assert_eq!(webui.current().unwrap().pid, 7861);
-    }
-
-    #[test]
-    fn clear_webui_process_only_clears_matching_launch_id() {
-        let mut webui = WebuiProcessState::default();
-
-        let first = webui.register(7860);
-        let second = webui.register(7861);
-
-        assert!(!webui.clear_if_launch_matches(first.launch_id));
-        assert_eq!(webui.current().unwrap().pid, 7861);
-        assert!(webui.clear_if_launch_matches(second.launch_id));
-        assert!(webui.current().is_none());
     }
 }

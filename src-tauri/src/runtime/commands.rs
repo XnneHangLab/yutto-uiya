@@ -93,7 +93,6 @@ pub async fn enqueue_download(
             queue: state.queue.clone(),
             driver_config: state.driver_config.clone(),
             ffmpeg_path: state.ffmpeg_path.clone(),
-            webui: state.webui.clone(),
         };
 
         tauri::async_runtime::spawn_blocking(move || {
