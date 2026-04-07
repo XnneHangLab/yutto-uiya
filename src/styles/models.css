@@ -199,3 +199,47 @@
   flex-shrink: 0;
   font-family: ui-monospace, 'SF Mono', Consolas, monospace;
 }
+
+/* ── Download form ── */
+.download-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.download-url-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+}
+
+.download-url-input:focus {
+  border-color: var(--accent);
+}
+
+.download-url-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.download-submit-btn {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.download-submit-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

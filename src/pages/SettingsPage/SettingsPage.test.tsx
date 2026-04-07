@@ -18,13 +18,12 @@ describe('SettingsPage', () => {
         environmentProbe={{
           workspaceRoot: '/repo',
           repoRoot: '/repo',
-          status: 'torch-cpu-ready',
-          mode: 'cpu',
-          torchAvailable: true,
-          torchVersion: '2.6.0+cpu',
-          cudaAvailable: false,
+          status: 'ready',
+          yuttoAvailable: true,
+          yuttoVersion: '0.0.3',
+          ffmpegAvailable: true,
           issues: [],
-          message: 'torch 已就绪: CPU',
+          message: '环境就绪',
         }}
         onChooseWorkspaceRoot={onChooseWorkspaceRoot}
         onUseRepoWorkspaceRoot={onUseRepoWorkspaceRoot}
@@ -51,7 +50,7 @@ describe('SettingsPage', () => {
       'settings-panel-general',
     );
     expect(screen.getByLabelText('工作目录路径')).toHaveValue('/repo');
-    expect(screen.getByText('CPU 就绪')).toBeInTheDocument();
+    expect(screen.getByText('就绪')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '更改目录' }));
     expect(onChooseWorkspaceRoot).toHaveBeenCalledTimes(1);
@@ -80,13 +79,12 @@ describe('SettingsPage', () => {
         environmentProbe={{
           workspaceRoot: '/repo',
           repoRoot: '/repo',
-          status: 'torch-unavailable',
-          mode: null,
-          torchAvailable: false,
-          torchVersion: null,
-          cudaAvailable: false,
-          issues: ['No module named torch'],
-          message: 'torch 不可用',
+          status: 'yutto-unavailable',
+          yuttoAvailable: false,
+          yuttoVersion: null,
+          ffmpegAvailable: false,
+          issues: ['No module named uiya'],
+          message: 'uiya 不可用',
         }}
         onChooseWorkspaceRoot={() => undefined}
         onUseRepoWorkspaceRoot={() => undefined}

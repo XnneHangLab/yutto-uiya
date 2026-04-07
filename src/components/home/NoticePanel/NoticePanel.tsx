@@ -1,11 +1,9 @@
 interface NoticePanelProps {
   notices: string[];
   onOpenModels: () => void;
-  onLaunchWebui: () => void;
-  webuiRunning: boolean;
 }
 
-export function NoticePanel({ notices, onOpenModels, onLaunchWebui, webuiRunning }: NoticePanelProps) {
+export function NoticePanel({ notices, onOpenModels }: NoticePanelProps) {
   return (
     <aside className="notice">
       <h2>公告</h2>
@@ -17,11 +15,9 @@ export function NoticePanel({ notices, onOpenModels, onLaunchWebui, webuiRunning
       <button
         type="button"
         className="run-btn"
-        data-state={webuiRunning ? 'running' : 'ready'}
-        disabled={webuiRunning}
-        onClick={onLaunchWebui}
+        onClick={onOpenModels}
       >
-        {webuiRunning ? '运行中…' : '一键启动'}
+        前往下载
       </button>
     </aside>
   );

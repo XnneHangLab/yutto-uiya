@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 import { HomePage } from '../pages/HomePage/HomePage';
 import { ConsolePage } from '../pages/ConsolePage/ConsolePage';
-import { ModelsPage } from '../pages/ModelsPage/ModelsPage';
+import { DownloadPage } from '../pages/DownloadPage/DownloadPage';
 import { PlaceholderPage } from '../pages/PlaceholderPage/PlaceholderPage';
 import { SettingsPage } from '../pages/SettingsPage/SettingsPage';
 import type { PageId } from '../data/nav';
@@ -25,16 +25,9 @@ interface RenderPageOptions {
   wrapLines: boolean;
   latestMessage: string;
   onOpenModels: () => void;
-  onDownloadGenieBase: () => void;
-  onDownloadGsvLite: () => void;
-  onDownloadQwenTts06b: () => void;
-  onDownloadQwenTts17b: () => void;
-  onDownloadLumingGenieTts: () => void;
+  onDownload: (url: string) => void;
   onOpenPath: (pathKey: string) => void;
-  onLaunchWebui: () => void;
-  webuiRunning: boolean;
   runtimeDriver: RuntimeDriver;
-  runtimeMode: string;
   scriptsReady: boolean;
   workspaceLocked: boolean;
   workspaceRoot: string;
@@ -61,8 +54,6 @@ export function renderPage(
           folders={options.folders}
           onOpenPath={options.onOpenPath}
           onOpenModels={options.onOpenModels}
-          onLaunchWebui={options.onLaunchWebui}
-          webuiRunning={options.webuiRunning}
         />
       );
     case 'settings':
@@ -102,16 +93,10 @@ export function renderPage(
       );
     case 'models':
       return (
-        <ModelsPage
-          inspection={options.inspection}
-          environmentProbe={options.environmentProbe}
+        <DownloadPage
           tasks={options.tasks}
           fileProgress={options.fileProgress}
-          onDownloadGenieBase={options.onDownloadGenieBase}
-          onDownloadGsvLite={options.onDownloadGsvLite}
-          onDownloadQwenTts06b={options.onDownloadQwenTts06b}
-          onDownloadQwenTts17b={options.onDownloadQwenTts17b}
-          onDownloadLumingGenieTts={options.onDownloadLumingGenieTts}
+          onDownload={options.onDownload}
           scriptsReady={options.scriptsReady}
         />
       );

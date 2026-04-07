@@ -44,9 +44,7 @@ export function SettingsPage({
     ? formatEnvironmentStatus(environmentProbe.status)
     : '正在检测';
 
-  const envReady =
-    environmentProbe?.status === 'torch-cpu-ready' ||
-    environmentProbe?.status === 'torch-gpu-ready';
+  const envReady = environmentProbe?.status === 'ready';
 
   const driverDisplayLabel =
     localDriver === 'conda' ? 'conda / 直接 Python' : 'uv';
@@ -220,12 +218,10 @@ function formatEnvironmentStatus(status: EnvironmentProbe['status']) {
       return 'uv 不可用';
     case 'python-unavailable':
       return 'Python 不可用';
-    case 'torch-unavailable':
-      return 'torch 不可用';
-    case 'torch-cpu-ready':
-      return 'CPU 就绪';
-    case 'torch-gpu-ready':
-      return 'GPU 就绪';
+    case 'yutto-unavailable':
+      return 'uiya 不可用';
+    case 'ready':
+      return '就绪';
     default:
       return status;
   }

@@ -1,15 +1,12 @@
 import { createConsoleLog, type ConsoleLogEntry } from '../launcher/launcher';
 
-export type RuntimeMode = 'cpu' | 'gpu';
-export type ResourceStatus = 'missing' | 'partial' | 'ready';
 export type RuntimeDriver = 'uv' | 'conda';
 export type EnvironmentProbeStatus =
   | 'workspace-invalid'
   | 'uv-unavailable'
   | 'python-unavailable'
-  | 'torch-unavailable'
-  | 'torch-cpu-ready'
-  | 'torch-gpu-ready';
+  | 'yutto-unavailable'
+  | 'ready';
 export type DownloadTaskStatus =
   | 'queued'
   | 'preparing'
@@ -46,38 +43,18 @@ export interface EnvironmentProbe {
   workspaceRoot: string;
   repoRoot: string;
   status: EnvironmentProbeStatus;
-  mode: RuntimeMode | null;
-  torchAvailable: boolean;
-  torchVersion: string | null;
-  cudaAvailable: boolean;
+  yuttoAvailable: boolean;
+  yuttoVersion: string | null;
+  ffmpegAvailable: boolean;
   issues: string[];
   message: string;
 }
 
 export interface RuntimeInspection {
-  runtimeDriver: RuntimeDriver;
-  pythonPath?: string;
-  defaultBackend: string;
-  environment: {
-    mode: RuntimeMode;
-    torchAvailable: boolean;
-    torchVersion: string | null;
-    cudaAvailable: boolean;
-    issues: string[];
-  };
-  availableBackends: string[];
-  managedPaths: ManagedPath[];
-  resources: Record<
-    string,
-    {
-      key: string;
-      label: string;
-      status: ResourceStatus;
-      path: string;
-      missingPaths: string[];
-    }
-  >;
-  latestMessage: string;
+  managedPaths: { key: string; path: string }[];
+  downloadDir: string;
+  sessData: boolean;
+  ffmpegPath: string;
 }
 
 export interface RuntimeTaskRecord {
@@ -125,17 +102,9 @@ export interface ManagedFolderItem {
 
 const folderIcons: Record<string, string> = {
   workspace: '📁',
-  genieBase: '🧠',
-  modelscopeCache: '⬇',
-  downloadLogs: '🧾',
-  models: '◫',
+  downloads: '⬇',
+  logs: '🧾',
 };
-
-export function buildManagedFolderItems(
-  inspection: RuntimeInspection,
-): ManagedFolderItem[] {
-  return buildFolderItemsFromPaths(inspection.managedPaths);
-}
 
 export function buildFolderItemsFromPaths(paths: ManagedPath[]): ManagedFolderItem[] {
   return paths.map((item) => ({
@@ -195,15 +164,11 @@ export function getQueueSummary(tasks: RuntimeTaskRecord[]) {
 }
 
 export function isEnvironmentReady(probe: EnvironmentProbe | null) {
-  return (
-    probe?.status === 'torch-cpu-ready' ||
-    probe?.status === 'torch-gpu-ready'
-  );
+  return probe?.status === 'ready';
 }
 
 function buildRuntimeTaskLabel(target: string) {
-  if (target === 'genie-base') return 'GenieData 基础资源';
-  if (target === 'gsv-lite') return 'GSV-Lite 数据包';
+  // use the URL as-is; the Rust task record already stores it as label
   return target;
 }
 

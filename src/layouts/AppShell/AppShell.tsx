@@ -13,7 +13,6 @@ import {
   enqueueDownload,
   exportConsoleLogs,
   inspectRuntime,
-  launchWebui,
   listDownloadTasks,
   listManagedFolders,
   openManagedPath,
@@ -21,13 +20,11 @@ import {
   probeEnvironment,
   setRuntimeDriver as setRuntimeDriverApi,
   subscribeRuntimeEvents,
-  subscribeWebuiStatus,
   useRepoWorkspaceRoot,
 } from '../../services/runtime/bridge';
 import {
   applyRuntimeEvent,
   buildFolderItemsFromPaths,
-  buildManagedFolderItems,
   createConsoleLogFromRuntimeEvent,
   getQueueSummary,
   isEnvironmentReady,
@@ -62,7 +59,6 @@ export function AppShell() {
   const [wrapLines, setWrapLines] = useState(true);
   const [runtimeDriver, setRuntimeDriver] = useState<RuntimeDriver>('uv');
   const [pythonExePath, setPythonExePath] = useState('');
-  const [webuiRunning, setWebuiRunning] = useState(false);
 
   useEffect(() => {
     writeStoredTheme(theme);
@@ -74,12 +70,15 @@ export function AppShell() {
 
     async function refreshInspectionSnapshot() {
       try {
-        const nextInspection = await inspectRuntime();
+        const [nextInspection, paths] = await Promise.all([
+          inspectRuntime(),
+          listManagedFolders(),
+        ]);
         if (disposed) {
           return;
         }
         setInspection(nextInspection);
-        setFolders(buildManagedFolderItems(nextInspection));
+        setFolders(buildFolderItemsFromPaths(paths));
       } catch (error) {
         if (disposed) {
           return;
@@ -165,43 +164,23 @@ export function AppShell() {
         ]);
       });
 
-    let unsubscribeWebui = () => {};
-    void subscribeWebuiStatus((status) => {
-      if (status === 'stopped') {
-        setWebuiRunning(false);
-        setLogs((current) => [
-          ...current,
-          createConsoleLog('system', 'Gradio WebUI 进程已退出'),
-        ]);
-      }
-    })
-      .then((cleanup) => {
-        if (disposed) {
-          cleanup();
-          return;
-        }
-        unsubscribeWebui = cleanup;
-      })
-      .catch(() => {});
-
     return () => {
       disposed = true;
       unsubscribe();
-      unsubscribeWebui();
     };
   }, []);
 
-  async function handleDownloadGenieBase() {
+  async function handleDownloadBilibili(url: string) {
     if (!isEnvironmentReady(environmentProbe)) {
       setLogs((current) => [
         ...current,
-        createConsoleLog('stderr', '环境未就绪，已禁止执行运行时脚本'),
+        createConsoleLog('stderr', '环境未就绪，已禁止执行下载'),
       ]);
       return;
     }
 
     try {
-      const task = await enqueueDownload('genie-base');
+      const task = await enqueueDownload(url);
       setTasks((current) => {
         const next = current.filter((item) => item.taskId !== task.taskId);
         next.push(task);
@@ -209,123 +188,7 @@ export function AppShell() {
       });
       setLogs((current) => [
         ...current,
-        createConsoleLog('system', `${task.label}: ${task.message}`),
-      ]);
-      setActivePage('models');
-    } catch (error) {
-      setLogs((current) => [
-        ...current,
-        createConsoleLog('stderr', `创建下载任务失败: ${toErrorMessage(error)}`),
-      ]);
-    }
-  }
-
-  async function handleDownloadGsvLite() {
-    if (!isEnvironmentReady(environmentProbe)) {
-      setLogs((current) => [
-        ...current,
-        createConsoleLog('stderr', '环境未就绪，已禁止执行运行时脚本'),
-      ]);
-      return;
-    }
-
-    try {
-      const task = await enqueueDownload('gsv-lite');
-      setTasks((current) => {
-        const next = current.filter((item) => item.taskId !== task.taskId);
-        next.push(task);
-        return next;
-      });
-      setLogs((current) => [
-        ...current,
-        createConsoleLog('system', `${task.label}: ${task.message}`),
-      ]);
-      setActivePage('models');
-    } catch (error) {
-      setLogs((current) => [
-        ...current,
-        createConsoleLog('stderr', `创建下载任务失败: ${toErrorMessage(error)}`),
-      ]);
-    }
-  }
-
-  async function handleDownloadQwenTts06b() {
-    if (!isEnvironmentReady(environmentProbe)) {
-      setLogs((current) => [
-        ...current,
-        createConsoleLog('stderr', '环境未就绪，已禁止执行运行时脚本'),
-      ]);
-      return;
-    }
-
-    try {
-      const task = await enqueueDownload('qwen-tts-0.6b');
-      setTasks((current) => {
-        const next = current.filter((item) => item.taskId !== task.taskId);
-        next.push(task);
-        return next;
-      });
-      setLogs((current) => [
-        ...current,
-        createConsoleLog('system', `${task.label}: ${task.message}`),
-      ]);
-      setActivePage('models');
-    } catch (error) {
-      setLogs((current) => [
-        ...current,
-        createConsoleLog('stderr', `创建下载任务失败: ${toErrorMessage(error)}`),
-      ]);
-    }
-  }
-
-  async function handleDownloadQwenTts17b() {
-    if (!isEnvironmentReady(environmentProbe)) {
-      setLogs((current) => [
-        ...current,
-        createConsoleLog('stderr', '环境未就绪，已禁止执行运行时脚本'),
-      ]);
-      return;
-    }
-
-    try {
-      const task = await enqueueDownload('qwen-tts-1.7b');
-      setTasks((current) => {
-        const next = current.filter((item) => item.taskId !== task.taskId);
-        next.push(task);
-        return next;
-      });
-      setLogs((current) => [
-        ...current,
-        createConsoleLog('system', `${task.label}: ${task.message}`),
-      ]);
-      setActivePage('models');
-    } catch (error) {
-      setLogs((current) => [
-        ...current,
-        createConsoleLog('stderr', `创建下载任务失败: ${toErrorMessage(error)}`),
-      ]);
-    }
-  }
-
-  async function handleDownloadLumingGenieTts() {
-    if (!isEnvironmentReady(environmentProbe)) {
-      setLogs((current) => [
-        ...current,
-        createConsoleLog('stderr', '环境未就绪，已禁止执行运行时脚本'),
-      ]);
-      return;
-    }
-
-    try {
-      const task = await enqueueDownload('luming-genie-tts-v2-pro-plus');
-      setTasks((current) => {
-        const next = current.filter((item) => item.taskId !== task.taskId);
-        next.push(task);
-        return next;
-      });
-      setLogs((current) => [
-        ...current,
-        createConsoleLog('system', `${task.label}: ${task.message}`),
+        createConsoleLog('system', `下载任务已添加: ${task.label}`),
       ]);
       setActivePage('models');
     } catch (error) {
@@ -346,9 +209,12 @@ export function AppShell() {
       return;
     }
 
-    const nextInspection = await inspectRuntime();
+    const [nextInspection, paths] = await Promise.all([
+      inspectRuntime(),
+      listManagedFolders(),
+    ]);
     setInspection(nextInspection);
-    setFolders(buildManagedFolderItems(nextInspection));
+    setFolders(buildFolderItemsFromPaths(paths));
   }
 
   async function handleChooseWorkspaceRoot() {
@@ -433,38 +299,11 @@ export function AppShell() {
     }
   }
 
-  async function handleLaunchWebui() {
-    if (!isEnvironmentReady(environmentProbe)) {
-      setLogs((current) => [
-        ...current,
-        createConsoleLog('stderr', '环境未就绪，已禁止启动 WebUI'),
-      ]);
-      return;
-    }
-
-    setActivePage('console');
-    setWebuiRunning(true);
-    try {
-      await launchWebui();
-    } catch (error) {
-      setWebuiRunning(false);
-      setLogs((current) => [
-        ...current,
-        createConsoleLog('stderr', `启动 WebUI 失败: ${toErrorMessage(error)}`),
-      ]);
-    }
-  }
-
   function handleClearLogs() {
     setLogs([]);
   }
 
-  const runtimeMode =
-    environmentProbe?.mode ?? inspection?.environment.mode ?? 'checking';
-  const latestMessage =
-    inspection?.latestMessage ??
-    environmentProbe?.message ??
-    '正在读取运行时信息';
+  const latestMessage = environmentProbe?.message ?? '正在读取运行时信息';
   const scriptsReady = isEnvironmentReady(environmentProbe);
   const workspaceLocked = getQueueSummary(tasks).queueLength > 0;
 
@@ -492,20 +331,13 @@ export function AppShell() {
               wrapLines,
               latestMessage,
               onOpenModels: () => setActivePage('models'),
-              onDownloadGenieBase: handleDownloadGenieBase,
-              onDownloadGsvLite: handleDownloadGsvLite,
-              onDownloadQwenTts06b: handleDownloadQwenTts06b,
-              onDownloadQwenTts17b: handleDownloadQwenTts17b,
-              onDownloadLumingGenieTts: handleDownloadLumingGenieTts,
+              onDownload: handleDownloadBilibili,
               onOpenPath: handleOpenManagedPath,
-              onLaunchWebui: handleLaunchWebui,
-              webuiRunning,
               runtimeDriver,
-              runtimeMode,
               scriptsReady,
               workspaceLocked,
               workspaceRoot:
-                environmentProbe?.workspaceRoot ?? inspection?.managedPaths[0]?.path ?? '',
+                environmentProbe?.workspaceRoot ?? '',
               environmentProbe,
               onChooseWorkspaceRoot: handleChooseWorkspaceRoot,
               onUseRepoWorkspaceRoot: handleUseRepoWorkspaceRoot,

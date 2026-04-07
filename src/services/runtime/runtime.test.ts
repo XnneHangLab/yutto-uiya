@@ -1,8 +1,7 @@
 import {
   applyRuntimeEvent,
-  buildManagedFolderItems,
+  buildFolderItemsFromPaths,
   createConsoleLogFromRuntimeEvent,
-  type RuntimeInspection,
   type RuntimeTaskRecord,
 } from './runtime';
 import { listen } from '@tauri-apps/api/event';
@@ -19,59 +18,21 @@ vi.mock('@tauri-apps/api/event', () => ({
 describe('runtime helpers', () => {
   const mockedListen = vi.mocked(listen);
 
-  const inspection: RuntimeInspection = {
-    runtimeDriver: 'uv',
-    defaultBackend: 'genie-tts',
-    environment: {
-      mode: 'cpu',
-      torchAvailable: true,
-      torchVersion: '2.6.0+cpu',
-      cudaAvailable: false,
-      issues: [],
-    },
-    availableBackends: ['genie-tts'],
-    managedPaths: [
-      { key: 'workspace', label: '根目录', path: '/repo' },
-      { key: 'genieBase', label: 'Genie 基础资源', path: '/repo/models/genie/base' },
-      {
-        key: 'modelscopeCache',
-        label: 'ModelScope 缓存',
-        path: '/repo/models/cache/modelscope',
-      },
-      { key: 'downloadLogs', label: '下载日志', path: '/repo/logs/downloads' },
-    ],
-    resources: {
-      'genie-base': {
-        key: 'genie-base',
-        label: 'GenieData 基础资源',
-        status: 'missing',
-        path: '/repo/models/genie/base/GenieData',
-        missingPaths: ['speaker_encoder.onnx'],
-      },
-    },
-    latestMessage: '运行驱动 uv，当前环境 CPU',
-  };
+  const managedPaths = [
+    { key: 'workspace', label: '根目录', path: '/repo' },
+    { key: 'downloads', label: '下载目录', path: '/repo/downloads' },
+    { key: 'logs', label: '日志目录', path: '/repo/logs' },
+  ];
 
   beforeEach(() => {
     mockedListen.mockReset();
   });
 
-  it('builds home folder items from managed paths', () => {
-    expect(buildManagedFolderItems(inspection)).toEqual([
+  it('builds folder items from managed paths', () => {
+    expect(buildFolderItemsFromPaths(managedPaths)).toEqual([
       { key: 'workspace', title: '根目录', path: '/repo', icon: '📁' },
-      {
-        key: 'genieBase',
-        title: 'Genie 基础资源',
-        path: '/repo/models/genie/base',
-        icon: '🧠',
-      },
-      {
-        key: 'modelscopeCache',
-        title: 'ModelScope 缓存',
-        path: '/repo/models/cache/modelscope',
-        icon: '⬇',
-      },
-      { key: 'downloadLogs', title: '下载日志', path: '/repo/logs/downloads', icon: '🧾' },
+      { key: 'downloads', title: '下载目录', path: '/repo/downloads', icon: '⬇' },
+      { key: 'logs', title: '日志目录', path: '/repo/logs', icon: '🧾' },
     ]);
   });
 
@@ -80,7 +41,7 @@ describe('runtime helpers', () => {
     const next = applyRuntimeEvent(current, {
       event: 'download.progress',
       taskId: 'task-1',
-      target: 'genie-base',
+      target: 'https://www.bilibili.com/video/BV1xx411c7mD',
       status: 'downloading',
       message: '正在下载',
       progressCurrent: 1,
@@ -92,8 +53,8 @@ describe('runtime helpers', () => {
     expect(next).toEqual([
       {
         taskId: 'task-1',
-        target: 'genie-base',
-        label: 'GenieData 基础资源',
+        target: 'https://www.bilibili.com/video/BV1xx411c7mD',
+        label: 'https://www.bilibili.com/video/BV1xx411c7mD',
         status: 'downloading',
         message: '正在下载',
         progressCurrent: 1,

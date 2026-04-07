@@ -8,6 +8,38 @@ import type { RuntimeEvent } from '../../services/runtime/runtime';
 const runtimeListeners = new Set<(event: RuntimeEvent) => void>();
 const rawLogListeners = new Set<(line: string) => void>();
 
+const {
+  readyProbe,
+  defaultInspection,
+  defaultManagedFolders,
+} = vi.hoisted(() => ({
+  readyProbe: {
+    workspaceRoot: '/repo',
+    repoRoot: '/repo',
+    status: 'ready',
+    yuttoAvailable: true,
+    yuttoVersion: '0.0.3',
+    ffmpegAvailable: true,
+    issues: [],
+    message: '环境就绪',
+  },
+  defaultInspection: {
+    managedPaths: [
+      { key: 'workspace', path: '/repo' },
+      { key: 'downloads', path: '/repo/downloads' },
+      { key: 'logs', path: '/repo/logs' },
+    ],
+    downloadDir: '/repo/downloads',
+    sessData: false,
+    ffmpegPath: 'ffmpeg',
+  },
+  defaultManagedFolders: [
+    { key: 'workspace', label: '根目录', path: '/repo' },
+    { key: 'downloads', label: '下载目录', path: '/repo/downloads' },
+    { key: 'logs', label: '日志目录', path: '/repo/logs' },
+  ],
+}));
+
 vi.mock('../../services/runtime/bridge', async () => {
   const actual = await vi.importActual<typeof import('../../services/runtime/bridge')>(
     '../../services/runtime/bridge',
@@ -15,70 +47,16 @@ vi.mock('../../services/runtime/bridge', async () => {
 
   return {
     ...actual,
-    probeEnvironment: vi.fn().mockResolvedValue({
-      workspaceRoot: '/repo',
-      repoRoot: '/repo',
-      status: 'torch-cpu-ready',
-      mode: 'cpu',
-      torchAvailable: true,
-      torchVersion: '2.6.0+cpu',
-      cudaAvailable: false,
-      issues: [],
-      message: 'torch 已就绪: CPU',
-    }),
+    probeEnvironment: vi.fn().mockResolvedValue(readyProbe),
     chooseWorkspaceRoot: vi.fn().mockResolvedValue(null),
-    useRepoWorkspaceRoot: vi.fn().mockResolvedValue({
-      workspaceRoot: '/repo',
-      repoRoot: '/repo',
-      status: 'torch-cpu-ready',
-      mode: 'cpu',
-      torchAvailable: true,
-      torchVersion: '2.6.0+cpu',
-      cudaAvailable: false,
-      issues: [],
-      message: 'torch 已就绪: CPU',
-    }),
-    inspectRuntime: vi.fn().mockResolvedValue({
-      runtimeDriver: 'uv',
-      pythonPath: '/repo/.venv/bin/python',
-      defaultBackend: 'genie-tts',
-      environment: {
-        mode: 'cpu',
-        torchAvailable: true,
-        torchVersion: '2.6.0+cpu',
-        cudaAvailable: false,
-        issues: [],
-      },
-      availableBackends: ['genie-tts'],
-      managedPaths: [
-        { key: 'workspace', label: '根目录', path: '/repo' },
-        { key: 'genieBase', label: 'Genie 基础资源', path: '/repo/models/genie/base' },
-        { key: 'modelscopeCache', label: 'ModelScope 缓存', path: '/repo/models/cache/modelscope' },
-        { key: 'downloadLogs', label: '下载日志', path: '/repo/logs/downloads' },
-      ],
-      resources: {
-        'genie-base': {
-          key: 'genie-base',
-          label: 'GenieData 基础资源',
-          status: 'missing',
-          path: '/repo/models/genie/base/GenieData',
-          missingPaths: ['speaker_encoder.onnx'],
-        },
-        'gsv-lite': {
-          key: 'gsv-lite',
-          label: 'GSV-Lite 数据包',
-          status: 'missing',
-          path: '/repo/models/GSVLiteData',
-          missingPaths: ['chinese-hubert-base'],
-        },
-      },
-      latestMessage: '运行驱动 uv，当前环境 CPU',
-    }),
+    useRepoWorkspaceRoot: vi.fn().mockResolvedValue(readyProbe),
+    inspectRuntime: vi.fn().mockResolvedValue(defaultInspection),
+    listManagedFolders: vi.fn().mockResolvedValue(defaultManagedFolders),
     listDownloadTasks: vi.fn().mockResolvedValue([]),
     enqueueDownload: vi.fn().mockResolvedValue({
       taskId: 'task-1',
-      target: 'genie-base',
-      label: 'GenieData 基础资源',
+      target: 'https://www.bilibili.com/video/BV1xx411c7mD',
+      label: 'https://www.bilibili.com/video/BV1xx411c7mD',
       status: 'queued',
       message: '已进入下载队列',
       progressCurrent: 0,
@@ -86,7 +64,7 @@ vi.mock('../../services/runtime/bridge', async () => {
       updatedAt: '1712300000',
     }),
     openManagedPath: vi.fn().mockResolvedValue(undefined),
-    exportConsoleLogs: vi.fn().mockResolvedValue('/repo/logs/downloads/launcher.log'),
+    exportConsoleLogs: vi.fn().mockResolvedValue('/repo/logs/launcher.log'),
     subscribeRuntimeEvents: vi.fn().mockImplementation(async (onEvent, onRawLog) => {
       runtimeListeners.add(onEvent);
       rawLogListeners.add(onRawLog);
@@ -112,163 +90,60 @@ describe('AppShell', () => {
     vi.clearAllMocks();
   });
 
-  it('loads runtime inspection, navigates to models, and keeps queue state in sync', async () => {
-    const user = userEvent.setup();
+  it('loads managed folders and shows them on the home page', async () => {
     render(<App />);
 
-    // Wait for inspection to load — folder cards from managed paths appear
+    // listManagedFolders is called immediately; folder cards appear
     await waitFor(() =>
       expect(screen.getByRole('button', { name: '打开 根目录' })).toBeInTheDocument(),
     );
 
-    await user.click(screen.getByRole('button', { name: '模型管理' }));
-
-    // First "下载" button corresponds to genie-tts (non-gpu card, always enabled)
-    const downloadBtns = screen.getAllByRole('button', { name: '下载' });
-    await user.click(downloadBtns[0]);
-    expect(runtimeBridge.enqueueDownload).toHaveBeenCalledWith('genie-base');
-
-    const mockedBridge = runtimeBridge as typeof runtimeBridge & {
-      __emitRuntimeEvent: (event: RuntimeEvent) => void;
-    };
-
-    await act(async () => {
-      mockedBridge.__emitRuntimeEvent({
-        event: 'download.progress',
-        taskId: 'task-1',
-        target: 'genie-base',
-        status: 'downloading',
-        message: '正在下载',
-        progressCurrent: 1,
-        progressTotal: 3,
-        progressUnit: 'stage',
-        timestamp: '1712300001',
-      });
-    });
-
-    await waitFor(() => expect(screen.getByText('正在下载')).toBeInTheDocument());
-
-    await user.click(screen.getByRole('button', { name: '一键启动' }));
-    expect(screen.getByRole('button', { name: '打开 Genie 基础资源' })).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: '打开 Genie 基础资源' }));
-    expect(runtimeBridge.openManagedPath).toHaveBeenCalledWith('genieBase');
-
-    await user.click(screen.getByRole('button', { name: '控制台' }));
-    expect(screen.getByText('运行驱动 uv')).toBeInTheDocument();
-    expect(screen.getByText('当前任务 GenieData 基础资源')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: '设置' }));
-    expect(screen.getByText('CPU 就绪')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '打开 下载目录' })).toBeInTheDocument();
+    expect(runtimeBridge.listManagedFolders).toHaveBeenCalled();
   });
 
-  it('refreshes inspection after download completion so model card status matches disk state', async () => {
+  it('navigates to download page and enqueues a BiliBili URL', async () => {
     const user = userEvent.setup();
-    vi.mocked(runtimeBridge.inspectRuntime)
-      .mockResolvedValueOnce({
-        runtimeDriver: 'uv',
-        pythonPath: '/repo/.venv/bin/python',
-        defaultBackend: 'genie-tts',
-        environment: {
-          mode: 'cpu',
-          torchAvailable: true,
-          torchVersion: '2.6.0+cpu',
-          cudaAvailable: false,
-          issues: [],
-        },
-        availableBackends: ['genie-tts'],
-        managedPaths: [
-          { key: 'workspace', label: '根目录', path: '/repo' },
-          { key: 'genieBase', label: 'Genie 基础资源', path: '/repo/models/GenieData' },
-          { key: 'downloadLogs', label: '下载日志', path: '/repo/logs/downloads' },
-        ],
-        resources: {
-          'genie-base': {
-            key: 'genie-base',
-            label: 'GenieData 基础资源',
-            status: 'missing',
-            path: '/repo/models/GenieData',
-            missingPaths: ['speaker_encoder.onnx'],
-          },
-        },
-        latestMessage: '运行驱动 uv，当前环境 CPU',
-      })
-      .mockResolvedValueOnce({
-        runtimeDriver: 'uv',
-        pythonPath: '/repo/.venv/bin/python',
-        defaultBackend: 'genie-tts',
-        environment: {
-          mode: 'cpu',
-          torchAvailable: true,
-          torchVersion: '2.6.0+cpu',
-          cudaAvailable: false,
-          issues: [],
-        },
-        availableBackends: ['genie-tts'],
-        managedPaths: [
-          { key: 'workspace', label: '根目录', path: '/repo' },
-          { key: 'genieBase', label: 'Genie 基础资源', path: '/repo/models/GenieData' },
-          { key: 'downloadLogs', label: '下载日志', path: '/repo/logs/downloads' },
-        ],
-        resources: {
-          'genie-base': {
-            key: 'genie-base',
-            label: 'GenieData 基础资源',
-            status: 'ready',
-            path: '/repo/models/GenieData',
-            missingPaths: [],
-          },
-        },
-        latestMessage: '运行驱动 uv，当前环境 CPU',
-      });
-
     render(<App />);
-    await user.click(screen.getByRole('button', { name: '模型管理' }));
-    await waitFor(() => expect(screen.getByText('未下载')).toBeInTheDocument());
 
-    const mockedBridge = runtimeBridge as typeof runtimeBridge & {
-      __emitRuntimeEvent: (event: RuntimeEvent) => void;
-    };
+    // Navigate to download page via sidebar
+    await user.click(screen.getByRole('button', { name: '下载管理' }));
 
-    await act(async () => {
-      mockedBridge.__emitRuntimeEvent({
-        event: 'download.completed',
-        taskId: 'task-1',
-        target: 'genie-base',
-        status: 'completed',
-        message: 'GenieData 基础资源 下载完成',
-        progressCurrent: 4,
-        progressTotal: 4,
-        progressUnit: 'stage',
-        timestamp: '1712300002',
-      });
-    });
+    // The download form should appear
+    const urlInput = await screen.findByLabelText('Bilibili 视频链接');
+    await user.type(urlInput, 'https://www.bilibili.com/video/BV1xx411c7mD');
 
-    await waitFor(() => expect(screen.getByText('已就绪')).toBeInTheDocument());
-    expect(runtimeBridge.inspectRuntime).toHaveBeenCalledTimes(2);
+    await user.click(screen.getByRole('button', { name: '加入下载队列' }));
+    expect(runtimeBridge.enqueueDownload).toHaveBeenCalledWith(
+      'https://www.bilibili.com/video/BV1xx411c7mD',
+    );
+
+    // Task should appear in queue
+    await waitFor(() =>
+      expect(screen.getByText('已进入下载队列')).toBeInTheDocument(),
+    );
   });
 
-  it('blocks runtime inspection and download actions until environment probe is ready', async () => {
-    const user = userEvent.setup();
+  it('blocks download actions until environment probe is ready', async () => {
     vi.mocked(runtimeBridge.probeEnvironment).mockResolvedValue({
       workspaceRoot: '/repo',
       repoRoot: '/repo',
-      status: 'torch-unavailable',
-      mode: null,
-      torchAvailable: false,
-      torchVersion: null,
-      cudaAvailable: false,
-      issues: ['No module named torch'],
-      message: 'torch 不可用',
+      status: 'yutto-unavailable',
+      yuttoAvailable: false,
+      yuttoVersion: null,
+      ffmpegAvailable: false,
+      issues: ['No module named uiya'],
+      message: 'uiya 不可用',
     });
 
+    const user = userEvent.setup();
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: '模型管理' }));
-    const downloadBtns = await screen.findAllByRole('button', { name: '下载' });
-    for (const btn of downloadBtns) {
-      expect(btn).toBeDisabled();
-    }
+    await user.click(screen.getByRole('button', { name: '下载管理' }));
+
+    // Submit button is disabled when env not ready
+    const submitBtn = await screen.findByRole('button', { name: '加入下载队列' });
+    expect(submitBtn).toBeDisabled();
   });
 
   it('toggles theme from the lightbulb action and persists the selection', async () => {

@@ -9,16 +9,12 @@ interface HomePageProps {
   folders: ManagedFolderItem[];
   onOpenPath: (pathKey: string) => void;
   onOpenModels: () => void;
-  onLaunchWebui: () => void;
-  webuiRunning: boolean;
 }
 
 export function HomePage({
   folders,
   onOpenPath,
   onOpenModels,
-  onLaunchWebui,
-  webuiRunning,
 }: HomePageProps) {
   return (
     <div className="home-page">
@@ -39,8 +35,6 @@ export function HomePage({
         <NoticePanel
           notices={notices}
           onOpenModels={onOpenModels}
-          onLaunchWebui={onLaunchWebui}
-          webuiRunning={webuiRunning}
         />
       </div>
     </div>

@@ -14,9 +14,9 @@ export interface PlaceholderFolderItem {
 }
 
 export const heroCopy = {
-  eyebrow: 'XnneHangLab Launcher Template',
-  title: '绘心 - 启动器',
-  description: '让 AI 更有温度，也更适合长期陪伴。',
+  eyebrow: 'yutto-uiya',
+  title: 'yutto-uiya',
+  description: 'Bilibili 视频下载工具，由 yutto 驱动。',
 };
 
 export const heroConfetti: HeroConfettiPiece[] = [
@@ -31,7 +31,7 @@ export const heroConfetti: HeroConfettiPiece[] = [
 ];
 
 export const versionMeta = [
-  '启动器版本：绘心启动器 0.1.0',
+  'yutto-uiya v0.0.3',
 ];
 
 export const notices = [
