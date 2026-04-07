@@ -30,6 +30,7 @@ pub fn run() {
             runtime::commands::set_runtime_driver,
             runtime::commands::pick_python_path_command,
             runtime::commands::pick_ffmpeg_path_command,
+            runtime::commands::parse_target,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

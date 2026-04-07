@@ -143,6 +143,103 @@ def cmd_download(target: str) -> None:
         fail(f"下载失败，退出码 {returncode}", current=3)
 
 
+def cmd_parse(target: str) -> None:
+    """
+    Run yutto with --skip-download to enumerate videos in *target* without
+    downloading.  Prints each raw yutto line to stdout (forwarded as
+    runtime:raw-log by Rust) then emits a final JSON payload with the
+    parsed item list.
+    """
+    import re
+
+    from uiya._dataclass import YuttoBasicSetting, YuttoResourceSettings, YuttoSettings
+    from uiya.utils.config import (
+        UiyaSetting,
+        load_settings_file,
+        search_for_settings_file,
+        write_settings_file,
+    )
+
+    def emit_payload(payload: dict) -> None:
+        print(json.dumps({"kind": "payload", "payload": payload}, ensure_ascii=False), flush=True)
+
+    try:
+        settings = load_settings_file("uiya.toml", UiyaSetting)
+    except Exception as exc:
+        emit_payload({"items": [], "error": f"配置加载失败: {exc}"})
+        sys.exit(1)
+
+    try:
+        basic = YuttoBasicSetting(
+            num_workers=8,
+            video_quality=80,
+            audio_quality=30280,
+            sessdata=settings.SESS_DATA,
+            vip_strict=settings.vip_strict == "open",
+            login_strict=settings.login_strict == "open",
+            dir="./downloads",
+        )
+        resource = YuttoResourceSettings()
+        yutto_cfg = YuttoSettings(basic=basic, resource=resource)
+        write_settings_file("yutto.toml", yutto_cfg)
+        yutto_toml = search_for_settings_file("yutto.toml")
+    except Exception as exc:
+        emit_payload({"items": [], "error": f"配置写入失败: {exc}"})
+        sys.exit(1)
+
+    command: list[str] = [
+        "uv", "run", "--no-sync", "yutto", target,
+        "--no-color", "--skip-download", "--no-progress",
+    ]
+    if yutto_toml:
+        command += ["--config", str(yutto_toml)]
+    ffmpeg_path = (os.environ.get("UIYA_FFMPEG_PATH") or settings.ffmpeg_path or "").strip()
+    if ffmpeg_path and ffmpeg_path != "ffmpeg":
+        command += ["--ffmpeg-path", ffmpeg_path]
+    if settings.debug_mode == "open":
+        command.append("--debug")
+    if settings.custom_proxy_pool and settings.proxy_pool:
+        command += ["--proxy", settings.proxy_pool]
+
+    title_re = re.compile(r'\bINFO\b.*开始处理视频\s+(.+)')
+    link_re = re.compile(r'\bLINK\b\s+(https?://\S+)')
+
+    items: list[dict] = []
+    current_title: str | None = None
+
+    try:
+        proc = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            encoding="utf-8",
+            errors="replace",
+        )
+    except Exception as exc:
+        emit_payload({"items": [], "error": f"启动解析进程失败: {exc}"})
+        sys.exit(1)
+
+    assert proc.stdout is not None
+    for raw_line in proc.stdout:
+        line = raw_line.rstrip("\r\n")
+        if line.strip():
+            print(line, flush=True)  # forwarded as runtime:raw-log
+        m_title = title_re.search(line)
+        if m_title:
+            current_title = m_title.group(1).strip()
+        m_link = link_re.search(line)
+        if m_link and current_title is not None:
+            items.append({
+                "index": len(items) + 1,
+                "title": current_title,
+                "url": m_link.group(1),
+            })
+            current_title = None
+
+    proc.wait()
+    emit_payload({"items": items})
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="uiya.cli")
     subparsers = parser.add_subparsers(dest="command")
@@ -152,12 +249,17 @@ def main() -> None:
     dl_parser = subparsers.add_parser("download")
     dl_parser.add_argument("target")
 
+    parse_parser = subparsers.add_parser("parse")
+    parse_parser.add_argument("target")
+
     args = parser.parse_args()
 
     if args.command == "inspect-runtime":
         cmd_inspect_runtime()
     elif args.command == "download":
         cmd_download(args.target)
+    elif args.command == "parse":
+        cmd_parse(args.target)
     else:
         parser.print_help()
         sys.exit(1)

@@ -6,6 +6,7 @@ import type {
   RuntimeEvent,
   RuntimeInspection,
   RuntimeTaskRecord,
+  VideoParseItem,
 } from './runtime';
 
 export function probeEnvironment() {
@@ -54,6 +55,10 @@ export function pickPythonPath() {
 
 export function pickFfmpegPath() {
   return invoke<string | null>('pick_ffmpeg_path_command');
+}
+
+export function parseTarget(target: string) {
+  return invoke<VideoParseItem[]>('parse_target', { target });
 }
 
 export async function subscribeRuntimeEvents(

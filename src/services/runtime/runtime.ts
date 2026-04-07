@@ -93,6 +93,12 @@ export interface FileProgress {
   total?: string;
 }
 
+export interface VideoParseItem {
+  index: number;
+  title: string;
+  url: string;
+}
+
 export interface ManagedFolderItem {
   key: string;
   title: string;

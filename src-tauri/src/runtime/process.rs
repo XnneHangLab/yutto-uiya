@@ -6,7 +6,7 @@ use std::thread;
 
 use tauri::{AppHandle, Emitter};
 
-use super::models::{EnvironmentProbePayload, PythonEnvelope, RuntimeEventPayload, TaskStatus};
+use super::models::{EnvironmentProbePayload, ParsedVideoItem, PythonEnvelope, RuntimeEventPayload, TaskStatus};
 use super::state::{RuntimeDriverConfig, RuntimeState};
 
 const ENVIRONMENT_PROBE_SCRIPT: &str = r#"
@@ -79,6 +79,53 @@ pub fn run_inspect_command(repo_root: &Path, workspace_root: &Path, driver: &Run
     let envelope: PythonEnvelope =
         serde_json::from_str(last_line).map_err(|error| error.to_string())?;
     Ok(envelope.payload)
+}
+
+pub fn run_parse_command(
+    repo_root: &Path,
+    workspace_root: &Path,
+    driver: &RuntimeDriverConfig,
+    target: &str,
+    ffmpeg_path: &str,
+    app: &AppHandle,
+) -> Result<Vec<ParsedVideoItem>, String> {
+    emit_raw_log(app, &format!("[parse] 正在解析 {target} …"));
+
+    let output = build_python_command_for_driver(
+        repo_root,
+        workspace_root,
+        driver,
+        ["-m", "uiya.cli", "parse", target],
+    )
+    .env("UIYA_FFMPEG_PATH", ffmpeg_path)
+    .output()
+    .map_err(|error| format!("failed to run parse command: {error}"))?;
+
+    emit_stderr_lines(app, &output.stderr);
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let lines: Vec<&str> = stdout.lines().collect();
+    let Some(&last_line) = lines.last() else {
+        return Err("parse command returned no output".to_string());
+    };
+
+    // Forward all but the last line (raw yutto output) as runtime:raw-log
+    for line in lines[..lines.len().saturating_sub(1)].iter() {
+        let line = line.trim();
+        if !line.is_empty() {
+            emit_raw_log(app, line);
+        }
+    }
+
+    let envelope: PythonEnvelope =
+        serde_json::from_str(last_line).map_err(|error| {
+            format!("failed to parse parse-command output: {error} (last line: {last_line:?})")
+        })?;
+    let items: Vec<ParsedVideoItem> = serde_json::from_value(envelope.payload["items"].clone())
+        .map_err(|error| format!("failed to deserialize parse items: {error}"))?;
+
+    emit_raw_log(app, &format!("[parse] 解析完成，共 {} 个视频", items.len()));
+    Ok(items)
 }
 
 pub fn run_probe_command(repo_root: &Path, workspace_root: &Path, driver: &RuntimeDriverConfig, ffmpeg_path: &str, app: &AppHandle) -> Result<EnvironmentProbePayload, String> {

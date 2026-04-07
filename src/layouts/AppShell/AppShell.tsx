@@ -16,6 +16,7 @@ import {
   listDownloadTasks,
   listManagedFolders,
   openManagedPath,
+  parseTarget,
   pickFfmpegPath,
   pickPythonPath,
   probeEnvironment,
@@ -35,6 +36,7 @@ import {
   type RuntimeDriver,
   type RuntimeInspection,
   type RuntimeTaskRecord,
+  type VideoParseItem,
 } from '../../services/runtime/runtime';
 import {
   readStoredTheme,
@@ -209,6 +211,25 @@ export function AppShell() {
     }
   }
 
+  async function handleParseTarget(url: string): Promise<VideoParseItem[]> {
+    if (!isEnvironmentReady(environmentProbe)) {
+      setLogs((current) => [
+        ...current,
+        createConsoleLog('stderr', '环境未就绪，已禁止执行解析'),
+      ]);
+      return [];
+    }
+    try {
+      return await parseTarget(url);
+    } catch (error) {
+      setLogs((current) => [
+        ...current,
+        createConsoleLog('stderr', `解析失败: ${toErrorMessage(error)}`),
+      ]);
+      return [];
+    }
+  }
+
   async function handleWorkspaceProbe(nextProbe: EnvironmentProbe) {
     setEnvironmentProbe(nextProbe);
     setInspection(null);
@@ -369,6 +390,7 @@ export function AppShell() {
               latestMessage,
               onOpenModels: () => setActivePage('models'),
               onDownload: handleDownloadBilibili,
+              onParse: handleParseTarget,
               onOpenPath: handleOpenManagedPath,
               runtimeDriver,
               scriptsReady,

@@ -65,6 +65,7 @@ vi.mock('../../services/runtime/bridge', async () => {
     }),
     openManagedPath: vi.fn().mockResolvedValue(undefined),
     exportConsoleLogs: vi.fn().mockResolvedValue('/repo/logs/launcher.log'),
+    parseTarget: vi.fn().mockResolvedValue([]),
     subscribeRuntimeEvents: vi.fn().mockImplementation(async (onEvent, onRawLog) => {
       runtimeListeners.add(onEvent);
       rawLogListeners.add(onRawLog);
@@ -113,7 +114,7 @@ describe('AppShell', () => {
     const urlInput = await screen.findByLabelText('Bilibili 视频链接');
     await user.type(urlInput, 'https://www.bilibili.com/video/BV1xx411c7mD');
 
-    await user.click(screen.getByRole('button', { name: '加入下载队列' }));
+    await user.click(screen.getByRole('button', { name: '加入队列' }));
     expect(runtimeBridge.enqueueDownload).toHaveBeenCalledWith(
       'https://www.bilibili.com/video/BV1xx411c7mD',
     );
@@ -142,7 +143,7 @@ describe('AppShell', () => {
     await user.click(screen.getByRole('button', { name: '下载管理' }));
 
     // Submit button is disabled when env not ready
-    const submitBtn = await screen.findByRole('button', { name: '加入下载队列' });
+    const submitBtn = await screen.findByRole('button', { name: '加入队列' });
     expect(submitBtn).toBeDisabled();
   });
 

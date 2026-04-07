@@ -54,6 +54,14 @@ pub struct PythonEnvelope {
     pub payload: serde_json::Value,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ParsedVideoItem {
+    pub index: u64,
+    pub title: String,
+    pub url: String,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct EnvironmentProbePayload {

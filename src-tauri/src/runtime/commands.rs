@@ -3,7 +3,7 @@ use tauri::{AppHandle, State};
 use super::process::{
     drain_download_queue,
     ensure_environment_ready, open_path, pick_ffmpeg_path, pick_python_path, pick_workspace_root,
-    resolve_managed_path, run_inspect_command, run_probe_command,
+    resolve_managed_path, run_inspect_command, run_parse_command, run_probe_command,
     write_console_log,
 };
 use super::state::{resolve_repo_root, resolve_workspace_root, RuntimeDriverConfig, RuntimeState};
@@ -36,6 +36,23 @@ pub async fn probe_environment(
     run_blocking_runtime_action(move || {
         let probe = run_probe_command(&repo_root, &workspace_root, &driver, &ffmpeg_path, &app)?;
         serde_json::to_value(probe).map_err(|error| error.to_string())
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn parse_target(
+    app: AppHandle,
+    state: State<'_, RuntimeState>,
+    target: String,
+) -> Result<serde_json::Value, String> {
+    let repo_root = state.repo_root.clone();
+    let workspace_root = state.current_workspace_root();
+    let driver = state.current_driver_config();
+    let ffmpeg_path = state.current_ffmpeg_path();
+    run_blocking_runtime_action(move || {
+        let items = run_parse_command(&repo_root, &workspace_root, &driver, &target, &ffmpeg_path, &app)?;
+        serde_json::to_value(items).map_err(|error| error.to_string())
     })
     .await
 }

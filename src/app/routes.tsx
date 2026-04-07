@@ -13,6 +13,7 @@ import type {
   RuntimeInspection,
   RuntimeDriver,
   RuntimeTaskRecord,
+  VideoParseItem,
 } from '../services/runtime/runtime';
 
 interface RenderPageOptions {
@@ -26,6 +27,7 @@ interface RenderPageOptions {
   latestMessage: string;
   onOpenModels: () => void;
   onDownload: (url: string) => void;
+  onParse: (url: string) => Promise<VideoParseItem[]>;
   onOpenPath: (pathKey: string) => void;
   runtimeDriver: RuntimeDriver;
   scriptsReady: boolean;
@@ -103,6 +105,7 @@ export function renderPage(
           tasks={options.tasks}
           fileProgress={options.fileProgress}
           onDownload={options.onDownload}
+          onParse={options.onParse}
           scriptsReady={options.scriptsReady}
         />
       );
