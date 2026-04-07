@@ -14,6 +14,7 @@ import importlib
 import json
 import os
 import subprocess
+import traceback
 
 result = {
     "status": "ready",
@@ -29,6 +30,7 @@ try:
     result["yuttoAvailable"] = True
     result["yuttoVersion"] = str(getattr(uiya, "__version__", "unknown"))
 except Exception as error:
+    traceback.print_exc()
     result["status"] = "yutto-unavailable"
     result["issues"].append(str(error))
     result["message"] = "uiya 不可用，请检查 Python 环境"
@@ -44,7 +46,8 @@ try:
         result["ffmpegAvailable"] = True
     else:
         result["issues"].append("ffmpeg 返回非零退出码")
-except (FileNotFoundError, subprocess.TimeoutExpired) as error:
+except Exception as error:
+    traceback.print_exc()
     result["issues"].append(f"ffmpeg 不可用: {error}")
 
 print(json.dumps(result, ensure_ascii=False), flush=True)
