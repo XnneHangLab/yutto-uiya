@@ -369,7 +369,7 @@ def cmd_fetch_meta(url: str) -> None:
     })
 
 
-
+def cmd_save_settings(ffmpeg_path: str, no_proxy: bool) -> None:
     """
     Persist updated settings (currently ffmpeg_path and no_proxy) to uiya.toml.
     """
