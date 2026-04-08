@@ -90,13 +90,6 @@ export function renderPage(
           onSave={options.onSave}
         />
       );
-    case 'advanced':
-      return (
-        <PlaceholderPage
-          title="高级选项"
-          description="预留更细粒度的运行参数与后端切换入口。"
-        />
-      );
     case 'troubleshooting':
       return (
         <PlaceholderPage
@@ -128,13 +121,6 @@ export function renderPage(
           downloadOptions={options.downloadOptions}
           onDownloadOptionsChange={options.onDownloadOptionsChange}
           onCancelTask={options.onCancelTask}
-        />
-      );
-    case 'tools':
-      return (
-        <PlaceholderPage
-          title="小工具"
-          description="预留下载修复、目录清理和附加操作入口。"
         />
       );
     case 'community':
