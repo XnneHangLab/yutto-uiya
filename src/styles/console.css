@@ -159,3 +159,8 @@
 .console-log--stderr {
   color: var(--console-stderr);
 }
+
+.console-log--progress {
+  color: var(--console-stdout);
+  opacity: 0.75;
+}

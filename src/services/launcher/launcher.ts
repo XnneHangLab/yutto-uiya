@@ -1,4 +1,4 @@
-export type ConsoleLogKind = 'system' | 'stdout' | 'stderr';
+export type ConsoleLogKind = 'system' | 'stdout' | 'stderr' | 'progress';
 export type LaunchState = 'idle' | 'running';
 
 export interface ConsoleLogEntry {

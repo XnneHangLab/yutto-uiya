@@ -8,7 +8,6 @@ import type { PageId } from '../data/nav';
 import type { ConsoleLogEntry } from '../services/launcher/launcher';
 import type {
   EnvironmentProbe,
-  FileProgress,
   ManagedFolderItem,
   RuntimeInspection,
   RuntimeDriver,
@@ -19,7 +18,6 @@ import type {
 interface RenderPageOptions {
   inspection: RuntimeInspection | null;
   tasks: RuntimeTaskRecord[];
-  fileProgress: FileProgress | null;
   folders: ManagedFolderItem[];
   logs: ConsoleLogEntry[];
   autoScroll: boolean;
@@ -111,7 +109,6 @@ export function renderPage(
       return (
         <DownloadPage
           tasks={options.tasks}
-          fileProgress={options.fileProgress}
           onDownload={options.onDownload}
           onParse={options.onParse}
           scriptsReady={options.scriptsReady}

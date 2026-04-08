@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { FileProgress, RuntimeTaskRecord, VideoParseItem } from '../../services/runtime/runtime';
+import type { RuntimeTaskRecord, VideoParseItem } from '../../services/runtime/runtime';
 import '../../styles/models.css';
 
 const taskStatusLabel: Record<string, string> = {
@@ -14,7 +14,6 @@ const taskStatusLabel: Record<string, string> = {
 
 interface DownloadPageProps {
   tasks: RuntimeTaskRecord[];
-  fileProgress: FileProgress | null;
   onDownload: (url: string) => void;
   onParse: (url: string) => Promise<VideoParseItem[]>;
   scriptsReady: boolean;
@@ -28,7 +27,6 @@ interface DownloadPageProps {
 
 export function DownloadPage({
   tasks,
-  fileProgress,
   onDownload,
   onParse,
   scriptsReady,
@@ -189,10 +187,7 @@ export function DownloadPage({
         ) : (
           <div className="models-page__task-list">
             {tasks.map((task) => {
-              const fp =
-                task.status === 'downloading' && fileProgress?.target === task.target
-                  ? fileProgress
-                  : null;
+              const isActive = ['queued', 'preparing', 'downloading', 'verifying'].includes(task.status);
               return (
                 <div key={task.taskId} className="models-page__task">
                   <div className="models-page__task-info">
@@ -209,25 +204,11 @@ export function DownloadPage({
                       {task.progressCurrent} / {task.progressTotal}
                     </span>
                   </div>
-                  {fp && (
-                    <div className="models-page__file-progress">
-                      <div className="models-page__file-progress-bar">
-                        <div
-                          className="models-page__file-progress-fill"
-                          style={{ width: `${fp.percent}%` }}
-                        />
-                      </div>
-                      <div className="models-page__file-progress-meta">
-                        <span className="models-page__file-progress-desc">
-                          {fp.desc.split('/').pop()}
-                        </span>
-                        <span className="models-page__file-progress-info">
-                          {fp.percent}%
-                          {fp.downloaded && fp.total && ` · ${fp.downloaded} / ${fp.total}`}
-                        </span>
-                      </div>
+                  {isActive ? (
+                    <div className="models-page__indeterminate">
+                      <div className="models-page__indeterminate-fill" />
                     </div>
-                  )}
+                  ) : null}
                 </div>
               );
             })}

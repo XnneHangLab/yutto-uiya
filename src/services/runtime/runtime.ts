@@ -86,14 +86,6 @@ export interface RuntimeEvent {
   total?: string;
 }
 
-export interface FileProgress {
-  target: string;
-  desc: string;
-  percent: number;
-  downloaded?: string;
-  total?: string;
-}
-
 export interface VideoParseItem {
   index: number;
   title: string;
