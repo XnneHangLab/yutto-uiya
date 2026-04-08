@@ -184,7 +184,7 @@ export function DownloadPage({
           {meta.cover ? (
             <img
               className="parse-detail__cover"
-              src={meta.cover}
+              src={`https://image.baidu.com/search/down?url=${meta.cover}`}
               alt={meta.title}
             />
           ) : null}
