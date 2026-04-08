@@ -151,6 +151,7 @@ def cmd_parse(target: str) -> None:
     parsed item list.
     """
     import re
+    import shlex
 
     from uiya._dataclass import YuttoBasicSetting, YuttoResourceSettings, YuttoSettings
     from uiya.utils.config import (
@@ -203,6 +204,8 @@ def cmd_parse(target: str) -> None:
 
     title_re = re.compile(r'\bINFO\b.*开始处理视频\s+(.+)')
     link_re = re.compile(r'\bLINK\b\s+(https?://\S+)')
+
+    print(f"[run] {shlex.join(command)}", flush=True)
 
     items: list[dict] = []
     current_title: str | None = None

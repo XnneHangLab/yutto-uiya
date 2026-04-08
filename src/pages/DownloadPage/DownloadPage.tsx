@@ -22,6 +22,8 @@ interface DownloadPageProps {
   parseSelected: Set<number>;
   onParseSelectedChange: (next: Set<number>) => void;
   onClearParseItems: () => void;
+  downloadUrl: string;
+  onDownloadUrlChange: (next: string) => void;
 }
 
 export function DownloadPage({
@@ -34,29 +36,30 @@ export function DownloadPage({
   parseSelected,
   onParseSelectedChange,
   onClearParseItems,
+  downloadUrl,
+  onDownloadUrlChange,
 }: DownloadPageProps) {
-  const [url, setUrl] = useState('');
   const [parsing, setParsing] = useState(false);
 
   function handleUrlChange(next: string) {
-    setUrl(next);
-    if (next.trim() !== url.trim()) {
+    onDownloadUrlChange(next);
+    if (next.trim() !== downloadUrl.trim()) {
       onClearParseItems();
     }
   }
 
   function handleDirectDownload(event: React.FormEvent) {
     event.preventDefault();
-    const trimmed = url.trim();
+    const trimmed = downloadUrl.trim();
     if (!trimmed) return;
     onDownload(trimmed);
-    setUrl('');
+    onDownloadUrlChange('');
     onClearParseItems();
   }
 
   async function handleParse(event: React.FormEvent) {
     event.preventDefault();
-    const trimmed = url.trim();
+    const trimmed = downloadUrl.trim();
     if (!trimmed) return;
     setParsing(true);
     onClearParseItems();
@@ -92,7 +95,7 @@ export function DownloadPage({
       }
     }
     onClearParseItems();
-    setUrl('');
+    onDownloadUrlChange('');
   }
 
   const allSelected = parseItems.length > 0 && parseSelected.size === parseItems.length;
@@ -112,7 +115,7 @@ export function DownloadPage({
           <input
             className="download-url-input"
             type="url"
-            value={url}
+            value={downloadUrl}
             onChange={(e) => handleUrlChange(e.target.value)}
             placeholder="https://www.bilibili.com/video/BV..."
             disabled={!scriptsReady || parsing}
@@ -121,7 +124,7 @@ export function DownloadPage({
           <button
             type="button"
             className="download-parse-btn"
-            disabled={!scriptsReady || !url.trim() || parsing}
+            disabled={!scriptsReady || !downloadUrl.trim() || parsing}
             onClick={handleParse}
           >
             {parsing ? '解析中…' : '解析'}
@@ -129,7 +132,7 @@ export function DownloadPage({
           <button
             type="submit"
             className="download-submit-btn"
-            disabled={!scriptsReady || !url.trim() || parsing}
+            disabled={!scriptsReady || !downloadUrl.trim() || parsing}
           >
             加入队列
           </button>

@@ -66,6 +66,7 @@ export function AppShell() {
   const [ffmpegExePath, setFfmpegExePath] = useState('');
   const [parseItems, setParseItems] = useState<VideoParseItem[]>([]);
   const [parseSelected, setParseSelected] = useState<Set<number>>(new Set());
+  const [downloadUrl, setDownloadUrl] = useState('');
 
   useEffect(() => {
     writeStoredTheme(theme);
@@ -405,6 +406,8 @@ export function AppShell() {
               parseSelected,
               onParseSelectedChange: setParseSelected,
               onClearParseItems: handleClearParseItems,
+              downloadUrl,
+              onDownloadUrlChange: setDownloadUrl,
               onOpenPath: handleOpenManagedPath,
               runtimeDriver,
               scriptsReady,

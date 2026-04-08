@@ -32,6 +32,8 @@ interface RenderPageOptions {
   parseSelected: Set<number>;
   onParseSelectedChange: (next: Set<number>) => void;
   onClearParseItems: () => void;
+  downloadUrl: string;
+  onDownloadUrlChange: (next: string) => void;
   onOpenPath: (pathKey: string) => void;
   runtimeDriver: RuntimeDriver;
   scriptsReady: boolean;
@@ -115,6 +117,8 @@ export function renderPage(
           parseSelected={options.parseSelected}
           onParseSelectedChange={options.onParseSelectedChange}
           onClearParseItems={options.onClearParseItems}
+          downloadUrl={options.downloadUrl}
+          onDownloadUrlChange={options.onDownloadUrlChange}
         />
       );
     case 'tools':
