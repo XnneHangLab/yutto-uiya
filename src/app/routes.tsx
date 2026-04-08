@@ -28,6 +28,10 @@ interface RenderPageOptions {
   onOpenModels: () => void;
   onDownload: (url: string) => void;
   onParse: (url: string) => Promise<VideoParseItem[]>;
+  parseItems: VideoParseItem[];
+  parseSelected: Set<number>;
+  onParseSelectedChange: (next: Set<number>) => void;
+  onClearParseItems: () => void;
   onOpenPath: (pathKey: string) => void;
   runtimeDriver: RuntimeDriver;
   scriptsReady: boolean;
@@ -107,6 +111,10 @@ export function renderPage(
           onDownload={options.onDownload}
           onParse={options.onParse}
           scriptsReady={options.scriptsReady}
+          parseItems={options.parseItems}
+          parseSelected={options.parseSelected}
+          onParseSelectedChange={options.onParseSelectedChange}
+          onClearParseItems={options.onClearParseItems}
         />
       );
     case 'tools':

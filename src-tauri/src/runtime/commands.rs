@@ -4,7 +4,7 @@ use super::process::{
     drain_download_queue,
     ensure_environment_ready, open_path, pick_ffmpeg_path, pick_python_path, pick_workspace_root,
     resolve_managed_path, run_inspect_command, run_parse_command, run_probe_command,
-    write_console_log,
+    run_save_settings_command, write_console_log,
 };
 use super::state::{resolve_repo_root, resolve_workspace_root, RuntimeDriverConfig, RuntimeState};
 
@@ -17,11 +17,18 @@ pub async fn inspect_runtime(
     let workspace_root = state.current_workspace_root();
     let driver = state.current_driver_config();
     let ffmpeg_path = state.current_ffmpeg_path();
-    run_blocking_runtime_action(move || {
+    let result = run_blocking_runtime_action(move || {
         ensure_environment_ready(&repo_root, &workspace_root, &driver, &ffmpeg_path, &app)?;
         run_inspect_command(&repo_root, &workspace_root, &driver, &app)
     })
-    .await
+    .await?;
+
+    // Sync ffmpegPath from uiya.toml into RuntimeState so it survives restart
+    if let Some(ffmpeg) = result.get("ffmpegPath").and_then(|v| v.as_str()) {
+        state.set_ffmpeg_path(ffmpeg.to_string());
+    }
+
+    Ok(result)
 }
 
 #[tauri::command]
@@ -194,6 +201,7 @@ pub async fn set_runtime_driver(
     let repo_root = state.repo_root.clone();
     let workspace_root = state.current_workspace_root();
     run_blocking_runtime_action(move || {
+        run_save_settings_command(&repo_root, &workspace_root, &driver_config, &resolved_ffmpeg)?;
         let probe = run_probe_command(&repo_root, &workspace_root, &driver_config, &resolved_ffmpeg, &app)?;
         serde_json::to_value(probe).map_err(|error| error.to_string())
     })

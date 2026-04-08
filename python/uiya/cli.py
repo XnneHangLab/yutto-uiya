@@ -189,7 +189,7 @@ def cmd_parse(target: str) -> None:
 
     command: list[str] = [
         "uv", "run", "--no-sync", "yutto", target,
-        "--no-color", "--skip-download", "--no-progress",
+        "--no-color", "--skip-download", "--no-progress", "-b",
     ]
     if yutto_toml:
         command += ["--config", str(yutto_toml)]
@@ -240,6 +240,22 @@ def cmd_parse(target: str) -> None:
     emit_payload({"items": items})
 
 
+def cmd_save_settings(ffmpeg_path: str) -> None:
+    """
+    Persist updated settings (currently only ffmpeg_path) to uiya.toml.
+    """
+    from uiya.utils.config import UiyaSetting, load_settings_file, write_settings_file
+
+    try:
+        settings = load_settings_file("uiya.toml", UiyaSetting)
+        settings.ffmpeg_path = ffmpeg_path
+        write_settings_file("uiya.toml", settings)
+    except Exception as exc:
+        print(json.dumps({"kind": "payload", "payload": {"ok": False, "error": str(exc)}}, ensure_ascii=False), flush=True)
+        sys.exit(1)
+    print(json.dumps({"kind": "payload", "payload": {"ok": True}}, ensure_ascii=False), flush=True)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="uiya.cli")
     subparsers = parser.add_subparsers(dest="command")
@@ -252,6 +268,9 @@ def main() -> None:
     parse_parser = subparsers.add_parser("parse")
     parse_parser.add_argument("target")
 
+    save_parser = subparsers.add_parser("save-settings")
+    save_parser.add_argument("--ffmpeg-path", default="ffmpeg")
+
     args = parser.parse_args()
 
     if args.command == "inspect-runtime":
@@ -260,6 +279,8 @@ def main() -> None:
         cmd_download(args.target)
     elif args.command == "parse":
         cmd_parse(args.target)
+    elif args.command == "save-settings":
+        cmd_save_settings(args.ffmpeg_path)
     else:
         parser.print_help()
         sys.exit(1)

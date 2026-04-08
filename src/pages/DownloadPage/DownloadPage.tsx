@@ -18,6 +18,10 @@ interface DownloadPageProps {
   onDownload: (url: string) => void;
   onParse: (url: string) => Promise<VideoParseItem[]>;
   scriptsReady: boolean;
+  parseItems: VideoParseItem[];
+  parseSelected: Set<number>;
+  onParseSelectedChange: (next: Set<number>) => void;
+  onClearParseItems: () => void;
 }
 
 export function DownloadPage({
@@ -26,17 +30,18 @@ export function DownloadPage({
   onDownload,
   onParse,
   scriptsReady,
+  parseItems,
+  parseSelected,
+  onParseSelectedChange,
+  onClearParseItems,
 }: DownloadPageProps) {
   const [url, setUrl] = useState('');
   const [parsing, setParsing] = useState(false);
-  const [parseItems, setParseItems] = useState<VideoParseItem[]>([]);
-  const [selected, setSelected] = useState<Set<number>>(new Set());
 
   function handleUrlChange(next: string) {
     setUrl(next);
     if (next.trim() !== url.trim()) {
-      setParseItems([]);
-      setSelected(new Set());
+      onClearParseItems();
     }
   }
 
@@ -46,8 +51,7 @@ export function DownloadPage({
     if (!trimmed) return;
     onDownload(trimmed);
     setUrl('');
-    setParseItems([]);
-    setSelected(new Set());
+    onClearParseItems();
   }
 
   async function handleParse(event: React.FormEvent) {
@@ -55,49 +59,43 @@ export function DownloadPage({
     const trimmed = url.trim();
     if (!trimmed) return;
     setParsing(true);
-    setParseItems([]);
-    setSelected(new Set());
+    onClearParseItems();
     try {
-      const items = await onParse(trimmed);
-      setParseItems(items);
-      setSelected(new Set(items.map((item) => item.index)));
+      await onParse(trimmed);
     } finally {
       setParsing(false);
     }
   }
 
   function handleToggleAll() {
-    if (selected.size === parseItems.length) {
-      setSelected(new Set());
+    if (parseSelected.size === parseItems.length) {
+      onParseSelectedChange(new Set());
     } else {
-      setSelected(new Set(parseItems.map((item) => item.index)));
+      onParseSelectedChange(new Set(parseItems.map((item) => item.index)));
     }
   }
 
   function handleToggleItem(index: number) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(index)) {
-        next.delete(index);
-      } else {
-        next.add(index);
-      }
-      return next;
-    });
+    const next = new Set(parseSelected);
+    if (next.has(index)) {
+      next.delete(index);
+    } else {
+      next.add(index);
+    }
+    onParseSelectedChange(next);
   }
 
   function handleDownloadSelected() {
     for (const item of parseItems) {
-      if (selected.has(item.index)) {
+      if (parseSelected.has(item.index)) {
         onDownload(item.url);
       }
     }
-    setParseItems([]);
-    setSelected(new Set());
+    onClearParseItems();
     setUrl('');
   }
 
-  const allSelected = parseItems.length > 0 && selected.size === parseItems.length;
+  const allSelected = parseItems.length > 0 && parseSelected.size === parseItems.length;
 
   return (
     <div className="models-page">
@@ -159,7 +157,7 @@ export function DownloadPage({
                   <input
                     type="checkbox"
                     className="parse-item__checkbox"
-                    checked={selected.has(item.index)}
+                    checked={parseSelected.has(item.index)}
                     onChange={() => handleToggleItem(item.index)}
                   />
                   <span className="parse-item__index">{item.index}</span>
@@ -172,10 +170,10 @@ export function DownloadPage({
             <button
               type="button"
               className="download-submit-btn"
-              disabled={selected.size === 0}
+              disabled={parseSelected.size === 0}
               onClick={handleDownloadSelected}
             >
-              下载所选 ({selected.size})
+              下载所选 ({parseSelected.size})
             </button>
           </div>
         </section>

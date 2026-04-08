@@ -128,6 +128,32 @@ pub fn run_parse_command(
     Ok(items)
 }
 
+pub fn run_save_settings_command(
+    repo_root: &Path,
+    workspace_root: &Path,
+    driver: &RuntimeDriverConfig,
+    ffmpeg_path: &str,
+) -> Result<(), String> {
+    let output = build_python_command_for_driver(
+        repo_root,
+        workspace_root,
+        driver,
+        ["-m", "uiya.cli", "save-settings", "--ffmpeg-path", ffmpeg_path],
+    )
+    .output()
+    .map_err(|error| format!("failed to run save-settings: {error}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        return Err(if stderr.is_empty() {
+            "save-settings command failed".to_string()
+        } else {
+            stderr
+        });
+    }
+    Ok(())
+}
+
 pub fn run_probe_command(repo_root: &Path, workspace_root: &Path, driver: &RuntimeDriverConfig, ffmpeg_path: &str, app: &AppHandle) -> Result<EnvironmentProbePayload, String> {
     emit_raw_log(app, "[probe] 开始检测运行环境 …");
 

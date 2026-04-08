@@ -64,6 +64,8 @@ export function AppShell() {
   const [pythonExePath, setPythonExePath] = useState('');
   const [ffmpegMode, setFfmpegMode] = useState<'system' | 'local'>('system');
   const [ffmpegExePath, setFfmpegExePath] = useState('');
+  const [parseItems, setParseItems] = useState<VideoParseItem[]>([]);
+  const [parseSelected, setParseSelected] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     writeStoredTheme(theme);
@@ -220,7 +222,10 @@ export function AppShell() {
       return [];
     }
     try {
-      return await parseTarget(url);
+      const items = await parseTarget(url);
+      setParseItems(items);
+      setParseSelected(new Set(items.map((item) => item.index)));
+      return items;
     } catch (error) {
       setLogs((current) => [
         ...current,
@@ -228,6 +233,11 @@ export function AppShell() {
       ]);
       return [];
     }
+  }
+
+  function handleClearParseItems() {
+    setParseItems([]);
+    setParseSelected(new Set());
   }
 
   async function handleWorkspaceProbe(nextProbe: EnvironmentProbe) {
@@ -391,6 +401,10 @@ export function AppShell() {
               onOpenModels: () => setActivePage('models'),
               onDownload: handleDownloadBilibili,
               onParse: handleParseTarget,
+              parseItems,
+              parseSelected,
+              onParseSelectedChange: setParseSelected,
+              onClearParseItems: handleClearParseItems,
               onOpenPath: handleOpenManagedPath,
               runtimeDriver,
               scriptsReady,
