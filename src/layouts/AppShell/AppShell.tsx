@@ -28,10 +28,13 @@ import {
   applyRuntimeEvent,
   buildFolderItemsFromPaths,
   createConsoleLogFromRuntimeEvent,
+  DEFAULT_DOWNLOAD_OPTIONS,
   getQueueSummary,
   isEnvironmentReady,
+  type DownloadOptions,
   type EnvironmentProbe,
   type ManagedFolderItem,
+  type QualityOption,
   type RuntimeDriver,
   type RuntimeInspection,
   type RuntimeTaskRecord,
@@ -66,6 +69,8 @@ export function AppShell() {
   const [parseItems, setParseItems] = useState<VideoParseItem[]>([]);
   const [parseSelected, setParseSelected] = useState<Set<number>>(new Set());
   const [downloadUrl, setDownloadUrl] = useState('');
+  const [parseVideoQualities, setParseVideoQualities] = useState<QualityOption[]>([]);
+  const [downloadOptions, setDownloadOptions] = useState<DownloadOptions>(DEFAULT_DOWNLOAD_OPTIONS);
 
   useEffect(() => {
     writeStoredTheme(theme);
@@ -196,7 +201,7 @@ export function AppShell() {
     }
 
     try {
-      const task = await enqueueDownload(url);
+      const task = await enqueueDownload(url, downloadOptions);
       setTasks((current) => {
         const next = current.filter((item) => item.taskId !== task.taskId);
         next.push(task);
@@ -224,10 +229,14 @@ export function AppShell() {
       return [];
     }
     try {
-      const items = await parseTarget(url);
-      setParseItems(items);
-      setParseSelected(new Set(items.map((item) => item.index)));
-      return items;
+      const result = await parseTarget(url);
+      setParseItems(result.items);
+      setParseSelected(new Set(result.items.map((item) => item.index)));
+      setParseVideoQualities(result.videoQualities);
+      if (result.videoQualities.length > 0) {
+        setDownloadOptions((prev) => ({ ...prev, videoQuality: result.videoQualities[0].code }));
+      }
+      return result.items;
     } catch (error) {
       setLogs((current) => [
         ...current,
@@ -240,6 +249,8 @@ export function AppShell() {
   function handleClearParseItems() {
     setParseItems([]);
     setParseSelected(new Set());
+    setParseVideoQualities([]);
+    setDownloadOptions(DEFAULT_DOWNLOAD_OPTIONS);
   }
 
   async function handleWorkspaceProbe(nextProbe: EnvironmentProbe) {
@@ -411,6 +422,9 @@ export function AppShell() {
               onClearParseItems: handleClearParseItems,
               downloadUrl,
               onDownloadUrlChange: setDownloadUrl,
+              parseVideoQualities,
+              downloadOptions,
+              onDownloadOptionsChange: setDownloadOptions,
               onOpenPath: handleOpenManagedPath,
               runtimeDriver,
               scriptsReady,

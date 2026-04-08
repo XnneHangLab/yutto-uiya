@@ -62,6 +62,21 @@ pub struct ParsedVideoItem {
     pub url: String,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct QualityOption {
+    pub label: String,
+    pub code: u32,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ParseResult {
+    pub items: Vec<ParsedVideoItem>,
+    pub video_qualities: Vec<QualityOption>,
+    pub audio_qualities: Vec<QualityOption>,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct EnvironmentProbePayload {

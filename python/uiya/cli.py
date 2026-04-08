@@ -4,6 +4,8 @@ uiya CLI – entry point called by the Tauri Rust layer.
 Commands:
   inspect-runtime   Return runtime info as a JSON PythonEnvelope (kind=payload).
   download <target> Run a yutto download job, emitting JSON events to stdout.
+  parse <target>    Run yutto --skip-download to enumerate playlist items + available quality tiers.
+  save-settings     Persist settings to uiya.toml.
 """
 from __future__ import annotations
 
@@ -12,6 +14,33 @@ import json
 import os
 import subprocess
 import sys
+
+
+def _video_quality_code(label: str) -> int | None:
+    s = label.strip()
+    if "8K" in s: return 127
+    if "杜比视界" in s: return 126
+    if "HDR" in s: return 125
+    if "4K" in s: return 120
+    if "1080P 60" in s: return 116
+    if "1080P 高码率" in s: return 112
+    if "1080P" in s: return 80
+    if "720P 60" in s: return 74
+    if "720P" in s: return 64
+    if "480P" in s: return 32
+    if "360P" in s: return 16
+    return None
+
+
+def _audio_quality_code(label: str) -> int | None:
+    s = label.strip()
+    if "Hi-Res" in s: return 30251
+    if "杜比音效" in s: return 30255
+    if "杜比全景声" in s: return 30250
+    if "320" in s: return 30280
+    if "128" in s: return 30232
+    if "64" in s: return 30216
+    return None
 
 
 def cmd_inspect_runtime() -> None:
@@ -32,7 +61,14 @@ def cmd_inspect_runtime() -> None:
     print(json.dumps({"kind": "payload", "payload": payload}, ensure_ascii=False), flush=True)
 
 
-def cmd_download(target: str) -> None:
+def cmd_download(
+    target: str,
+    require_video: bool = True,
+    require_audio: bool = True,
+    require_cover: bool = False,
+    video_quality: int = 127,
+    audio_quality: int = 30280,
+) -> None:
     """
     Build and run a yutto download job for *target* (a BiliBili URL).
 
@@ -73,14 +109,22 @@ def cmd_download(target: str) -> None:
     try:
         basic = YuttoBasicSetting(
             num_workers=8,
-            video_quality=80,   # 1080P 高清, yutto falls back if unavailable
-            audio_quality=30280,  # 320kbps
+            video_quality=video_quality,
+            audio_quality=audio_quality,
             sessdata=settings.SESS_DATA,
             vip_strict=settings.vip_strict == "open",
             login_strict=settings.login_strict == "open",
             dir=str(settings.download_dir),
         )
-        resource = YuttoResourceSettings()  # video+audio+danmaku+subtitle, no metadata/cover
+        resource = YuttoResourceSettings(
+            require_video=require_video,
+            require_audio=require_audio,
+            require_danmaku=True,
+            require_subtitle=True,
+            require_metadata=False,
+            require_cover=require_cover,
+            save_cover=require_cover,
+        )
         yutto_cfg = YuttoSettings(basic=basic, resource=resource)
         write_settings_file("yutto.toml", yutto_cfg)
         yutto_toml = search_for_settings_file("yutto.toml")
@@ -155,7 +199,7 @@ def cmd_parse(target: str) -> None:
     Run yutto with --skip-download to enumerate videos in *target* without
     downloading.  Prints each raw yutto line to stdout (forwarded as
     runtime:raw-log by Rust) then emits a final JSON payload with the
-    parsed item list.
+    parsed item list and available quality tiers.
     """
     import re
     import shlex
@@ -174,13 +218,13 @@ def cmd_parse(target: str) -> None:
     try:
         settings = load_settings_file("uiya.toml", UiyaSetting)
     except Exception as exc:
-        emit_payload({"items": [], "error": f"配置加载失败: {exc}"})
+        emit_payload({"items": [], "videoQualities": [], "audioQualities": [], "error": f"配置加载失败: {exc}"})
         sys.exit(1)
 
     try:
         basic = YuttoBasicSetting(
             num_workers=8,
-            video_quality=80,
+            video_quality=127,
             audio_quality=30280,
             sessdata=settings.SESS_DATA,
             vip_strict=settings.vip_strict == "open",
@@ -192,7 +236,7 @@ def cmd_parse(target: str) -> None:
         write_settings_file("yutto.toml", yutto_cfg)
         yutto_toml = search_for_settings_file("yutto.toml")
     except Exception as exc:
-        emit_payload({"items": [], "error": f"配置写入失败: {exc}"})
+        emit_payload({"items": [], "videoQualities": [], "audioQualities": [], "error": f"配置写入失败: {exc}"})
         sys.exit(1)
 
     command: list[str] = [
@@ -214,11 +258,16 @@ def cmd_parse(target: str) -> None:
 
     title_re = re.compile(r'\bINFO\b.*开始处理视频\s+(.+)')
     link_re = re.compile(r'\bLINK\b\s+(https?://\S+)')
+    video_quality_re = re.compile(r'视频质量.*?<(.+?)>')
+    audio_quality_re = re.compile(r'音频质量.*?<(.+?)>')
 
     print(f"[run] {shlex.join(command)}", flush=True)
 
     items: list[dict] = []
     current_title: str | None = None
+    # ordered dicts: code → label, deduplicating across multiple videos in a playlist
+    seen_video_qualities: dict[int, str] = {}
+    seen_audio_qualities: dict[int, str] = {}
 
     try:
         proc = subprocess.Popen(
@@ -229,7 +278,7 @@ def cmd_parse(target: str) -> None:
             errors="replace",
         )
     except Exception as exc:
-        emit_payload({"items": [], "error": f"启动解析进程失败: {exc}"})
+        emit_payload({"items": [], "videoQualities": [], "audioQualities": [], "error": f"启动解析进程失败: {exc}"})
         sys.exit(1)
 
     assert proc.stdout is not None
@@ -248,9 +297,28 @@ def cmd_parse(target: str) -> None:
                 "url": m_link.group(1),
             })
             current_title = None
+        m_vq = video_quality_re.search(line)
+        if m_vq:
+            label = m_vq.group(1).strip()
+            code = _video_quality_code(label)
+            if code is not None and code not in seen_video_qualities:
+                seen_video_qualities[code] = label
+        m_aq = audio_quality_re.search(line)
+        if m_aq:
+            label = m_aq.group(1).strip()
+            code = _audio_quality_code(label)
+            if code is not None and code not in seen_audio_qualities:
+                seen_audio_qualities[code] = label
 
     proc.wait()
-    emit_payload({"items": items})
+
+    # Sort highest code first (best quality first)
+    video_qualities = [{"label": label, "code": code}
+                       for code, label in sorted(seen_video_qualities.items(), reverse=True)]
+    audio_qualities = [{"label": label, "code": code}
+                       for code, label in sorted(seen_audio_qualities.items(), reverse=True)]
+
+    emit_payload({"items": items, "videoQualities": video_qualities, "audioQualities": audio_qualities})
 
 
 def cmd_save_settings(ffmpeg_path: str, no_proxy: bool) -> None:
@@ -278,6 +346,11 @@ def main() -> None:
 
     dl_parser = subparsers.add_parser("download")
     dl_parser.add_argument("target")
+    dl_parser.add_argument("--require-video", default="true")
+    dl_parser.add_argument("--require-audio", default="true")
+    dl_parser.add_argument("--require-cover", default="false")
+    dl_parser.add_argument("--video-quality", type=int, default=127)
+    dl_parser.add_argument("--audio-quality", type=int, default=30280)
 
     parse_parser = subparsers.add_parser("parse")
     parse_parser.add_argument("target")
@@ -291,7 +364,14 @@ def main() -> None:
     if args.command == "inspect-runtime":
         cmd_inspect_runtime()
     elif args.command == "download":
-        cmd_download(args.target)
+        cmd_download(
+            args.target,
+            require_video=args.require_video.lower() == "true",
+            require_audio=args.require_audio.lower() == "true",
+            require_cover=args.require_cover.lower() == "true",
+            video_quality=args.video_quality,
+            audio_quality=args.audio_quality,
+        )
     elif args.command == "parse":
         cmd_parse(args.target)
     elif args.command == "save-settings":

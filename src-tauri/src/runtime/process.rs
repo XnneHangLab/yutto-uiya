@@ -6,7 +6,7 @@ use std::thread;
 
 use tauri::{AppHandle, Emitter};
 
-use super::models::{EnvironmentProbePayload, ParsedVideoItem, PythonEnvelope, RuntimeEventPayload, TaskStatus};
+use super::models::{EnvironmentProbePayload, ParseResult, PythonEnvelope, RuntimeEventPayload, TaskStatus};
 use super::state::{RuntimeDriverConfig, RuntimeState};
 
 const ENVIRONMENT_PROBE_SCRIPT: &str = r#"
@@ -101,7 +101,7 @@ pub fn run_parse_command(
     target: &str,
     ffmpeg_path: &str,
     app: &AppHandle,
-) -> Result<Vec<ParsedVideoItem>, String> {
+) -> Result<ParseResult, String> {
     emit_raw_log(app, &format!("[parse] 正在解析 {target} …"));
 
     let output = build_python_command_for_driver(
@@ -134,11 +134,11 @@ pub fn run_parse_command(
         serde_json::from_str(last_line).map_err(|error| {
             format!("failed to parse parse-command output: {error} (last line: {last_line:?})")
         })?;
-    let items: Vec<ParsedVideoItem> = serde_json::from_value(envelope.payload["items"].clone())
-        .map_err(|error| format!("failed to deserialize parse items: {error}"))?;
+    let result: ParseResult = serde_json::from_value(envelope.payload.clone())
+        .map_err(|error| format!("failed to deserialize parse result: {error}"))?;
 
-    emit_raw_log(app, &format!("[parse] 解析完成，共 {} 个视频", items.len()));
-    Ok(items)
+    emit_raw_log(app, &format!("[parse] 解析完成，共 {} 个视频", result.items.len()));
+    Ok(result)
 }
 
 pub fn run_save_settings_command(
@@ -329,6 +329,11 @@ pub fn run_download_command(
     state: RuntimeState,
     task_id: String,
     target: String,
+    require_video: bool,
+    require_audio: bool,
+    require_cover: bool,
+    video_quality: u32,
+    audio_quality: u32,
 ) -> Result<(), String> {
     let driver = state.current_driver_config();
     let ffmpeg_path = state.current_ffmpeg_path();
@@ -340,6 +345,11 @@ pub fn run_download_command(
     );
     command
         .arg(&target)
+        .arg("--require-video").arg(if require_video { "true" } else { "false" })
+        .arg("--require-audio").arg(if require_audio { "true" } else { "false" })
+        .arg("--require-cover").arg(if require_cover { "true" } else { "false" })
+        .arg("--video-quality").arg(video_quality.to_string())
+        .arg("--audio-quality").arg(audio_quality.to_string())
         .env("UIYA_FFMPEG_PATH", &ffmpeg_path)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -449,6 +459,11 @@ pub fn drain_download_queue(app: AppHandle, state: RuntimeState) {
             },
             task.task_id.clone(),
             task.target.clone(),
+            task.require_video,
+            task.require_audio,
+            task.require_cover,
+            task.video_quality,
+            task.audio_quality,
         ) {
             let timestamp = super::state::current_timestamp();
             let mut queue = state.queue.lock().unwrap();

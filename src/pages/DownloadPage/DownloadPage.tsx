@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { RuntimeTaskRecord, VideoParseItem } from '../../services/runtime/runtime';
+import type { DownloadOptions, QualityOption, RuntimeTaskRecord, VideoParseItem } from '../../services/runtime/runtime';
 import '../../styles/models.css';
 
 const taskStatusLabel: Record<string, string> = {
@@ -12,6 +12,18 @@ const taskStatusLabel: Record<string, string> = {
   cancelled: '已取消',
 };
 
+function downloadHint(opts: DownloadOptions): string {
+  const { requireVideo, requireAudio, requireCover } = opts;
+  if (requireVideo && requireAudio && requireCover) return '视频 + 音频 + 封面（另存同目录）';
+  if (requireVideo && requireAudio) return '视频 + 音频，自动混流';
+  if (requireVideo && requireCover) return '仅视频流 + 封面';
+  if (requireAudio && requireCover) return '仅音频流 + 封面';
+  if (requireVideo) return '仅视频流（无音频）';
+  if (requireAudio) return '仅音频流';
+  if (requireCover) return '仅封面图片';
+  return '请至少选择一种资源类型';
+}
+
 interface DownloadPageProps {
   tasks: RuntimeTaskRecord[];
   onDownload: (url: string) => void;
@@ -23,6 +35,9 @@ interface DownloadPageProps {
   onClearParseItems: () => void;
   downloadUrl: string;
   onDownloadUrlChange: (next: string) => void;
+  parseVideoQualities: QualityOption[];
+  downloadOptions: DownloadOptions;
+  onDownloadOptionsChange: (next: DownloadOptions) => void;
 }
 
 export function DownloadPage({
@@ -36,6 +51,9 @@ export function DownloadPage({
   onClearParseItems,
   downloadUrl,
   onDownloadUrlChange,
+  parseVideoQualities,
+  downloadOptions,
+  onDownloadOptionsChange,
 }: DownloadPageProps) {
   const [parsing, setParsing] = useState(false);
 
@@ -92,11 +110,11 @@ export function DownloadPage({
         onDownload(item.url);
       }
     }
-    onClearParseItems();
-    onDownloadUrlChange('');
+    // Do NOT clear parse list or URL — user may want to download more
   }
 
   const allSelected = parseItems.length > 0 && parseSelected.size === parseItems.length;
+  const noneChecked = !downloadOptions.requireVideo && !downloadOptions.requireAudio && !downloadOptions.requireCover;
 
   return (
     <div className="models-page">
@@ -167,11 +185,57 @@ export function DownloadPage({
               </li>
             ))}
           </ul>
+
+          <div className="download-options">
+            <div className="download-options__row">
+              <span className="download-options__label">资源类型</span>
+              <label className="download-options__check">
+                <input
+                  type="checkbox"
+                  checked={downloadOptions.requireVideo}
+                  onChange={(e) => onDownloadOptionsChange({ ...downloadOptions, requireVideo: e.target.checked })}
+                />
+                视频
+              </label>
+              <label className="download-options__check">
+                <input
+                  type="checkbox"
+                  checked={downloadOptions.requireAudio}
+                  onChange={(e) => onDownloadOptionsChange({ ...downloadOptions, requireAudio: e.target.checked })}
+                />
+                音频
+              </label>
+              <label className="download-options__check">
+                <input
+                  type="checkbox"
+                  checked={downloadOptions.requireCover}
+                  onChange={(e) => onDownloadOptionsChange({ ...downloadOptions, requireCover: e.target.checked })}
+                />
+                封面
+              </label>
+            </div>
+            {downloadOptions.requireVideo && parseVideoQualities.length > 0 ? (
+              <div className="download-options__row">
+                <span className="download-options__label">画质</span>
+                <select
+                  className="download-options__quality-select"
+                  value={downloadOptions.videoQuality}
+                  onChange={(e) => onDownloadOptionsChange({ ...downloadOptions, videoQuality: Number(e.target.value) })}
+                >
+                  {parseVideoQualities.map((q) => (
+                    <option key={q.code} value={q.code}>{q.label}</option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+            <p className="download-options__hint">{downloadHint(downloadOptions)}</p>
+          </div>
+
           <div className="parse-results__actions">
             <button
               type="button"
               className="download-submit-btn"
-              disabled={parseSelected.size === 0}
+              disabled={parseSelected.size === 0 || noneChecked}
               onClick={handleDownloadSelected}
             >
               下载所选 ({parseSelected.size})

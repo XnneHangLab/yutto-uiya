@@ -1,12 +1,13 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type {
+  DownloadOptions,
   EnvironmentProbe,
   ManagedPath,
   RuntimeEvent,
   RuntimeInspection,
   RuntimeTaskRecord,
-  VideoParseItem,
+  VideoParseResult,
 } from './runtime';
 
 export function probeEnvironment() {
@@ -25,8 +26,15 @@ export function inspectRuntime() {
   return invoke<RuntimeInspection>('inspect_runtime');
 }
 
-export function enqueueDownload(target: string) {
-  return invoke<RuntimeTaskRecord>('enqueue_download', { target });
+export function enqueueDownload(target: string, options: DownloadOptions) {
+  return invoke<RuntimeTaskRecord>('enqueue_download', {
+    target,
+    requireVideo: options.requireVideo,
+    requireAudio: options.requireAudio,
+    requireCover: options.requireCover,
+    videoQuality: options.videoQuality,
+    audioQuality: options.audioQuality,
+  });
 }
 
 export function listDownloadTasks() {
@@ -58,7 +66,7 @@ export function pickFfmpegPath() {
 }
 
 export function parseTarget(target: string) {
-  return invoke<VideoParseItem[]>('parse_target', { target });
+  return invoke<VideoParseResult>('parse_target', { target });
 }
 
 export async function subscribeRuntimeEvents(

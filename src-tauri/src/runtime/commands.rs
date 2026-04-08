@@ -58,8 +58,8 @@ pub async fn parse_target(
     let driver = state.current_driver_config();
     let ffmpeg_path = state.current_ffmpeg_path();
     run_blocking_runtime_action(move || {
-        let items = run_parse_command(&repo_root, &workspace_root, &driver, &target, &ffmpeg_path, &app)?;
-        serde_json::to_value(items).map_err(|error| error.to_string())
+        let result = run_parse_command(&repo_root, &workspace_root, &driver, &target, &ffmpeg_path, &app)?;
+        serde_json::to_value(result).map_err(|error| error.to_string())
     })
     .await
 }
@@ -91,6 +91,11 @@ pub async fn enqueue_download(
     app: AppHandle,
     state: State<'_, RuntimeState>,
     target: String,
+    require_video: Option<bool>,
+    require_audio: Option<bool>,
+    require_cover: Option<bool>,
+    video_quality: Option<u32>,
+    audio_quality: Option<u32>,
 ) -> Result<serde_json::Value, String> {
     let repo_root = state.repo_root.clone();
     let workspace_root = state.current_workspace_root();
@@ -104,9 +109,14 @@ pub async fn enqueue_download(
     .await?;
 
     let (target, label) = validate_download_target(&target)?;
+    let rv = require_video.unwrap_or(true);
+    let ra = require_audio.unwrap_or(true);
+    let rc = require_cover.unwrap_or(false);
+    let vq = video_quality.unwrap_or(127);
+    let aq = audio_quality.unwrap_or(30280);
     let (task, should_spawn_worker) = {
         let mut queue = state.queue.lock().unwrap();
-        queue.enqueue_with_worker_control(target.to_string(), label.to_string())
+        queue.enqueue_with_worker_control(target.to_string(), label.to_string(), rv, ra, rc, vq, aq)
     };
 
     if should_spawn_worker {

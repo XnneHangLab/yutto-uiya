@@ -7,8 +7,10 @@ import { SettingsPage } from '../pages/SettingsPage/SettingsPage';
 import type { PageId } from '../data/nav';
 import type { ConsoleLogEntry } from '../services/launcher/launcher';
 import type {
+  DownloadOptions,
   EnvironmentProbe,
   ManagedFolderItem,
+  QualityOption,
   RuntimeInspection,
   RuntimeDriver,
   RuntimeTaskRecord,
@@ -32,6 +34,9 @@ interface RenderPageOptions {
   onClearParseItems: () => void;
   downloadUrl: string;
   onDownloadUrlChange: (next: string) => void;
+  parseVideoQualities: QualityOption[];
+  downloadOptions: DownloadOptions;
+  onDownloadOptionsChange: (next: DownloadOptions) => void;
   onOpenPath: (pathKey: string) => void;
   runtimeDriver: RuntimeDriver;
   scriptsReady: boolean;
@@ -118,6 +123,9 @@ export function renderPage(
           onClearParseItems={options.onClearParseItems}
           downloadUrl={options.downloadUrl}
           onDownloadUrlChange={options.onDownloadUrlChange}
+          parseVideoQualities={options.parseVideoQualities}
+          downloadOptions={options.downloadOptions}
+          onDownloadOptionsChange={options.onDownloadOptionsChange}
         />
       );
     case 'tools':

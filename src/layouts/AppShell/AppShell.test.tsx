@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import App from '../../app/App';
 import * as runtimeBridge from '../../services/runtime/bridge';
-import type { RuntimeEvent } from '../../services/runtime/runtime';
+import { DEFAULT_DOWNLOAD_OPTIONS, type RuntimeEvent } from '../../services/runtime/runtime';
 
 const runtimeListeners = new Set<(event: RuntimeEvent) => void>();
 const rawLogListeners = new Set<(line: string) => void>();
@@ -32,6 +32,7 @@ const {
     downloadDir: '/repo/downloads',
     sessData: false,
     ffmpegPath: 'ffmpeg',
+    noProxy: false,
   },
   defaultManagedFolders: [
     { key: 'workspace', label: '根目录', path: '/repo' },
@@ -65,7 +66,7 @@ vi.mock('../../services/runtime/bridge', async () => {
     }),
     openManagedPath: vi.fn().mockResolvedValue(undefined),
     exportConsoleLogs: vi.fn().mockResolvedValue('/repo/logs/launcher.log'),
-    parseTarget: vi.fn().mockResolvedValue([]),
+    parseTarget: vi.fn().mockResolvedValue({ items: [], videoQualities: [], audioQualities: [] }),
     subscribeRuntimeEvents: vi.fn().mockImplementation(async (onEvent, onRawLog) => {
       runtimeListeners.add(onEvent);
       rawLogListeners.add(onRawLog);
@@ -117,6 +118,7 @@ describe('AppShell', () => {
     await user.click(screen.getByRole('button', { name: '加入队列' }));
     expect(runtimeBridge.enqueueDownload).toHaveBeenCalledWith(
       'https://www.bilibili.com/video/BV1xx411c7mD',
+      DEFAULT_DOWNLOAD_OPTIONS,
     );
 
     // Task should appear in queue

@@ -92,6 +92,33 @@ export interface VideoParseItem {
   url: string;
 }
 
+export interface QualityOption {
+  label: string;
+  code: number;
+}
+
+export interface VideoParseResult {
+  items: VideoParseItem[];
+  videoQualities: QualityOption[];
+  audioQualities: QualityOption[];
+}
+
+export interface DownloadOptions {
+  requireVideo: boolean;
+  requireAudio: boolean;
+  requireCover: boolean;
+  videoQuality: number;
+  audioQuality: number;
+}
+
+export const DEFAULT_DOWNLOAD_OPTIONS: DownloadOptions = {
+  requireVideo: true,
+  requireAudio: true,
+  requireCover: false,
+  videoQuality: 127,
+  audioQuality: 30280,
+};
+
 export interface ManagedFolderItem {
   key: string;
   title: string;
