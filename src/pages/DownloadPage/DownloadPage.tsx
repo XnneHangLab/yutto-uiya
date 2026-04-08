@@ -14,7 +14,7 @@ const taskStatusLabel: Record<string, string> = {
 
 function downloadHint(opts: DownloadOptions): string {
   const { requireVideo, requireAudio, requireCover } = opts;
-  if (requireVideo && requireAudio && requireCover) return '视频 + 音频 + 封面（另存同目录）';
+  if (requireVideo && requireAudio && requireCover) return '视频 + 音频 + 封面（封面另存同目录）';
   if (requireVideo && requireAudio) return '视频 + 音频，自动混流';
   if (requireVideo && requireCover) return '仅视频流 + 封面';
   if (requireAudio && requireCover) return '仅音频流 + 封面';
@@ -110,7 +110,6 @@ export function DownloadPage({
         onDownload(item.url);
       }
     }
-    // Do NOT clear parse list or URL — user may want to download more
   }
 
   const allSelected = parseItems.length > 0 && parseSelected.size === parseItems.length;
@@ -156,69 +155,87 @@ export function DownloadPage({
       </section>
 
       {parseItems.length > 0 ? (
-        <section className="parse-results">
-          <div className="parse-results__header">
-            <span className="parse-results__title">
-              解析结果 <span className="parse-results__count">({parseItems.length} 个视频)</span>
-            </span>
-            <button
-              type="button"
-              className="parse-bulk-btn"
-              onClick={handleToggleAll}
-            >
-              {allSelected ? '取消全选' : '全选'}
-            </button>
-          </div>
-          <ul className="parse-results__list">
-            {parseItems.map((item) => (
-              <li key={item.index} className="parse-item">
-                <label className="parse-item__label">
-                  <input
-                    type="checkbox"
-                    className="parse-item__checkbox"
-                    checked={parseSelected.has(item.index)}
-                    onChange={() => handleToggleItem(item.index)}
-                  />
-                  <span className="parse-item__index">{item.index}</span>
-                  <span className="parse-item__title">{item.title}</span>
-                </label>
-              </li>
-            ))}
-          </ul>
-
-          <div className="download-options">
-            <div className="download-options__row">
-              <span className="download-options__label">资源类型</span>
-              <label className="download-options__check">
-                <input
-                  type="checkbox"
-                  checked={downloadOptions.requireVideo}
-                  onChange={(e) => onDownloadOptionsChange({ ...downloadOptions, requireVideo: e.target.checked })}
-                />
-                视频
-              </label>
-              <label className="download-options__check">
-                <input
-                  type="checkbox"
-                  checked={downloadOptions.requireAudio}
-                  onChange={(e) => onDownloadOptionsChange({ ...downloadOptions, requireAudio: e.target.checked })}
-                />
-                音频
-              </label>
-              <label className="download-options__check">
-                <input
-                  type="checkbox"
-                  checked={downloadOptions.requireCover}
-                  onChange={(e) => onDownloadOptionsChange({ ...downloadOptions, requireCover: e.target.checked })}
-                />
-                封面
-              </label>
+        <>
+          <section className="parse-results">
+            <div className="parse-results__header">
+              <span className="parse-results__title">
+                解析结果
+                <span className="parse-results__count">{parseItems.length} 个视频</span>
+              </span>
+              <button type="button" className="parse-bulk-btn" onClick={handleToggleAll}>
+                {allSelected ? '取消全选' : '全选'}
+              </button>
             </div>
+            <ul className="parse-results__list">
+              {parseItems.map((item) => (
+                <li key={item.index} className="parse-item">
+                  <label className="parse-item__label">
+                    <input
+                      type="checkbox"
+                      className="parse-item__checkbox"
+                      checked={parseSelected.has(item.index)}
+                      onChange={() => handleToggleItem(item.index)}
+                    />
+                    <span className="parse-item__index">{item.index}</span>
+                    <span className="parse-item__title">{item.title}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="dl-opts-card">
+            <header className="dl-opts-header">
+              <span className="dl-opts-header__title">下载选项</span>
+            </header>
+
+            <div className="dl-opts-row">
+              <div className="dl-opts-text">
+                <span className="dl-opts-name">视频</span>
+                <span className="dl-opts-desc">下载视频画面</span>
+              </div>
+              <button
+                type="button"
+                className={`dl-switch${downloadOptions.requireVideo ? ' dl-switch--on' : ''}`}
+                aria-pressed={downloadOptions.requireVideo}
+                onClick={() => onDownloadOptionsChange({ ...downloadOptions, requireVideo: !downloadOptions.requireVideo })}
+              />
+            </div>
+
+            <div className="dl-opts-row">
+              <div className="dl-opts-text">
+                <span className="dl-opts-name">音频</span>
+                <span className="dl-opts-desc">下载音频轨道；与视频同时选中时自动混流</span>
+              </div>
+              <button
+                type="button"
+                className={`dl-switch${downloadOptions.requireAudio ? ' dl-switch--on' : ''}`}
+                aria-pressed={downloadOptions.requireAudio}
+                onClick={() => onDownloadOptionsChange({ ...downloadOptions, requireAudio: !downloadOptions.requireAudio })}
+              />
+            </div>
+
+            <div className="dl-opts-row">
+              <div className="dl-opts-text">
+                <span className="dl-opts-name">封面</span>
+                <span className="dl-opts-desc">下载封面图片，另存至同目录</span>
+              </div>
+              <button
+                type="button"
+                className={`dl-switch${downloadOptions.requireCover ? ' dl-switch--on' : ''}`}
+                aria-pressed={downloadOptions.requireCover}
+                onClick={() => onDownloadOptionsChange({ ...downloadOptions, requireCover: !downloadOptions.requireCover })}
+              />
+            </div>
+
             {downloadOptions.requireVideo && parseVideoQualities.length > 0 ? (
-              <div className="download-options__row">
-                <span className="download-options__label">画质</span>
+              <div className="dl-opts-row">
+                <div className="dl-opts-text">
+                  <span className="dl-opts-name">画质</span>
+                  <span className="dl-opts-desc">批量下载时尽量满足该画质，不足时自动降级</span>
+                </div>
                 <select
-                  className="download-options__quality-select"
+                  className="dl-opts-select"
                   value={downloadOptions.videoQuality}
                   onChange={(e) => onDownloadOptionsChange({ ...downloadOptions, videoQuality: Number(e.target.value) })}
                 >
@@ -228,20 +245,20 @@ export function DownloadPage({
                 </select>
               </div>
             ) : null}
-            <p className="download-options__hint">{downloadHint(downloadOptions)}</p>
-          </div>
 
-          <div className="parse-results__actions">
-            <button
-              type="button"
-              className="download-submit-btn"
-              disabled={parseSelected.size === 0 || noneChecked}
-              onClick={handleDownloadSelected}
-            >
-              下载所选 ({parseSelected.size})
-            </button>
-          </div>
-        </section>
+            <div className="dl-opts-footer">
+              <span className="dl-opts-hint">{downloadHint(downloadOptions)}</span>
+              <button
+                type="button"
+                className="download-submit-btn"
+                disabled={parseSelected.size === 0 || noneChecked}
+                onClick={handleDownloadSelected}
+              >
+                下载所选 ({parseSelected.size})
+              </button>
+            </div>
+          </section>
+        </>
       ) : null}
 
       <section className="models-page__queue">
@@ -259,9 +276,7 @@ export function DownloadPage({
                     <div className="models-page__task-msg">{task.message}</div>
                   </div>
                   <div className="models-page__task-right">
-                    <span
-                      className={`models-page__task-status models-page__task-status--${task.status}`}
-                    >
+                    <span className={`models-page__task-status models-page__task-status--${task.status}`}>
                       {taskStatusLabel[task.status] ?? task.status}
                     </span>
                     <span className="models-page__task-progress">
