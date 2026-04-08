@@ -231,7 +231,7 @@ def cmd_parse(target: str) -> None:
             login_strict=settings.login_strict == "open",
             dir="./downloads",
         )
-        resource = YuttoResourceSettings()
+        resource = YuttoResourceSettings(require_cover=True)
         yutto_cfg = YuttoSettings(basic=basic, resource=resource)
         write_settings_file("yutto.toml", yutto_cfg)
         yutto_toml = search_for_settings_file("yutto.toml")
