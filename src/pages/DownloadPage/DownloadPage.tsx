@@ -53,7 +53,7 @@ type DetailState =
 
 interface DownloadPageProps {
   tasks: RuntimeTaskRecord[];
-  onDownload: (url: string) => void;
+  onDownload: (url: string, label?: string) => void;
   onParse: (url: string) => Promise<VideoParseItem[]>;
   scriptsReady: boolean;
   parseItems: VideoParseItem[];
@@ -144,7 +144,7 @@ export function DownloadPage({
   function handleDownloadSelected() {
     for (const item of parseItems) {
       if (parseSelected.has(item.index)) {
-        onDownload(item.url);
+        onDownload(item.url, item.title);
       }
     }
   }
@@ -404,9 +404,14 @@ export function DownloadPage({
                     ) : null}
                   </div>
                   {isActive ? (
-                    <div className="models-page__indeterminate">
-                      <div className="models-page__indeterminate-fill" />
-                    </div>
+                    <>
+                      <div className="models-page__task-console-hint">
+                        详细进度请前往控制台查看
+                      </div>
+                      <div className="models-page__indeterminate">
+                        <div className="models-page__indeterminate-fill" />
+                      </div>
+                    </>
                   ) : null}
                 </div>
               );

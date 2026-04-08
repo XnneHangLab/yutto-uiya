@@ -27,9 +27,10 @@ export function inspectRuntime() {
   return invoke<RuntimeInspection>('inspect_runtime');
 }
 
-export function enqueueDownload(target: string, options: DownloadOptions) {
+export function enqueueDownload(target: string, options: DownloadOptions, label?: string) {
   return invoke<RuntimeTaskRecord>('enqueue_download', {
     target,
+    label: label ?? null,
     requireVideo: options.requireVideo,
     requireAudio: options.requireAudio,
     requireCover: options.requireCover,

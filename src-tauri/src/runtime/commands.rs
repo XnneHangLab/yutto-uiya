@@ -106,13 +106,18 @@ pub async fn enqueue_download(
     app: AppHandle,
     state: State<'_, RuntimeState>,
     target: String,
+    label: Option<String>,
     require_video: Option<bool>,
     require_audio: Option<bool>,
     require_cover: Option<bool>,
     video_quality: Option<u32>,
     audio_quality: Option<u32>,
 ) -> Result<serde_json::Value, String> {
-    let (target, label) = validate_download_target(&target)?;
+    let (target, fallback_label) = validate_download_target(&target)?;
+    let display_label = label
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .unwrap_or(fallback_label);
     let rv = require_video.unwrap_or(true);
     let ra = require_audio.unwrap_or(true);
     let rc = require_cover.unwrap_or(false);
@@ -120,7 +125,7 @@ pub async fn enqueue_download(
     let aq = audio_quality.unwrap_or(30280);
     let (task, should_spawn_worker) = {
         let mut queue = state.queue.lock().unwrap();
-        queue.enqueue_with_worker_control(target.to_string(), label.to_string(), rv, ra, rc, vq, aq)
+        queue.enqueue_with_worker_control(target.to_string(), display_label, rv, ra, rc, vq, aq)
     };
 
     if should_spawn_worker {
@@ -320,8 +325,13 @@ fn validate_download_target(target: &str) -> Result<(String, String), String> {
     if target.is_empty() {
         return Err("download target must not be empty".to_string());
     }
-    // targets are BiliBili URLs or episode identifiers passed through to uiya CLI
-    Ok((target.to_string(), target.to_string()))
+    // Use BV ID as label when available; otherwise fall back to full URL.
+    let label = target
+        .find("BV")
+        .and_then(|idx| target.get(idx..idx + 12))
+        .map(str::to_string)
+        .unwrap_or_else(|| target.to_string());
+    Ok((target.to_string(), label))
 }
 
 async fn run_blocking_runtime_action<T, F>(action: F) -> Result<T, String>

@@ -119,6 +119,7 @@ describe('AppShell', () => {
     expect(runtimeBridge.enqueueDownload).toHaveBeenCalledWith(
       'https://www.bilibili.com/video/BV1xx411c7mD',
       DEFAULT_DOWNLOAD_OPTIONS,
+      undefined,
     );
 
     // Task should appear in queue
