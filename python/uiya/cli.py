@@ -121,17 +121,18 @@ def cmd_download(target: str) -> None:
             command,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            encoding="utf-8",
-            errors="replace",
+            # Binary mode: universal-newlines off, \r preserved for progress detection
         )
     except Exception as exc:
         fail(f"启动下载进程失败: {exc}", current=1)
 
     assert proc.stdout is not None
-    for raw_line in proc.stdout:
-        line = raw_line.rstrip("\r\n")
-        if line.strip():
-            print(line, flush=True)  # forwarded as runtime:raw-log by Rust
+    for raw_bytes in proc.stdout:
+        raw_line = raw_bytes.decode("utf-8", errors="replace")
+        line = raw_line.rstrip("\n")   # strip only \n; keep \r so frontend can detect progress lines
+        if line.strip("\r\n"):
+            sys.stdout.buffer.write((line + "\n").encode("utf-8"))
+            sys.stdout.buffer.flush()
 
     returncode = proc.wait()
 

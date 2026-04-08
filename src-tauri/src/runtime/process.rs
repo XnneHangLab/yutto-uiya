@@ -369,13 +369,24 @@ pub fn run_download_command(
         Ok(())
     });
 
-    let stdout_reader = BufReader::new(stdout);
-    for line_result in stdout_reader.lines() {
-        let line = line_result.map_err(|error| error.to_string())?;
-        if line.trim().is_empty() {
+    let mut stdout_reader = BufReader::new(stdout);
+    let mut raw_line = String::new();
+    loop {
+        raw_line.clear();
+        let n = stdout_reader
+            .read_line(&mut raw_line)
+            .map_err(|error| error.to_string())?;
+        if n == 0 {
+            break;
+        }
+        // Strip trailing \n only — keep \r so the frontend can detect progress lines
+        let line = raw_line.trim_end_matches('\n');
+        if line.trim_matches(|c: char| c == '\r' || c.is_whitespace()).is_empty() {
             continue;
         }
-        if let Ok(envelope) = serde_json::from_str::<PythonEnvelope>(&line) {
+        // Strip \r for JSON parsing only (progress bar lines are never valid JSON)
+        let for_parse = line.trim_end_matches('\r');
+        if let Ok(envelope) = serde_json::from_str::<PythonEnvelope>(for_parse) {
             if envelope.kind == "event" {
                 let payload = envelope.payload;
                 let timestamp = super::state::current_timestamp();
@@ -399,7 +410,7 @@ pub fn run_download_command(
                     .map_err(|error| error.to_string())?;
             }
         } else {
-            app.emit("runtime:raw-log", &line)
+            app.emit("runtime:raw-log", line)
                 .map_err(|error| error.to_string())?;
         }
     }
