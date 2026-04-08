@@ -324,10 +324,16 @@ def cmd_parse(target: str) -> None:
 def cmd_fetch_meta(url: str) -> None:
     """
     Fetch video metadata from Bilibili API for a single video URL.
-    Emits a JSON payload with cover, title, description, uploader, etc.
+    Emits a JSON payload with cover (as base64 data URL), title, description, uploader, etc.
     """
+    import base64
     import re
     import urllib.request
+
+    _headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Referer": "https://www.bilibili.com",
+    }
 
     def emit_payload(payload: dict) -> None:
         print(json.dumps({"kind": "payload", "payload": payload}, ensure_ascii=False), flush=True)
@@ -339,13 +345,7 @@ def cmd_fetch_meta(url: str) -> None:
     bvid = bvid_m.group(1)
     api_url = f"https://api.bilibili.com/x/web-interface/view?bvid={bvid}"
     try:
-        req = urllib.request.Request(
-            api_url,
-            headers={
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                "Referer": "https://www.bilibili.com",
-            },
-        )
+        req = urllib.request.Request(api_url, headers=_headers)
         with urllib.request.urlopen(req, timeout=10) as resp:
             data = json.loads(resp.read().decode("utf-8"))
     except Exception as exc:
@@ -357,9 +357,23 @@ def cmd_fetch_meta(url: str) -> None:
     d = data["data"]
     owner = d.get("owner") or {}
     stat = d.get("stat") or {}
+
+    # Fetch cover image locally and encode as base64 data URL to bypass hotlink protection
+    cover_data_url = ""
+    pic_url = d.get("pic", "")
+    if pic_url:
+        try:
+            img_req = urllib.request.Request(pic_url, headers=_headers)
+            with urllib.request.urlopen(img_req, timeout=10) as img_resp:
+                img_bytes = img_resp.read()
+                mime = img_resp.headers.get_content_type() or "image/jpeg"
+            cover_data_url = f"data:{mime};base64,{base64.b64encode(img_bytes).decode()}"
+        except Exception:
+            pass  # fall back to empty string; frontend will skip the image
+
     emit_payload({
         "title": d.get("title", ""),
-        "cover": d.get("pic", ""),
+        "cover": cover_data_url,
         "description": d.get("desc", ""),
         "uploader": owner.get("name", ""),
         "pubdate": d.get("pubdate", 0),
