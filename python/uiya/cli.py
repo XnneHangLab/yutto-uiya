@@ -90,8 +90,11 @@ def cmd_download(target: str) -> None:
     command: list[str] = ["uv", "run", "--no-sync", "yutto", target, "--no-color"]
     if yutto_toml:
         command += ["--config", str(yutto_toml)]
-    # UIYA_FFMPEG_PATH env var (set by Rust) takes priority over uiya.toml value
-    ffmpeg_path = (os.environ.get("UIYA_FFMPEG_PATH") or settings.ffmpeg_path or "").strip()
+    # UIYA_FFMPEG_PATH env var (set by Rust) takes priority, but only when it
+    # is a real path — the Rust default is literally "ffmpeg" which is no more
+    # specific than the toml default, so fall back to settings in that case.
+    _env_ffmpeg = os.environ.get("UIYA_FFMPEG_PATH", "").strip()
+    ffmpeg_path = (_env_ffmpeg if _env_ffmpeg and _env_ffmpeg != "ffmpeg" else (settings.ffmpeg_path or "")).strip()
     if ffmpeg_path and ffmpeg_path != "ffmpeg":
         command += ["--ffmpeg-path", ffmpeg_path]
     if settings.debug_mode == "open":
@@ -194,7 +197,8 @@ def cmd_parse(target: str) -> None:
     ]
     if yutto_toml:
         command += ["--config", str(yutto_toml)]
-    ffmpeg_path = (os.environ.get("UIYA_FFMPEG_PATH") or settings.ffmpeg_path or "").strip()
+    _env_ffmpeg = os.environ.get("UIYA_FFMPEG_PATH", "").strip()
+    ffmpeg_path = (_env_ffmpeg if _env_ffmpeg and _env_ffmpeg != "ffmpeg" else (settings.ffmpeg_path or "")).strip()
     if ffmpeg_path and ffmpeg_path != "ffmpeg":
         command += ["--ffmpeg-path", ffmpeg_path]
     if settings.debug_mode == "open":
