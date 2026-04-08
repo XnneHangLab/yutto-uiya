@@ -36,6 +36,19 @@ except Exception as error:
     result["message"] = "uiya 不可用，请检查 Python 环境"
 
 ffmpeg_cmd = os.environ.get("UIYA_FFMPEG_PATH") or "ffmpeg"
+if ffmpeg_cmd == "ffmpeg":
+    try:
+        import tomllib
+        from pathlib import Path
+        config_path = Path("config") / "uiya.toml"
+        if config_path.exists():
+            with open(config_path, "rb") as _f:
+                _cfg = tomllib.load(_f)
+            _saved = _cfg.get("ffmpeg_path", "").strip()
+            if _saved and _saved != "ffmpeg":
+                ffmpeg_cmd = _saved
+    except Exception:
+        pass
 try:
     proc = subprocess.run(
         [ffmpeg_cmd, "-version"],
