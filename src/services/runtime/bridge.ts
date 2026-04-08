@@ -7,6 +7,7 @@ import type {
   RuntimeEvent,
   RuntimeInspection,
   RuntimeTaskRecord,
+  VideoMeta,
   VideoParseResult,
 } from './runtime';
 
@@ -67,6 +68,10 @@ export function pickFfmpegPath() {
 
 export function parseTarget(target: string) {
   return invoke<VideoParseResult>('parse_target', { target });
+}
+
+export function fetchVideoMeta(url: string) {
+  return invoke<VideoMeta>('fetch_video_meta', { url });
 }
 
 export async function subscribeRuntimeEvents(

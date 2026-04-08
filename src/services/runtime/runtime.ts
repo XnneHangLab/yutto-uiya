@@ -92,6 +92,17 @@ export interface VideoParseItem {
   url: string;
 }
 
+export interface VideoMeta {
+  title: string;
+  cover: string;
+  description: string;
+  uploader: string;
+  pubdate: number;
+  duration: number;
+  view: number;
+  like: number;
+}
+
 export interface QualityOption {
   label: string;
   code: number;

@@ -77,6 +77,19 @@ pub struct ParseResult {
     pub audio_qualities: Vec<QualityOption>,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VideoMeta {
+    pub title: String,
+    pub cover: String,
+    pub description: String,
+    pub uploader: String,
+    pub pubdate: i64,
+    pub duration: u32,
+    pub view: u64,
+    pub like: u64,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct EnvironmentProbePayload {

@@ -437,6 +437,39 @@ pub fn run_download_command(
     }
 }
 
+pub fn run_fetch_meta_command(
+    repo_root: &Path,
+    workspace_root: &Path,
+    driver: &RuntimeDriverConfig,
+    url: &str,
+    app: &AppHandle,
+) -> Result<serde_json::Value, String> {
+    let output = build_python_command_for_driver(
+        repo_root,
+        workspace_root,
+        driver,
+        ["-m", "uiya.cli", "fetch-meta", url],
+    )
+    .output()
+    .map_err(|error| format!("failed to run fetch-meta: {error}"))?;
+
+    emit_stderr_lines(app, &output.stderr);
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let last_line = stdout
+        .lines()
+        .last()
+        .ok_or_else(|| "fetch-meta returned no output".to_string())?;
+    let envelope: PythonEnvelope = serde_json::from_str(last_line)
+        .map_err(|e| format!("failed to parse fetch-meta output: {e}"))?;
+
+    if let Some(error) = envelope.payload.get("error").and_then(|v| v.as_str()) {
+        return Err(error.to_string());
+    }
+
+    Ok(envelope.payload)
+}
+
 pub fn drain_download_queue(app: AppHandle, state: RuntimeState) {
     loop {
         let next_task = {

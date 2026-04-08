@@ -1,5 +1,12 @@
 import { useState } from 'react';
-import type { DownloadOptions, QualityOption, RuntimeTaskRecord, VideoParseItem } from '../../services/runtime/runtime';
+import { fetchVideoMeta } from '../../services/runtime/bridge';
+import type {
+  DownloadOptions,
+  QualityOption,
+  RuntimeTaskRecord,
+  VideoMeta,
+  VideoParseItem,
+} from '../../services/runtime/runtime';
 import '../../styles/models.css';
 
 const taskStatusLabel: Record<string, string> = {
@@ -23,6 +30,26 @@ function downloadHint(opts: DownloadOptions): string {
   if (requireCover) return '仅封面图片';
   return '请至少选择一种资源类型';
 }
+
+function formatDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function formatView(n: number): string {
+  if (n >= 100_000_000) return `${(n / 100_000_000).toFixed(1)}亿`;
+  if (n >= 10_000) return `${(n / 10_000).toFixed(1)}万`;
+  return String(n);
+}
+
+type DetailState =
+  | { phase: 'idle' }
+  | { phase: 'loading' }
+  | { phase: 'loaded'; meta: VideoMeta }
+  | { phase: 'error'; message: string };
 
 interface DownloadPageProps {
   tasks: RuntimeTaskRecord[];
@@ -56,11 +83,15 @@ export function DownloadPage({
   onDownloadOptionsChange,
 }: DownloadPageProps) {
   const [parsing, setParsing] = useState(false);
+  const [details, setDetails] = useState<Map<number, DetailState>>(new Map());
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
   function handleUrlChange(next: string) {
     onDownloadUrlChange(next);
     if (next.trim() !== downloadUrl.trim()) {
       onClearParseItems();
+      setDetails(new Map());
+      setExpandedIndex(null);
     }
   }
 
@@ -71,6 +102,8 @@ export function DownloadPage({
     onDownload(trimmed);
     onDownloadUrlChange('');
     onClearParseItems();
+    setDetails(new Map());
+    setExpandedIndex(null);
   }
 
   async function handleParse(event: React.FormEvent) {
@@ -79,6 +112,8 @@ export function DownloadPage({
     if (!trimmed) return;
     setParsing(true);
     onClearParseItems();
+    setDetails(new Map());
+    setExpandedIndex(null);
     try {
       await onParse(trimmed);
     } finally {
@@ -110,6 +145,63 @@ export function DownloadPage({
         onDownload(item.url);
       }
     }
+  }
+
+  async function handleToggleDetail(item: VideoParseItem) {
+    if (expandedIndex === item.index) {
+      setExpandedIndex(null);
+      return;
+    }
+    setExpandedIndex(item.index);
+    const current = details.get(item.index);
+    if (current?.phase === 'loaded' || current?.phase === 'loading') return;
+    setDetails((prev) => new Map(prev).set(item.index, { phase: 'loading' }));
+    try {
+      const meta = await fetchVideoMeta(item.url);
+      setDetails((prev) => new Map(prev).set(item.index, { phase: 'loaded', meta }));
+    } catch (err) {
+      setDetails((prev) =>
+        new Map(prev).set(item.index, {
+          phase: 'error',
+          message: err instanceof Error ? err.message : String(err),
+        }),
+      );
+    }
+  }
+
+  function renderDetailPanel(index: number) {
+    const state = details.get(index) ?? { phase: 'loading' };
+    if (state.phase === 'loading') {
+      return <div className="parse-detail__loading">加载中…</div>;
+    }
+    if (state.phase === 'error') {
+      return <div className="parse-detail__error">{state.message}</div>;
+    }
+    if (state.phase === 'loaded') {
+      const { meta } = state;
+      return (
+        <div className="parse-detail__content">
+          {meta.cover ? (
+            <img
+              className="parse-detail__cover"
+              src={meta.cover}
+              alt={meta.title}
+            />
+          ) : null}
+          <div className="parse-detail__info">
+            <p className="parse-detail__title">{meta.title}</p>
+            <p className="parse-detail__uploader">{meta.uploader}</p>
+            <p className="parse-detail__stats">
+              {formatView(meta.view)} 次播放 · {formatDuration(meta.duration)}
+            </p>
+            {meta.description ? (
+              <p className="parse-detail__desc">{meta.description}</p>
+            ) : null}
+          </div>
+        </div>
+      );
+    }
+    return null;
   }
 
   const allSelected = parseItems.length > 0 && parseSelected.size === parseItems.length;
@@ -169,16 +261,30 @@ export function DownloadPage({
             <ul className="parse-results__list">
               {parseItems.map((item) => (
                 <li key={item.index} className="parse-item">
-                  <label className="parse-item__label">
-                    <input
-                      type="checkbox"
-                      className="parse-item__checkbox"
-                      checked={parseSelected.has(item.index)}
-                      onChange={() => handleToggleItem(item.index)}
-                    />
-                    <span className="parse-item__index">{item.index}</span>
-                    <span className="parse-item__title">{item.title}</span>
-                  </label>
+                  <div className="parse-item__row">
+                    <label className="parse-item__label">
+                      <input
+                        type="checkbox"
+                        className="parse-item__checkbox"
+                        checked={parseSelected.has(item.index)}
+                        onChange={() => handleToggleItem(item.index)}
+                      />
+                      <span className="parse-item__index">{item.index}</span>
+                      <span className="parse-item__title">{item.title}</span>
+                    </label>
+                    <button
+                      type="button"
+                      className={`parse-item__detail-btn${expandedIndex === item.index ? ' parse-item__detail-btn--active' : ''}`}
+                      onClick={() => handleToggleDetail(item)}
+                    >
+                      详情
+                    </button>
+                  </div>
+                  {expandedIndex === item.index ? (
+                    <div className="parse-item__detail">
+                      {renderDetailPanel(item.index)}
+                    </div>
+                  ) : null}
                 </li>
               ))}
             </ul>
@@ -237,7 +343,9 @@ export function DownloadPage({
                 <select
                   className="dl-opts-select"
                   value={downloadOptions.videoQuality}
-                  onChange={(e) => onDownloadOptionsChange({ ...downloadOptions, videoQuality: Number(e.target.value) })}
+                  onChange={(e) =>
+                    onDownloadOptionsChange({ ...downloadOptions, videoQuality: Number(e.target.value) })
+                  }
                 >
                   {parseVideoQualities.map((q) => (
                     <option key={q.code} value={q.code}>{q.label}</option>

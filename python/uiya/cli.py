@@ -321,7 +321,55 @@ def cmd_parse(target: str) -> None:
     emit_payload({"items": items, "videoQualities": video_qualities, "audioQualities": audio_qualities})
 
 
-def cmd_save_settings(ffmpeg_path: str, no_proxy: bool) -> None:
+def cmd_fetch_meta(url: str) -> None:
+    """
+    Fetch video metadata from Bilibili API for a single video URL.
+    Emits a JSON payload with cover, title, description, uploader, etc.
+    """
+    import re
+    import urllib.request
+
+    def emit_payload(payload: dict) -> None:
+        print(json.dumps({"kind": "payload", "payload": payload}, ensure_ascii=False), flush=True)
+
+    bvid_m = re.search(r'(BV[1-9A-HJ-NP-Za-km-z]{10})', url)
+    if not bvid_m:
+        emit_payload({"error": "无法从 URL 中提取 BV 号"})
+        return
+    bvid = bvid_m.group(1)
+    api_url = f"https://api.bilibili.com/x/web-interface/view?bvid={bvid}"
+    try:
+        req = urllib.request.Request(
+            api_url,
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                "Referer": "https://www.bilibili.com",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except Exception as exc:
+        emit_payload({"error": f"请求失败: {exc}"})
+        return
+    if data.get("code") != 0:
+        emit_payload({"error": f"API 错误: {data.get('message')}"})
+        return
+    d = data["data"]
+    owner = d.get("owner") or {}
+    stat = d.get("stat") or {}
+    emit_payload({
+        "title": d.get("title", ""),
+        "cover": d.get("pic", ""),
+        "description": d.get("desc", ""),
+        "uploader": owner.get("name", ""),
+        "pubdate": d.get("pubdate", 0),
+        "duration": d.get("duration", 0),
+        "view": stat.get("view", 0),
+        "like": stat.get("like", 0),
+    })
+
+
+
     """
     Persist updated settings (currently ffmpeg_path and no_proxy) to uiya.toml.
     """
@@ -355,6 +403,9 @@ def main() -> None:
     parse_parser = subparsers.add_parser("parse")
     parse_parser.add_argument("target")
 
+    fetch_meta_parser = subparsers.add_parser("fetch-meta")
+    fetch_meta_parser.add_argument("url")
+
     save_parser = subparsers.add_parser("save-settings")
     save_parser.add_argument("--ffmpeg-path", default="ffmpeg")
     save_parser.add_argument("--no-proxy", default="false")
@@ -374,6 +425,8 @@ def main() -> None:
         )
     elif args.command == "parse":
         cmd_parse(args.target)
+    elif args.command == "fetch-meta":
+        cmd_fetch_meta(args.url)
     elif args.command == "save-settings":
         cmd_save_settings(args.ffmpeg_path, args.no_proxy.lower() == "true")
     else:
