@@ -27,6 +27,7 @@ def cmd_inspect_runtime() -> None:
         "downloadDir": str(settings.download_dir),
         "sessData": bool(settings.SESS_DATA),
         "ffmpegPath": settings.ffmpeg_path,
+        "noProxy": settings.no_proxy,
     }
     print(json.dumps({"kind": "payload", "payload": payload}, ensure_ascii=False), flush=True)
 
@@ -99,7 +100,9 @@ def cmd_download(target: str) -> None:
         command += ["--ffmpeg-path", ffmpeg_path]
     if settings.debug_mode == "open":
         command.append("--debug")
-    if settings.custom_proxy_pool and settings.proxy_pool:
+    if settings.no_proxy:
+        command += ["--proxy", "no"]
+    elif settings.custom_proxy_pool and settings.proxy_pool:
         command += ["--proxy", settings.proxy_pool]
 
     # ── 4. spawn and stream ───────────────────────────────────────────────
@@ -203,7 +206,9 @@ def cmd_parse(target: str) -> None:
         command += ["--ffmpeg-path", ffmpeg_path]
     if settings.debug_mode == "open":
         command.append("--debug")
-    if settings.custom_proxy_pool and settings.proxy_pool:
+    if settings.no_proxy:
+        command += ["--proxy", "no"]
+    elif settings.custom_proxy_pool and settings.proxy_pool:
         command += ["--proxy", settings.proxy_pool]
 
     title_re = re.compile(r'\bINFO\b.*开始处理视频\s+(.+)')
@@ -247,15 +252,16 @@ def cmd_parse(target: str) -> None:
     emit_payload({"items": items})
 
 
-def cmd_save_settings(ffmpeg_path: str) -> None:
+def cmd_save_settings(ffmpeg_path: str, no_proxy: bool) -> None:
     """
-    Persist updated settings (currently only ffmpeg_path) to uiya.toml.
+    Persist updated settings (currently ffmpeg_path and no_proxy) to uiya.toml.
     """
     from uiya.utils.config import UiyaSetting, load_settings_file, write_settings_file
 
     try:
         settings = load_settings_file("uiya.toml", UiyaSetting)
         settings.ffmpeg_path = ffmpeg_path
+        settings.no_proxy = no_proxy
         write_settings_file("uiya.toml", settings)
     except Exception as exc:
         print(json.dumps({"kind": "payload", "payload": {"ok": False, "error": str(exc)}}, ensure_ascii=False), flush=True)
@@ -277,6 +283,7 @@ def main() -> None:
 
     save_parser = subparsers.add_parser("save-settings")
     save_parser.add_argument("--ffmpeg-path", default="ffmpeg")
+    save_parser.add_argument("--no-proxy", default="false")
 
     args = parser.parse_args()
 
@@ -287,7 +294,7 @@ def main() -> None:
     elif args.command == "parse":
         cmd_parse(args.target)
     elif args.command == "save-settings":
-        cmd_save_settings(args.ffmpeg_path)
+        cmd_save_settings(args.ffmpeg_path, args.no_proxy.lower() == "true")
     else:
         parser.print_help()
         sys.exit(1)

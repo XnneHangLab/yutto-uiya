@@ -25,7 +25,8 @@ interface SettingsPageProps {
   ffmpegMode: 'system' | 'local';
   ffmpegExePath: string;
   onChooseFfmpegExe: () => Promise<string | null>;
-  onSave: (driver: RuntimeDriver, pythonExePath: string, ffmpegMode: 'system' | 'local', ffmpegExePath: string) => void;
+  noProxy: boolean;
+  onSave: (driver: RuntimeDriver, pythonExePath: string, ffmpegMode: 'system' | 'local', ffmpegExePath: string, noProxy: boolean) => void;
 }
 
 export function SettingsPage({
@@ -40,6 +41,7 @@ export function SettingsPage({
   ffmpegMode,
   ffmpegExePath,
   onChooseFfmpegExe,
+  noProxy,
   onSave,
 }: SettingsPageProps) {
   const [activeTab, setActiveTab] = useState<SettingsTabId>('general');
@@ -47,6 +49,7 @@ export function SettingsPage({
   const [localPythonExePath, setLocalPythonExePath] = useState(pythonExePath);
   const [localFfmpegMode, setLocalFfmpegMode] = useState<'system' | 'local'>(ffmpegMode);
   const [localFfmpegExePath, setLocalFfmpegExePath] = useState(ffmpegExePath);
+  const [localNoProxy, setLocalNoProxy] = useState(noProxy);
 
   const environmentLabel = environmentProbe
     ? formatEnvironmentStatus(environmentProbe.status)
@@ -252,13 +255,29 @@ export function SettingsPage({
                   </div>
                 </SettingRow>
               ) : null}
+
+              <SettingRow
+                name="禁用代理"
+                description="向 yutto 传递 --proxy no，忽略系统代理环境变量"
+                icon="🌐"
+              >
+                <label className="toggle-label">
+                  <input
+                    type="checkbox"
+                    className="toggle-checkbox"
+                    checked={localNoProxy}
+                    onChange={(e) => setLocalNoProxy(e.target.checked)}
+                  />
+                  <span className="toggle-text">{localNoProxy ? '已禁用' : '自动'}</span>
+                </label>
+              </SettingRow>
             </SettingCard>
 
             <div className="settings-save-row">
               <button
                 type="button"
                 className="settings-save-button"
-                onClick={() => onSave(localDriver, localPythonExePath, localFfmpegMode, localFfmpegExePath)}
+                onClick={() => onSave(localDriver, localPythonExePath, localFfmpegMode, localFfmpegExePath, localNoProxy)}
               >
                 保存并重新检测
               </button>

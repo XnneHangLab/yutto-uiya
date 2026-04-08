@@ -177,6 +177,7 @@ pub async fn set_runtime_driver(
     driver: String,
     python_path: Option<String>,
     ffmpeg_path: Option<String>,
+    no_proxy: Option<bool>,
 ) -> Result<serde_json::Value, String> {
     let driver_config = match driver.as_str() {
         "uv" => RuntimeDriverConfig::Uv,
@@ -198,10 +199,12 @@ pub async fn set_runtime_driver(
         .unwrap_or_else(|| "ffmpeg".to_string());
     state.set_ffmpeg_path(resolved_ffmpeg.clone());
 
+    let resolved_no_proxy = no_proxy.unwrap_or(false);
+
     let repo_root = state.repo_root.clone();
     let workspace_root = state.current_workspace_root();
     run_blocking_runtime_action(move || {
-        run_save_settings_command(&repo_root, &workspace_root, &driver_config, &resolved_ffmpeg)?;
+        run_save_settings_command(&repo_root, &workspace_root, &driver_config, &resolved_ffmpeg, resolved_no_proxy)?;
         let probe = run_probe_command(&repo_root, &workspace_root, &driver_config, &resolved_ffmpeg, &app)?;
         serde_json::to_value(probe).map_err(|error| error.to_string())
     })

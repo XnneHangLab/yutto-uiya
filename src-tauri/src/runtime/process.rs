@@ -133,12 +133,15 @@ pub fn run_save_settings_command(
     workspace_root: &Path,
     driver: &RuntimeDriverConfig,
     ffmpeg_path: &str,
+    no_proxy: bool,
 ) -> Result<(), String> {
     let output = build_python_command_for_driver(
         repo_root,
         workspace_root,
         driver,
-        ["-m", "uiya.cli", "save-settings", "--ffmpeg-path", ffmpeg_path],
+        ["-m", "uiya.cli", "save-settings",
+         "--ffmpeg-path", ffmpeg_path,
+         "--no-proxy", if no_proxy { "true" } else { "false" }],
     )
     .output()
     .map_err(|error| format!("failed to run save-settings: {error}"))?;

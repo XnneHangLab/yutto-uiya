@@ -45,8 +45,8 @@ export function exportConsoleLogs(contents: string) {
   return invoke<string>('export_console_logs', { contents });
 }
 
-export function setRuntimeDriver(driver: string, pythonPath: string | null, ffmpegPath: string | null) {
-  return invoke<EnvironmentProbe>('set_runtime_driver', { driver, pythonPath, ffmpegPath });
+export function setRuntimeDriver(driver: string, pythonPath: string | null, ffmpegPath: string | null, noProxy: boolean) {
+  return invoke<EnvironmentProbe>('set_runtime_driver', { driver, pythonPath, ffmpegPath, noProxy });
 }
 
 export function pickPythonPath() {

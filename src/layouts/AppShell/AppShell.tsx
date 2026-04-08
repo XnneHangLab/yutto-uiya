@@ -64,6 +64,7 @@ export function AppShell() {
   const [pythonExePath, setPythonExePath] = useState('');
   const [ffmpegMode, setFfmpegMode] = useState<'system' | 'local'>('system');
   const [ffmpegExePath, setFfmpegExePath] = useState('');
+  const [noProxy, setNoProxy] = useState(false);
   const [parseItems, setParseItems] = useState<VideoParseItem[]>([]);
   const [parseSelected, setParseSelected] = useState<Set<number>>(new Set());
   const [downloadUrl, setDownloadUrl] = useState('');
@@ -94,6 +95,7 @@ export function AppShell() {
           setFfmpegMode('system');
           setFfmpegExePath('');
         }
+        setNoProxy(nextInspection.noProxy ?? false);
       } catch (error) {
         if (disposed) {
           return;
@@ -264,6 +266,7 @@ export function AppShell() {
       setFfmpegMode('system');
       setFfmpegExePath('');
     }
+    setNoProxy(nextInspection.noProxy ?? false);
   }
 
   async function handleChooseWorkspaceRoot() {
@@ -333,14 +336,16 @@ export function AppShell() {
     exePath: string,
     nextFfmpegMode: 'system' | 'local',
     nextFfmpegExePath: string,
+    nextNoProxy: boolean,
   ) {
     const ffmpegPath = nextFfmpegMode === 'local' ? nextFfmpegExePath : null;
     try {
-      const nextProbe = await setRuntimeDriverApi(driver, exePath || null, ffmpegPath);
+      const nextProbe = await setRuntimeDriverApi(driver, exePath || null, ffmpegPath, nextNoProxy);
       setRuntimeDriver(driver);
       setPythonExePath(exePath);
       setFfmpegMode(nextFfmpegMode);
       setFfmpegExePath(nextFfmpegExePath);
+      setNoProxy(nextNoProxy);
       if (nextProbe) {
         await handleWorkspaceProbe(nextProbe);
       }
@@ -422,6 +427,7 @@ export function AppShell() {
               ffmpegMode,
               ffmpegExePath,
               onChooseFfmpegExe: handleChooseFfmpegExe,
+              noProxy,
               onSave: handleSaveSettings,
               onSetAutoScroll: setAutoScroll,
               onSetWrapLines: setWrapLines,

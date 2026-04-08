@@ -34,6 +34,7 @@ describe('SettingsPage', () => {
         ffmpegMode="system"
         ffmpegExePath=""
         onChooseFfmpegExe={onChooseFfmpegExe}
+        noProxy={false}
         onSave={onSave}
       />,
     );
@@ -63,7 +64,7 @@ describe('SettingsPage', () => {
     expect(onUseRepoWorkspaceRoot).toHaveBeenCalledTimes(1);
 
     await user.click(screen.getByRole('button', { name: '保存并重新检测' }));
-    expect(onSave).toHaveBeenCalledWith('uv', '', 'system', '');
+    expect(onSave).toHaveBeenCalledWith('uv', '', 'system', '', false);
 
     await user.click(screen.getByRole('tab', { name: '关于' }));
     expect(screen.getByRole('tabpanel', { name: '关于' })).toHaveAttribute(
@@ -98,6 +99,7 @@ describe('SettingsPage', () => {
         ffmpegMode="system"
         ffmpegExePath=""
         onChooseFfmpegExe={vi.fn().mockResolvedValue(null)}
+        noProxy={false}
         onSave={vi.fn()}
       />,
     );
@@ -122,6 +124,7 @@ describe('SettingsPage', () => {
         ffmpegMode="system"
         ffmpegExePath=""
         onChooseFfmpegExe={vi.fn().mockResolvedValue(null)}
+        noProxy={false}
         onSave={vi.fn()}
       />,
     );

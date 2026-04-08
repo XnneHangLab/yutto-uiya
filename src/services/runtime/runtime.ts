@@ -55,6 +55,7 @@ export interface RuntimeInspection {
   downloadDir: string;
   sessData: boolean;
   ffmpegPath: string;
+  noProxy: boolean;
 }
 
 export interface RuntimeTaskRecord {

@@ -47,7 +47,8 @@ interface RenderPageOptions {
   ffmpegMode: 'system' | 'local';
   ffmpegExePath: string;
   onChooseFfmpegExe: () => Promise<string | null>;
-  onSave: (driver: RuntimeDriver, pythonExePath: string, ffmpegMode: 'system' | 'local', ffmpegExePath: string) => void;
+  noProxy: boolean;
+  onSave: (driver: RuntimeDriver, pythonExePath: string, ffmpegMode: 'system' | 'local', ffmpegExePath: string, noProxy: boolean) => void;
   onSetAutoScroll: (next: boolean) => void;
   onSetWrapLines: (next: boolean) => void;
   onClearLogs: () => void;
@@ -81,6 +82,7 @@ export function renderPage(
           ffmpegMode={options.ffmpegMode}
           ffmpegExePath={options.ffmpegExePath}
           onChooseFfmpegExe={options.onChooseFfmpegExe}
+          noProxy={options.noProxy}
           onSave={options.onSave}
         />
       );

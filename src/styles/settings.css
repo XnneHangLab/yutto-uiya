@@ -414,3 +414,24 @@
     width: 220px;
   }
 }
+
+.settings-shell .toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.settings-shell .toggle-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent, #6366f1);
+  cursor: pointer;
+}
+
+.settings-shell .toggle-text {
+  font-size: 13px;
+  color: var(--text-sub, var(--text));
+  min-width: 36px;
+}
