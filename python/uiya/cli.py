@@ -171,12 +171,35 @@ def cmd_download(
         fail(f"启动下载进程失败: {exc}", current=1)
 
     assert proc.stdout is not None
-    for raw_bytes in proc.stdout:
-        raw_line = raw_bytes.decode("utf-8", errors="replace")
-        line = raw_line.rstrip("\n")   # strip only \n; keep \r so frontend can detect progress lines
-        if line.strip("\r\n"):
-            sys.stdout.buffer.write((line + "\n").encode("utf-8"))
-            sys.stdout.buffer.flush()
+    # Read in small chunks instead of line-by-line so that yutto's \r-delimited
+    # progress frames reach Rust in real time (the \n-split iterator blocks until
+    # the whole line—including all \r overwrites—is flushed by yutto at the end).
+    _buf = b""
+    while True:
+        _chunk = proc.stdout.read(256)
+        if not _chunk:
+            break
+        _buf += _chunk
+        # Emit every \r- or \n-terminated segment immediately.
+        while True:
+            _r = _buf.find(b'\r')
+            _n = _buf.find(b'\n')
+            if _r == -1 and _n == -1:
+                break
+            if _r == -1 or (_n != -1 and _n < _r):
+                _idx, _is_cr = _n, False
+            else:
+                _idx, _is_cr = _r, True
+            _seg = _buf[:_idx]
+            _buf = _buf[_idx + 1:]
+            _visible = _seg.decode("utf-8", errors="replace")
+            if _visible.strip():
+                _term = b"\r\n" if _is_cr else b"\n"
+                sys.stdout.buffer.write(_visible.encode("utf-8") + _term)
+                sys.stdout.buffer.flush()
+    if _buf.strip():
+        sys.stdout.buffer.write(_buf + b"\n")
+        sys.stdout.buffer.flush()
 
     returncode = proc.wait()
 

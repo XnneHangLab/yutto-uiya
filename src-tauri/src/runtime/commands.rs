@@ -112,17 +112,6 @@ pub async fn enqueue_download(
     video_quality: Option<u32>,
     audio_quality: Option<u32>,
 ) -> Result<serde_json::Value, String> {
-    let repo_root = state.repo_root.clone();
-    let workspace_root = state.current_workspace_root();
-    let driver = state.current_driver_config();
-    let ffmpeg_path = state.current_ffmpeg_path();
-    let app_for_ensure = app.clone();
-    run_blocking_runtime_action(move || {
-        ensure_environment_ready(&repo_root, &workspace_root, &driver, &ffmpeg_path, &app_for_ensure)
-            .map(|_| ())
-    })
-    .await?;
-
     let (target, label) = validate_download_target(&target)?;
     let rv = require_video.unwrap_or(true);
     let ra = require_audio.unwrap_or(true);
