@@ -1,8 +1,8 @@
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Emitter, State};
 
 use super::process::{
     drain_download_queue,
-    ensure_environment_ready, open_path, pick_ffmpeg_path, pick_python_path, pick_workspace_root,
+    ensure_environment_ready, kill_process, open_path, pick_ffmpeg_path, pick_python_path, pick_workspace_root,
     resolve_managed_path, run_fetch_meta_command, run_inspect_command, run_parse_command,
     run_probe_command, run_save_settings_command, write_console_log,
 };
@@ -142,6 +142,7 @@ pub async fn enqueue_download(
             queue: state.queue.clone(),
             driver_config: state.driver_config.clone(),
             ffmpeg_path: state.ffmpeg_path.clone(),
+            active_download: state.active_download.clone(),
         };
 
         tauri::async_runtime::spawn_blocking(move || {
@@ -156,6 +157,77 @@ pub async fn enqueue_download(
 pub fn list_download_tasks(state: State<'_, RuntimeState>) -> Result<serde_json::Value, String> {
     let queue = state.queue.lock().unwrap();
     serde_json::to_value(&queue.tasks).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+pub fn cancel_task(
+    app: AppHandle,
+    state: State<'_, RuntimeState>,
+    task_id: String,
+) -> Result<(), String> {
+    use super::models::{RuntimeEventPayload, TaskStatus};
+    use super::state::current_timestamp;
+
+    let timestamp = current_timestamp();
+
+    // Fast path: the task is still waiting in the queue — just remove it.
+    let cancelled_target = {
+        let mut queue = state.queue.lock().unwrap();
+        queue.cancel_waiting_task(&task_id)
+    };
+
+    if let Some(target) = cancelled_target {
+        let _ = app.emit("runtime:event", &RuntimeEventPayload {
+            event: "download.cancelled".to_string(),
+            task_id: task_id.clone(),
+            target,
+            status: "cancelled".to_string(),
+            message: "已取消".to_string(),
+            progress_current: 0,
+            progress_total: 3,
+            progress_unit: "stage".to_string(),
+            timestamp,
+            desc: None, percent: None, downloaded: None, total: None,
+        });
+        return Ok(());
+    }
+
+    // The task might be actively running — kill its subprocess.
+    let active = state.active_download.lock().unwrap().clone();
+    if let Some((active_task_id, pid)) = active {
+        if active_task_id == task_id {
+            kill_process(pid);
+
+            let target = {
+                let queue = state.queue.lock().unwrap();
+                queue.tasks.iter()
+                    .find(|t| t.task_id == task_id)
+                    .map(|t| t.target.clone())
+                    .unwrap_or_default()
+            };
+
+            // Pre-mark as cancelled so drain_download_queue won't overwrite with failed.
+            {
+                let mut queue = state.queue.lock().unwrap();
+                queue.apply_update(&task_id, TaskStatus::Cancelled, "已取消".to_string(), 0, 3);
+            }
+
+            let _ = app.emit("runtime:event", &RuntimeEventPayload {
+                event: "download.cancelled".to_string(),
+                task_id,
+                target,
+                status: "cancelled".to_string(),
+                message: "已取消".to_string(),
+                progress_current: 0,
+                progress_total: 3,
+                progress_unit: "stage".to_string(),
+                timestamp,
+                desc: None, percent: None, downloaded: None, total: None,
+            });
+        }
+    }
+
+    Ok(())
 }
 
 #[tauri::command]

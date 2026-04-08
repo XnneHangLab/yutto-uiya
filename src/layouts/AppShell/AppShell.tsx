@@ -10,6 +10,7 @@ import {
 } from '../../services/launcher/launcher';
 import {
   chooseWorkspaceRoot,
+  cancelTask,
   enqueueDownload,
   exportConsoleLogs,
   inspectRuntime,
@@ -387,6 +388,17 @@ export function AppShell() {
     setLogs([]);
   }
 
+  async function handleCancelTask(taskId: string) {
+    try {
+      await cancelTask(taskId);
+    } catch (error) {
+      setLogs((current) => [
+        ...current,
+        createConsoleLog('stderr', `取消任务失败: ${toErrorMessage(error)}`),
+      ]);
+    }
+  }
+
   const latestMessage = environmentProbe?.message ?? '正在读取运行时信息';
   const scriptsReady = isEnvironmentReady(environmentProbe);
   const workspaceLocked = getQueueSummary(tasks).queueLength > 0;
@@ -425,6 +437,7 @@ export function AppShell() {
               parseVideoQualities,
               downloadOptions,
               onDownloadOptionsChange: setDownloadOptions,
+              onCancelTask: handleCancelTask,
               onOpenPath: handleOpenManagedPath,
               runtimeDriver,
               scriptsReady,

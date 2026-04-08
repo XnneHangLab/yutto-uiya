@@ -156,10 +156,30 @@
   font-family: ui-monospace, 'SF Mono', Consolas, monospace;
 }
 
+.models-page__task-cancel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+  line-height: 1;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.models-page__task-cancel:hover {
+  background: rgba(255, 100, 100, 0.12);
+  color: #ff9b9b;
+}
+
 @keyframes indeterminate-slide {
-  0% { left: -40%; width: 40%; }
-  60% { left: 100%; width: 40%; }
-  100% { left: 100%; width: 0; }
+  0%   { left: -45%; width: 45%; }
+  100% { left: 100%; width: 45%; }
 }
 
 .models-page__indeterminate {
@@ -177,7 +197,7 @@
   height: 100%;
   background: var(--accent);
   border-radius: 2px;
-  animation: indeterminate-slide 1.4s ease-in-out infinite;
+  animation: indeterminate-slide 1.2s linear infinite;
 }
 
 /* ── Download form ── */

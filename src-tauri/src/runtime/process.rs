@@ -357,6 +357,13 @@ pub fn run_download_command(
     let mut child = command
         .spawn()
         .map_err(|error| format!("failed to spawn download process: {error}"))?;
+
+    // Register the running child so cancel_task can kill it by PID.
+    {
+        let mut active = state.active_download.lock().unwrap();
+        *active = Some((task_id.clone(), child.id()));
+    }
+
     let stdout = child
         .stdout
         .take()
@@ -426,6 +433,11 @@ pub fn run_download_command(
     }
 
     let status = child.wait().map_err(|error| error.to_string())?;
+    // Unregister the child PID regardless of exit status.
+    {
+        let mut active = state.active_download.lock().unwrap();
+        *active = None;
+    }
     stderr_reader
         .join()
         .map_err(|_| "stderr reader thread panicked".to_string())??;
@@ -489,6 +501,7 @@ pub fn drain_download_queue(app: AppHandle, state: RuntimeState) {
                 queue: state.queue.clone(),
                 driver_config: state.driver_config.clone(),
                 ffmpeg_path: state.ffmpeg_path.clone(),
+                active_download: state.active_download.clone(),
             },
             task.task_id.clone(),
             task.target.clone(),
@@ -498,20 +511,42 @@ pub fn drain_download_queue(app: AppHandle, state: RuntimeState) {
             task.video_quality,
             task.audio_quality,
         ) {
-            let timestamp = super::state::current_timestamp();
-            let mut queue = state.queue.lock().unwrap();
-            queue.apply_update(&task.task_id, TaskStatus::Failed, error.clone(), 3, 3);
-            drop(queue);
+            // If the task was already marked cancelled (by cancel_task), don't overwrite.
+            let already_cancelled = {
+                let queue = state.queue.lock().unwrap();
+                queue.tasks.iter()
+                    .find(|t| t.task_id == task.task_id)
+                    .map(|t| t.status == TaskStatus::Cancelled)
+                    .unwrap_or(false)
+            };
+            if !already_cancelled {
+                let timestamp = super::state::current_timestamp();
+                let mut queue = state.queue.lock().unwrap();
+                queue.apply_update(&task.task_id, TaskStatus::Failed, error.clone(), 3, 3);
+                drop(queue);
 
-            let event = build_terminal_failure_event(
-                &task.task_id,
-                &task.target,
-                &error,
-                &timestamp,
-            );
-            let _ = app.emit("runtime:event", &event);
+                let event = build_terminal_failure_event(
+                    &task.task_id,
+                    &task.target,
+                    &error,
+                    &timestamp,
+                );
+                let _ = app.emit("runtime:event", &event);
+            }
         }
     }
+}
+
+/// Kill the process with the given PID. On Windows, kills the whole process tree.
+pub fn kill_process(pid: u32) {
+    #[cfg(target_os = "windows")]
+    let _ = std::process::Command::new("taskkill")
+        .args(["/F", "/T", "/PID", &pid.to_string()])
+        .output();
+    #[cfg(not(target_os = "windows"))]
+    let _ = std::process::Command::new("kill")
+        .args(["-TERM", &pid.to_string()])
+        .output();
 }
 
 pub fn open_path(path: &Path) -> Result<(), String> {

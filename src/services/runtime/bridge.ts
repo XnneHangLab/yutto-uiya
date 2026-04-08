@@ -66,6 +66,10 @@ export function pickFfmpegPath() {
   return invoke<string | null>('pick_ffmpeg_path_command');
 }
 
+export function cancelTask(taskId: string) {
+  return invoke<void>('cancel_task', { taskId });
+}
+
 export function parseTarget(target: string) {
   return invoke<VideoParseResult>('parse_target', { target });
 }

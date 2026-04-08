@@ -118,6 +118,19 @@ impl QueueState {
                 ))
     }
 
+    /// Remove a waiting (not-yet-started) task from the queue, mark it cancelled, and return its target URL.
+    /// Returns None if the task is not in the waiting queue (it may already be running).
+    pub fn cancel_waiting_task(&mut self, task_id: &str) -> Option<String> {
+        let pos = self.waiting.iter().position(|t| t.task_id == task_id)?;
+        self.waiting.remove(pos);
+        let target = self.tasks.iter()
+            .find(|t| t.task_id == task_id)
+            .map(|t| t.target.clone())
+            .unwrap_or_default();
+        self.apply_update(task_id, TaskStatus::Cancelled, "已取消".to_string(), 0, 3);
+        Some(target)
+    }
+
     pub fn reset_for_workspace_switch(&mut self) {
         self.next_id = 0;
         self.tasks.clear();
@@ -133,6 +146,8 @@ pub struct RuntimeState {
     pub queue: Arc<Mutex<QueueState>>,
     pub driver_config: Arc<Mutex<RuntimeDriverConfig>>,
     pub ffmpeg_path: Arc<Mutex<String>>,
+    /// PID of the currently-running download subprocess (task_id, child_pid).
+    pub active_download: Arc<Mutex<Option<(String, u32)>>>,
 }
 
 impl RuntimeState {
@@ -143,6 +158,7 @@ impl RuntimeState {
             queue: Arc::new(Mutex::new(QueueState::default())),
             driver_config: Arc::new(Mutex::new(RuntimeDriverConfig::Uv)),
             ffmpeg_path: Arc::new(Mutex::new("ffmpeg".to_string())),
+            active_download: Arc::new(Mutex::new(None)),
         }
     }
 

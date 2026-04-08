@@ -37,6 +37,7 @@ interface RenderPageOptions {
   parseVideoQualities: QualityOption[];
   downloadOptions: DownloadOptions;
   onDownloadOptionsChange: (next: DownloadOptions) => void;
+  onCancelTask: (taskId: string) => void;
   onOpenPath: (pathKey: string) => void;
   runtimeDriver: RuntimeDriver;
   scriptsReady: boolean;
@@ -126,6 +127,7 @@ export function renderPage(
           parseVideoQualities={options.parseVideoQualities}
           downloadOptions={options.downloadOptions}
           onDownloadOptionsChange={options.onDownloadOptionsChange}
+          onCancelTask={options.onCancelTask}
         />
       );
     case 'tools':

@@ -65,6 +65,7 @@ interface DownloadPageProps {
   parseVideoQualities: QualityOption[];
   downloadOptions: DownloadOptions;
   onDownloadOptionsChange: (next: DownloadOptions) => void;
+  onCancelTask: (taskId: string) => void;
 }
 
 export function DownloadPage({
@@ -81,6 +82,7 @@ export function DownloadPage({
   parseVideoQualities,
   downloadOptions,
   onDownloadOptionsChange,
+  onCancelTask,
 }: DownloadPageProps) {
   const [parsing, setParsing] = useState(false);
   const [details, setDetails] = useState<Map<number, DetailState>>(new Map());
@@ -390,6 +392,16 @@ export function DownloadPage({
                     <span className="models-page__task-progress">
                       {task.progressCurrent} / {task.progressTotal}
                     </span>
+                    {isActive ? (
+                      <button
+                        type="button"
+                        className="models-page__task-cancel"
+                        onClick={() => onCancelTask(task.taskId)}
+                        title="取消"
+                      >
+                        ✕
+                      </button>
+                    ) : null}
                   </div>
                   {isActive ? (
                     <div className="models-page__indeterminate">
