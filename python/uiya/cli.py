@@ -140,10 +140,6 @@ def cmd_download(
     if select_index is not None:
         # Batch mode with specific page index.
         command += ["-b", "-p", str(select_index)]
-    elif dir_override:
-        # Batch mode without page filter: yutto uses ugc_video_batch extractor
-        # which puts files in {title}/ subdir, matching the collection structure.
-        command.append("-b")
     if yutto_toml:
         command += ["--config", str(yutto_toml)]
     # UIYA_FFMPEG_PATH env var (set by Rust) takes priority, but only when it
@@ -388,6 +384,16 @@ def cmd_parse(target: str) -> None:
         collection_dir = common.as_posix() if str(common) not in (".", "") else ""
     else:
         collection_dir = ""
+
+    # Match each parse item to its per-video leaf dir by title.
+    # Yutto names the output dir after the sanitized video title, so the
+    # basename of the leaf dir should equal the title from the log.
+    # Fall back to collection_dir when no match is found.
+    dir_by_basename: dict[str, str] = {
+        leaf.parts[-1]: leaf.as_posix() for leaf in leaf_dirs if leaf.parts
+    }
+    for item in items:
+        item["dir"] = dir_by_basename.get(item["title"], collection_dir)
 
     # Sort highest code first (best quality first)
     video_qualities = [{"label": label, "code": code}

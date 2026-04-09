@@ -26,7 +26,7 @@ interface RenderPageOptions {
   wrapLines: boolean;
   latestMessage: string;
   onOpenModels: () => void;
-  onDownload: (url: string, label?: string) => void;
+  onDownload: (url: string, label?: string, itemDir?: string) => void;
   onParse: (url: string) => Promise<VideoParseItem[]>;
   parseItems: VideoParseItem[];
   parseSelected: Set<number>;

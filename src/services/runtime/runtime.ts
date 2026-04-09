@@ -91,6 +91,8 @@ export interface VideoParseItem {
   index: number;
   title: string;
   url: string;
+  /** Per-video output directory relative to downloads root. Empty for single videos. */
+  dir: string;
 }
 
 export interface VideoMeta {

@@ -194,7 +194,7 @@ export function AppShell() {
     };
   }, []);
 
-  async function handleDownloadBilibili(url: string, label?: string) {
+  async function handleDownloadBilibili(url: string, label?: string, itemDir?: string) {
     if (!isEnvironmentReady(environmentProbe)) {
       setLogs((current) => [
         ...current,
@@ -204,7 +204,7 @@ export function AppShell() {
     }
 
     try {
-      const task = await enqueueDownload(url, downloadOptions, label, parseDirOverride || undefined);
+      const task = await enqueueDownload(url, downloadOptions, label, itemDir || parseDirOverride || undefined);
       setTasks((current) => {
         const next = current.filter((item) => item.taskId !== task.taskId);
         next.push(task);
