@@ -71,6 +71,7 @@ export function AppShell() {
   const [parseItems, setParseItems] = useState<VideoParseItem[]>([]);
   const [parseSelected, setParseSelected] = useState<Set<number>>(new Set());
   const [downloadUrl, setDownloadUrl] = useState('');
+  const [parseCollectionUrl, setParseCollectionUrl] = useState('');
   const [parseDirOverride, setParseDirOverride] = useState('');
   const [parseVideoQualities, setParseVideoQualities] = useState<QualityOption[]>([]);
   const [downloadOptions, setDownloadOptions] = useState<DownloadOptions>(DEFAULT_DOWNLOAD_OPTIONS);
@@ -194,7 +195,7 @@ export function AppShell() {
     };
   }, []);
 
-  async function handleDownloadBilibili(url: string, label?: string, itemDir?: string) {
+  async function handleDownloadBilibili(url: string, label?: string, itemIndex?: number) {
     if (!isEnvironmentReady(environmentProbe)) {
       setLogs((current) => [
         ...current,
@@ -203,8 +204,17 @@ export function AppShell() {
       return;
     }
 
+    // When downloading from a parsed collection, use the original collection URL
+    // with -b -p itemIndex so yutto applies its own path template and places
+    // files in the correct subdirectory (e.g. 收藏夹/series/title/).
+    // For direct URL downloads (no itemIndex), use the URL as-is.
+    const isCollectionItem = !!parseCollectionUrl && itemIndex !== undefined;
+    const target = isCollectionItem ? parseCollectionUrl : url;
+    const selectIndex = isCollectionItem ? itemIndex : undefined;
+    const dirOverride = isCollectionItem ? undefined : (parseDirOverride || undefined);
+
     try {
-      const task = await enqueueDownload(url, downloadOptions, label, itemDir || parseDirOverride || undefined);
+      const task = await enqueueDownload(target, downloadOptions, label, dirOverride, selectIndex);
       setTasks((current) => {
         const next = current.filter((item) => item.taskId !== task.taskId);
         next.push(task);
@@ -233,6 +243,7 @@ export function AppShell() {
     }
     try {
       const result = await parseTarget(url);
+      setParseCollectionUrl(url);
       setParseItems(result.items);
       setParseSelected(new Set(result.items.map((item) => item.index)));
       setParseDirOverride(result.dir ?? '');
@@ -251,6 +262,7 @@ export function AppShell() {
   }
 
   function handleClearParseItems() {
+    setParseCollectionUrl('');
     setParseItems([]);
     setParseSelected(new Set());
     setParseDirOverride('');

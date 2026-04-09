@@ -27,7 +27,7 @@ export function inspectRuntime() {
   return invoke<RuntimeInspection>('inspect_runtime');
 }
 
-export function enqueueDownload(target: string, options: DownloadOptions, label?: string, dirOverride?: string) {
+export function enqueueDownload(target: string, options: DownloadOptions, label?: string, dirOverride?: string, selectIndex?: number) {
   return invoke<RuntimeTaskRecord>('enqueue_download', {
     target,
     label: label ?? null,
@@ -37,6 +37,7 @@ export function enqueueDownload(target: string, options: DownloadOptions, label?
     videoQuality: options.videoQuality,
     audioQuality: options.audioQuality,
     dirOverride: dirOverride ?? null,
+    selectIndex: selectIndex ?? null,
   });
 }
 
