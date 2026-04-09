@@ -1,5 +1,5 @@
 use std::collections::VecDeque;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -160,6 +160,7 @@ pub struct RuntimeState {
     pub workspace_root: Arc<Mutex<PathBuf>>,
     pub queue: Arc<Mutex<QueueState>>,
     pub driver_config: Arc<Mutex<RuntimeDriverConfig>>,
+    pub portable_python_path: Arc<Mutex<Option<PathBuf>>>,
     pub ffmpeg_path: Arc<Mutex<String>>,
     /// PID of the currently-running download subprocess (task_id, child_pid).
     pub active_download: Arc<Mutex<Option<(String, u32)>>>,
@@ -173,6 +174,7 @@ impl RuntimeState {
             workspace_root: Arc::new(Mutex::new(workspace_root)),
             queue: Arc::new(Mutex::new(QueueState::default())),
             driver_config: Arc::new(Mutex::new(RuntimeDriverConfig::Uv)),
+            portable_python_path: Arc::new(Mutex::new(None)),
             ffmpeg_path: Arc::new(Mutex::new("ffmpeg".to_string())),
             active_download: Arc::new(Mutex::new(None)),
             active_auth: Arc::new(Mutex::new(None)),
@@ -193,6 +195,14 @@ impl RuntimeState {
 
     pub fn set_driver_config(&self, next: RuntimeDriverConfig) {
         *self.driver_config.lock().unwrap() = next;
+    }
+
+    pub fn current_portable_python_path(&self) -> Option<PathBuf> {
+        self.portable_python_path.lock().unwrap().clone()
+    }
+
+    pub fn set_portable_python_path(&self, next: Option<PathBuf>) {
+        *self.portable_python_path.lock().unwrap() = next;
     }
 
     pub fn current_ffmpeg_path(&self) -> String {
@@ -261,11 +271,19 @@ pub fn current_timestamp() -> String {
 }
 
 pub fn resolve_repo_root() -> Result<PathBuf, String> {
-    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    manifest_dir
-        .parent()
-        .map(|path| path.to_path_buf())
-        .ok_or_else(|| "failed to resolve repo root from src-tauri".to_string())
+    if cfg!(debug_assertions) {
+        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        return manifest_dir
+            .parent()
+            .map(|path| path.to_path_buf())
+            .ok_or_else(|| "failed to resolve repo root from src-tauri".to_string());
+    }
+
+    let exe = std::env::current_exe()
+        .map_err(|error| format!("failed to resolve current exe: {error}"))?;
+    exe.parent()
+        .map(Path::to_path_buf)
+        .ok_or_else(|| "failed to resolve app root from current exe".to_string())
 }
 
 pub fn resolve_workspace_root(repo_root: &PathBuf) -> Result<PathBuf, String> {
@@ -276,9 +294,16 @@ pub fn resolve_workspace_root(repo_root: &PathBuf) -> Result<PathBuf, String> {
     Ok(repo_root.clone())
 }
 
+pub fn resolve_portable_python_path(app_root: &Path) -> PathBuf {
+    #[cfg(target_os = "windows")]
+    return app_root.join("env").join("python.exe");
+    #[cfg(not(target_os = "windows"))]
+    return app_root.join("env").join("bin").join("python");
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{QueueState, RuntimeState, TaskStatus};
+    use super::{resolve_portable_python_path, QueueState, RuntimeState, TaskStatus};
     use std::path::PathBuf;
 
     #[test]
@@ -379,5 +404,16 @@ mod tests {
         assert!(was_cancelled);
         assert!(!state.auth_in_progress());
         assert_eq!(state.current_auth_pid(), None);
+    }
+
+    #[test]
+    fn resolve_portable_python_path_returns_env_python_exe() {
+        let root = PathBuf::from(r"C:\portable");
+        #[cfg(target_os = "windows")]
+        let expected = root.join("env").join("python.exe");
+        #[cfg(not(target_os = "windows"))]
+        let expected = root.join("env").join("bin").join("python");
+
+        assert_eq!(resolve_portable_python_path(&root), expected);
     }
 }

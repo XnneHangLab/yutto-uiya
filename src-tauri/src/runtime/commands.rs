@@ -7,22 +7,48 @@ use super::process::{
     run_inspect_command, run_parse_command, run_probe_command, run_save_settings_command,
     write_console_log,
 };
-use super::state::{resolve_repo_root, resolve_workspace_root, RuntimeDriverConfig, RuntimeState};
+use super::state::{
+    resolve_portable_python_path, resolve_repo_root, resolve_workspace_root, RuntimeDriverConfig,
+    RuntimeState,
+};
 
 #[tauri::command]
 pub async fn inspect_runtime(
     app: AppHandle,
     state: State<'_, RuntimeState>,
 ) -> Result<serde_json::Value, String> {
-    let repo_root = state.repo_root.clone();
+    let app_root = state.repo_root.clone();
+    let repo_root = app_root.clone();
     let workspace_root = state.current_workspace_root();
     let driver = state.current_driver_config();
+    let inspect_driver = driver.clone();
     let ffmpeg_path = state.current_ffmpeg_path();
-    let result = run_blocking_runtime_action(move || {
-        ensure_environment_ready(&repo_root, &workspace_root, &driver, &ffmpeg_path, &app)?;
-        run_inspect_command(&repo_root, &workspace_root, &driver, &app)
+    let mut result = run_blocking_runtime_action(move || {
+        ensure_environment_ready(&repo_root, &workspace_root, &inspect_driver, &ffmpeg_path, &app)?;
+        run_inspect_command(&repo_root, &workspace_root, &inspect_driver, &app)
     })
     .await?;
+
+    let runtime_driver = match &driver {
+        RuntimeDriverConfig::Uv => "Uv",
+        RuntimeDriverConfig::DirectPython { .. } => "DirectPython",
+    };
+    let python_path = match &driver {
+        RuntimeDriverConfig::DirectPython { python_path } => {
+            Some(python_path.display().to_string())
+        }
+        RuntimeDriverConfig::Uv => state
+            .current_portable_python_path()
+            .map(|path| path.display().to_string()),
+    };
+    if let Some(payload) = result.as_object_mut() {
+        payload.insert("runtimeDriver".to_string(), serde_json::json!(runtime_driver));
+        payload.insert("pythonPath".to_string(), serde_json::json!(python_path));
+        payload.insert(
+            "appRoot".to_string(),
+            serde_json::json!(app_root.display().to_string()),
+        );
+    }
 
     // Sync ffmpegPath from uiya.toml into RuntimeState so it survives restart
     if let Some(ffmpeg) = result.get("ffmpegPath").and_then(|v| v.as_str()) {
@@ -139,6 +165,7 @@ pub async fn enqueue_download(
             workspace_root: state.workspace_root.clone(),
             queue: state.queue.clone(),
             driver_config: state.driver_config.clone(),
+            portable_python_path: state.portable_python_path.clone(),
             ffmpeg_path: state.ffmpeg_path.clone(),
             active_download: state.active_download.clone(),
             active_auth: state.active_auth.clone(),
@@ -418,7 +445,18 @@ pub fn export_console_logs(
 pub fn build_runtime_state() -> Result<RuntimeState, String> {
     let repo_root = resolve_repo_root()?;
     let workspace_root = resolve_workspace_root(&repo_root)?;
-    Ok(RuntimeState::new(repo_root, workspace_root))
+    let portable_python = resolve_portable_python_path(&workspace_root);
+
+    let state = RuntimeState::new(repo_root, workspace_root);
+    if portable_python.is_file() {
+        state.set_portable_python_path(Some(portable_python.clone()));
+        if !cfg!(debug_assertions) {
+            state.set_driver_config(RuntimeDriverConfig::DirectPython {
+                python_path: portable_python,
+            });
+        }
+    }
+    Ok(state)
 }
 
 #[tauri::command]

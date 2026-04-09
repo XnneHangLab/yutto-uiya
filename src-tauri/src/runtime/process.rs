@@ -714,6 +714,7 @@ pub fn drain_download_queue(app: AppHandle, state: RuntimeState) {
                 workspace_root: state.workspace_root.clone(),
                 queue: state.queue.clone(),
                 driver_config: state.driver_config.clone(),
+                portable_python_path: state.portable_python_path.clone(),
                 ffmpeg_path: state.ffmpeg_path.clone(),
                 active_download: state.active_download.clone(),
                 active_auth: state.active_auth.clone(),
@@ -1030,7 +1031,7 @@ where
         .arg("python")
         .current_dir(repo_root)
         .env("UIYA_WORKSPACE_ROOT", workspace_root)
-        .env("UIYA_RUNTIME_CONFIG", repo_root.join("config").join("uiya.toml"))
+        .env("UIYA_RUNTIME_CONFIG", runtime_config_path(workspace_root))
         .env("PYTHONUTF8", "1")
         .env("PYTHONIOENCODING", "utf-8")
         .env("PYTHONUNBUFFERED", "1");
@@ -1054,7 +1055,7 @@ where
     command
         .current_dir(repo_root)
         .env("UIYA_WORKSPACE_ROOT", workspace_root)
-        .env("UIYA_RUNTIME_CONFIG", repo_root.join("config").join("uiya.toml"))
+        .env("UIYA_RUNTIME_CONFIG", runtime_config_path(workspace_root))
         .env("PYTHONUTF8", "1")
         .env("PYTHONIOENCODING", "utf-8")
         .env("PYTHONUNBUFFERED", "1");
@@ -1080,6 +1081,10 @@ where
             build_direct_python_command(repo_root, workspace_root, python_path, python_args)
         }
     }
+}
+
+fn runtime_config_path(workspace_root: &Path) -> PathBuf {
+    workspace_root.join("config").join("uiya.toml")
 }
 
 pub fn pick_python_path() -> Result<Option<PathBuf>, String> {
@@ -1292,8 +1297,9 @@ mod tests {
     use serde_json::json;
 
     use super::{
-        build_terminal_failure_event, build_uv_python_command, build_windows_open_command,
-        managed_path_from_payload, runtime_event_from_python_payload, EnvironmentProbePayload,
+        build_direct_python_command, build_terminal_failure_event, build_uv_python_command,
+        build_windows_open_command, managed_path_from_payload, runtime_event_from_python_payload,
+        EnvironmentProbePayload,
     };
 
     #[test]
@@ -1335,6 +1341,31 @@ mod tests {
         }));
         assert!(envs.iter().any(|(key, value)| {
             key == "PYTHONUNBUFFERED" && value.as_deref() == Some("1")
+        }));
+    }
+
+    #[test]
+    fn build_direct_python_command_uses_workspace_config_path() {
+        let command = build_direct_python_command(
+            Path::new("/repo"),
+            Path::new("/app"),
+            Path::new("/app/env/python.exe"),
+            ["-m", "uiya.cli", "inspect-runtime"],
+        );
+
+        let envs = command
+            .get_envs()
+            .map(|(key, value)| {
+                (
+                    key.to_string_lossy().into_owned(),
+                    value.map(|item| item.to_string_lossy().into_owned()),
+                )
+            })
+            .collect::<Vec<_>>();
+
+        assert!(envs.iter().any(|(key, value)| {
+            key == "UIYA_RUNTIME_CONFIG"
+                && value.as_deref() == Some("/app/config/uiya.toml")
         }));
     }
 
