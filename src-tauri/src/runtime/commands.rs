@@ -445,7 +445,7 @@ pub fn export_console_logs(
 pub fn build_runtime_state() -> Result<RuntimeState, String> {
     let repo_root = resolve_repo_root()?;
     let workspace_root = resolve_workspace_root(&repo_root)?;
-    let portable_python = resolve_portable_python_path(&workspace_root);
+    let portable_python = resolve_portable_python_path(&repo_root);
 
     let state = RuntimeState::new(repo_root, workspace_root);
     if portable_python.is_file() {
