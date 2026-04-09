@@ -97,17 +97,6 @@ export function DownloadPage({
     }
   }
 
-  function handleDirectDownload(event: React.FormEvent) {
-    event.preventDefault();
-    const trimmed = downloadUrl.trim();
-    if (!trimmed) return;
-    onDownload(trimmed);
-    onDownloadUrlChange('');
-    onClearParseItems();
-    setDetails(new Map());
-    setExpandedIndex(null);
-  }
-
   async function handleParse(event: React.FormEvent) {
     event.preventDefault();
     const trimmed = downloadUrl.trim();
@@ -213,14 +202,14 @@ export function DownloadPage({
     <div className="models-page">
       <header className="models-page__header">
         <h1>下载管理</h1>
-        <p>输入 Bilibili 视频链接。"解析"可预览视频列表后选择下载；"加入队列"直接下载整个链接。</p>
+        <p>输入 Bilibili 视频链接，点击"解析"预览视频列表，选择后下载。</p>
         {!scriptsReady ? (
           <p className="models-page__header-warn">运行环境未就绪，暂时无法执行下载。</p>
         ) : null}
       </header>
 
       <section>
-        <form className="download-form" onSubmit={handleDirectDownload}>
+        <form className="download-form" onSubmit={handleParse}>
           <input
             className="download-url-input"
             type="url"
@@ -231,19 +220,11 @@ export function DownloadPage({
             aria-label="Bilibili 视频链接"
           />
           <button
-            type="button"
+            type="submit"
             className="download-parse-btn"
             disabled={!scriptsReady || !downloadUrl.trim() || parsing}
-            onClick={handleParse}
           >
             {parsing ? '解析中…' : '解析'}
-          </button>
-          <button
-            type="submit"
-            className="download-submit-btn"
-            disabled={!scriptsReady || !downloadUrl.trim() || parsing}
-          >
-            加入队列
           </button>
         </form>
       </section>

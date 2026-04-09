@@ -5185,7 +5185,6 @@ dependencies = [
 name = "yutto-uiya"
 version = "0.0.3"
 dependencies = [
- "libc",
  "log",
  "serde",
  "serde_json",

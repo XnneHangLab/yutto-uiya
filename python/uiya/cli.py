@@ -68,6 +68,7 @@ def cmd_download(
     require_cover: bool = False,
     video_quality: int = 127,
     audio_quality: int = 30280,
+    select_index: int | None = None,
 ) -> None:
     """
     Build and run a yutto download job for *target* (a BiliBili URL).
@@ -133,6 +134,9 @@ def cmd_download(
 
     # ── 3. assemble yutto command ─────────────────────────────────────────
     command: list[str] = ["uv", "run", "--no-sync", "yutto", target, "--no-color"]
+    if select_index is not None:
+        # Batch mode needed so yutto builds the collection directory structure.
+        command += ["-b", "-p", str(select_index)]
     if yutto_toml:
         command += ["--config", str(yutto_toml)]
     # UIYA_FFMPEG_PATH env var (set by Rust) takes priority, but only when it
@@ -341,7 +345,7 @@ def cmd_parse(target: str) -> None:
     audio_qualities = [{"label": label, "code": code}
                        for code, label in sorted(seen_audio_qualities.items(), reverse=True)]
 
-    emit_payload({"items": items, "videoQualities": video_qualities, "audioQualities": audio_qualities})
+    emit_payload({"url": target, "items": items, "videoQualities": video_qualities, "audioQualities": audio_qualities})
 
 
 def cmd_fetch_meta(url: str) -> None:
@@ -436,6 +440,7 @@ def main() -> None:
     dl_parser.add_argument("--require-cover", default="false")
     dl_parser.add_argument("--video-quality", type=int, default=127)
     dl_parser.add_argument("--audio-quality", type=int, default=30280)
+    dl_parser.add_argument("--select-index", type=int, default=None)
 
     parse_parser = subparsers.add_parser("parse")
     parse_parser.add_argument("target")
@@ -459,6 +464,7 @@ def main() -> None:
             require_cover=args.require_cover.lower() == "true",
             video_quality=args.video_quality,
             audio_quality=args.audio_quality,
+            select_index=args.select_index,
         )
     elif args.command == "parse":
         cmd_parse(args.target)

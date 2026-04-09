@@ -20,6 +20,8 @@ pub struct QueuedTask {
     pub require_cover: bool,
     pub video_quality: u32,
     pub audio_quality: u32,
+    /// When set, pass `-b -p <index>` to yutto so the file lands in the correct collection directory.
+    pub select_index: Option<u32>,
 }
 
 #[derive(Default)]
@@ -31,7 +33,7 @@ pub struct QueueState {
 }
 
 impl QueueState {
-    pub fn enqueue(&mut self, target: String, label: String, require_video: bool, require_audio: bool, require_cover: bool, video_quality: u32, audio_quality: u32) -> RuntimeTaskRecord {
+    pub fn enqueue(&mut self, target: String, label: String, require_video: bool, require_audio: bool, require_cover: bool, video_quality: u32, audio_quality: u32, select_index: Option<u32>) -> RuntimeTaskRecord {
         self.next_id += 1;
         let task_id = format!("task-{}", self.next_id);
         let queued_target = target.clone();
@@ -53,6 +55,7 @@ impl QueueState {
             require_cover,
             video_quality,
             audio_quality,
+            select_index,
         });
         self.tasks.push(task.clone());
         task
@@ -67,8 +70,9 @@ impl QueueState {
         require_cover: bool,
         video_quality: u32,
         audio_quality: u32,
+        select_index: Option<u32>,
     ) -> (RuntimeTaskRecord, bool) {
-        let task = self.enqueue(target, label, require_video, require_audio, require_cover, video_quality, audio_quality);
+        let task = self.enqueue(target, label, require_video, require_audio, require_cover, video_quality, audio_quality, select_index);
         if self.worker_running {
             (task, false)
         } else {
@@ -218,7 +222,7 @@ mod tests {
     #[test]
     fn enqueue_adds_a_task_and_keeps_it_queued() {
         let mut queue = QueueState::default();
-        let task = queue.enqueue("genie-base".to_string(), "GenieData 基础资源".to_string(), true, true, false, 127, 30280);
+        let task = queue.enqueue("genie-base".to_string(), "GenieData 基础资源".to_string(), true, true, false, 127, 30280, None);
 
         assert_eq!(task.status, TaskStatus::Queued);
         assert_eq!(queue.tasks.len(), 1);
@@ -228,7 +232,7 @@ mod tests {
     #[test]
     fn apply_status_updates_existing_task_progress() {
         let mut queue = QueueState::default();
-        let task = queue.enqueue("genie-base".to_string(), "GenieData 基础资源".to_string(), true, true, false, 127, 30280);
+        let task = queue.enqueue("genie-base".to_string(), "GenieData 基础资源".to_string(), true, true, false, 127, 30280, None);
 
         queue.apply_update(
             &task.task_id,
@@ -260,7 +264,7 @@ mod tests {
         let (_task, should_start_worker) = queue.enqueue_with_worker_control(
             "genie-base".to_string(),
             "GenieData 基础资源".to_string(),
-            true, true, false, 127, 30280,
+            true, true, false, 127, 30280, None,
         );
 
         assert!(should_start_worker);
@@ -273,7 +277,7 @@ mod tests {
         let (task, started_worker) = queue.enqueue_with_worker_control(
             "genie-base".to_string(),
             "GenieData 基础资源".to_string(),
-            true, true, false, 127, 30280,
+            true, true, false, 127, 30280, None,
         );
         assert!(started_worker);
 
@@ -287,7 +291,7 @@ mod tests {
         let mut queue = QueueState::default();
         assert!(!queue.has_active_tasks());
 
-        let task = queue.enqueue("genie-base".to_string(), "GenieData 基础资源".to_string(), true, true, false, 127, 30280);
+        let task = queue.enqueue("genie-base".to_string(), "GenieData 基础资源".to_string(), true, true, false, 127, 30280, None);
         assert!(queue.has_active_tasks());
 
         queue.apply_update(&task.task_id, TaskStatus::Completed, "完成".to_string(), 3, 3);

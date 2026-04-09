@@ -72,6 +72,7 @@ pub struct QualityOption {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ParseResult {
+    pub url: String,
     pub items: Vec<ParsedVideoItem>,
     pub video_qualities: Vec<QualityOption>,
     pub audio_qualities: Vec<QualityOption>,

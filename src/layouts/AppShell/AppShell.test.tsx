@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import App from '../../app/App';
 import * as runtimeBridge from '../../services/runtime/bridge';
-import { DEFAULT_DOWNLOAD_OPTIONS, type RuntimeEvent } from '../../services/runtime/runtime';
+import { type RuntimeEvent } from '../../services/runtime/runtime';
 
 const runtimeListeners = new Set<(event: RuntimeEvent) => void>();
 const rawLogListeners = new Set<(line: string) => void>();
@@ -104,7 +104,13 @@ describe('AppShell', () => {
     expect(runtimeBridge.listManagedFolders).toHaveBeenCalled();
   });
 
-  it('navigates to download page and enqueues a BiliBili URL', async () => {
+  it('navigates to download page, parses a URL, and enqueues selected items', async () => {
+    vi.mocked(runtimeBridge.parseTarget).mockResolvedValue({
+      items: [{ index: 1, title: '测试视频', url: 'https://www.bilibili.com/video/BV1xx411c7mD' }],
+      videoQualities: [],
+      audioQualities: [],
+    });
+
     const user = userEvent.setup();
     render(<App />);
 
@@ -115,11 +121,16 @@ describe('AppShell', () => {
     const urlInput = await screen.findByLabelText('Bilibili 视频链接');
     await user.type(urlInput, 'https://www.bilibili.com/video/BV1xx411c7mD');
 
-    await user.click(screen.getByRole('button', { name: '加入队列' }));
+    await user.click(screen.getByRole('button', { name: '解析' }));
+
+    // Parsed item appears; click 下载所选
+    await screen.findByText('测试视频');
+    await user.click(screen.getByRole('button', { name: /下载所选/ }));
+
     expect(runtimeBridge.enqueueDownload).toHaveBeenCalledWith(
       'https://www.bilibili.com/video/BV1xx411c7mD',
-      DEFAULT_DOWNLOAD_OPTIONS,
-      undefined,
+      expect.any(Object),
+      '测试视频',
     );
 
     // Task should appear in queue
@@ -145,9 +156,9 @@ describe('AppShell', () => {
 
     await user.click(screen.getByRole('button', { name: '下载管理' }));
 
-    // Submit button is disabled when env not ready
-    const submitBtn = await screen.findByRole('button', { name: '加入队列' });
-    expect(submitBtn).toBeDisabled();
+    // Parse button is disabled when env not ready
+    const parseBtn = await screen.findByRole('button', { name: '解析' });
+    expect(parseBtn).toBeDisabled();
   });
 
   it('toggles theme from the lightbulb action and persists the selection', async () => {

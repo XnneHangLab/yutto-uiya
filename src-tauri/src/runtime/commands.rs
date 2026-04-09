@@ -125,7 +125,7 @@ pub async fn enqueue_download(
     let aq = audio_quality.unwrap_or(30280);
     let (task, should_spawn_worker) = {
         let mut queue = state.queue.lock().unwrap();
-        queue.enqueue_with_worker_control(target.to_string(), display_label, rv, ra, rc, vq, aq)
+        queue.enqueue_with_worker_control(target.to_string(), display_label, rv, ra, rc, vq, aq, None)
     };
 
     if should_spawn_worker {
