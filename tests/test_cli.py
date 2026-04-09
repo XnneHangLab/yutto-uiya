@@ -53,4 +53,4 @@ def test_build_qr_data_url_uses_tight_png_dimensions():
     width = int.from_bytes(raw[16:20], "big")
     height = int.from_bytes(raw[20:24], "big")
 
-    assert width == height == 200
+    assert width == height == 216

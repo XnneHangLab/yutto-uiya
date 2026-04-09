@@ -139,9 +139,9 @@ def _build_qr_data_url(url: str) -> str:
         buffer,
         kind="png",
         scale=8,
-        border=0,
-        dark="#141c24",
-        light=None,
+        border=1,
+        dark="#0B1016",
+        light="#FFFFFFB8",
     )
     encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
     return f"data:image/png;base64,{encoded}"
