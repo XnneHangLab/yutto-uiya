@@ -80,6 +80,24 @@ def xdg_config_home() -> Path:
     return home / ".config"
 
 
+def runtime_workspace_root() -> Path | None:
+    if env := os.environ.get("UIYA_WORKSPACE_ROOT"):
+        return Path(env).expanduser()
+    return None
+
+
+def resolve_download_dir(settings: UiyaSetting) -> Path:
+    download_dir = Path(settings.download_dir).expanduser()
+    if download_dir.is_absolute():
+        return download_dir
+
+    workspace_root = runtime_workspace_root()
+    if workspace_root is not None:
+        return (workspace_root / download_dir).resolve()
+
+    return download_dir.resolve()
+
+
 def search_for_settings_file(setting_name: str) -> Path | None:
     config_dir = Path("config")
     settings_file = config_dir / setting_name

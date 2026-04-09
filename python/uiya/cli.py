@@ -44,17 +44,17 @@ def _audio_quality_code(label: str) -> int | None:
 
 
 def cmd_inspect_runtime() -> None:
-    from uiya.utils.config import UiyaSetting, load_settings_file
+    from uiya.utils.config import UiyaSetting, load_settings_file, resolve_download_dir
 
     settings = load_settings_file("uiya.toml", UiyaSetting)
-    import pathlib as _pathlib
+    resolved_download_dir = resolve_download_dir(settings)
     payload = {
         "managedPaths": [
             {"key": "workspace", "path": "."},
-            {"key": "downloads", "path": str(settings.download_dir)},
+            {"key": "downloads", "path": str(resolved_download_dir)},
             {"key": "logs", "path": "./logs"},
         ],
-        "downloadDir": _pathlib.Path(settings.download_dir).resolve().as_posix(),
+        "downloadDir": resolved_download_dir.resolve().as_posix(),
         "sessData": bool(settings.SESS_DATA),
         "ffmpegPath": settings.ffmpeg_path,
         "noProxy": settings.no_proxy,
@@ -83,6 +83,7 @@ def cmd_download(
     from uiya.utils.config import (
         UiyaSetting,
         load_settings_file,
+        resolve_download_dir,
         search_for_settings_file,
         write_settings_file,
     )
@@ -110,8 +111,9 @@ def cmd_download(
 
     # ── 2. write a fresh yutto.toml with runtime-resolved values ─────────
     try:
-        import pathlib
-        dl_dir = pathlib.Path(settings.download_dir) / dir_override if dir_override else settings.download_dir
+        dl_dir = resolve_download_dir(settings)
+        if dir_override:
+            dl_dir = dl_dir / dir_override
         basic = YuttoBasicSetting(
             num_workers=8,
             video_quality=video_quality,
@@ -239,6 +241,7 @@ def cmd_parse(target: str) -> None:
     from uiya.utils.config import (
         UiyaSetting,
         load_settings_file,
+        resolve_download_dir,
         search_for_settings_file,
         write_settings_file,
     )
@@ -260,7 +263,7 @@ def cmd_parse(target: str) -> None:
             sessdata=settings.SESS_DATA,
             vip_strict=settings.vip_strict == "open",
             login_strict=settings.login_strict == "open",
-            dir="./downloads",
+            dir=str(resolve_download_dir(settings)),
         )
         resource = YuttoResourceSettings(require_cover=True)
         yutto_cfg = YuttoSettings(basic=basic, resource=resource)
@@ -300,7 +303,7 @@ def cmd_parse(target: str) -> None:
     # on re-parse the dirs are already present in `before_dirs` so they
     # won't appear in the diff, and we fall back to title matching instead.
     import pathlib
-    downloads_path = pathlib.Path("./downloads")
+    downloads_path = resolve_download_dir(settings)
     downloads_path.mkdir(parents=True, exist_ok=True)
 
     def _all_dirs(base: pathlib.Path) -> set[pathlib.Path]:
