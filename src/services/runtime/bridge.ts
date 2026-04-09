@@ -75,6 +75,10 @@ export function parseTarget(target: string) {
   return invoke<VideoParseResult>('parse_target', { target });
 }
 
+export function openPath(path: string) {
+  return invoke<void>('open_path_command', { path });
+}
+
 export function fetchVideoMeta(url: string) {
   return invoke<VideoMeta>('fetch_video_meta', { url });
 }

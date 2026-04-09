@@ -238,6 +238,11 @@ pub fn list_managed_folders(state: State<'_, RuntimeState>) -> Result<serde_json
 }
 
 #[tauri::command]
+pub fn open_path_command(path: String) -> Result<(), String> {
+    open_path(&std::path::PathBuf::from(path))
+}
+
+#[tauri::command]
 pub fn open_managed_path(state: State<'_, RuntimeState>, path_key: String) -> Result<(), String> {
     let workspace_root = state.current_workspace_root();
     let path = resolve_managed_path(&workspace_root, &path_key)?;

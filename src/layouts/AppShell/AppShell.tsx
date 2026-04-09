@@ -17,6 +17,7 @@ import {
   listDownloadTasks,
   listManagedFolders,
   openManagedPath,
+  openPath,
   parseTarget,
   pickFfmpegPath,
   pickPythonPath,
@@ -307,6 +308,19 @@ export function AppShell() {
     }
   }
 
+  async function handleOpenDownloadsFolder() {
+    const dir = inspection?.downloadDir;
+    if (!dir) return;
+    try {
+      await openPath(dir);
+    } catch (error) {
+      setLogs((current) => [
+        ...current,
+        createConsoleLog('stderr', `打开下载目录失败: ${toErrorMessage(error)}`),
+      ]);
+    }
+  }
+
   async function handleOpenManagedPath(pathKey: string) {
     try {
       await openManagedPath(pathKey);
@@ -438,6 +452,7 @@ export function AppShell() {
               downloadOptions,
               onDownloadOptionsChange: setDownloadOptions,
               onCancelTask: handleCancelTask,
+              onOpenDownloadsFolder: handleOpenDownloadsFolder,
               onOpenPath: handleOpenManagedPath,
               runtimeDriver,
               scriptsReady,

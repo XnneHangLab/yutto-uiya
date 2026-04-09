@@ -65,6 +65,7 @@ vi.mock('../../services/runtime/bridge', async () => {
       updatedAt: '1712300000',
     }),
     openManagedPath: vi.fn().mockResolvedValue(undefined),
+    openPath: vi.fn().mockResolvedValue(undefined),
     exportConsoleLogs: vi.fn().mockResolvedValue('/repo/logs/launcher.log'),
     parseTarget: vi.fn().mockResolvedValue({ items: [], videoQualities: [], audioQualities: [] }),
     subscribeRuntimeEvents: vi.fn().mockImplementation(async (onEvent, onRawLog) => {

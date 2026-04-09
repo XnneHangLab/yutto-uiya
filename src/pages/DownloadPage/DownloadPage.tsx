@@ -66,6 +66,7 @@ interface DownloadPageProps {
   downloadOptions: DownloadOptions;
   onDownloadOptionsChange: (next: DownloadOptions) => void;
   onCancelTask: (taskId: string) => void;
+  onOpenDownloadsFolder: () => void;
 }
 
 export function DownloadPage({
@@ -83,6 +84,7 @@ export function DownloadPage({
   downloadOptions,
   onDownloadOptionsChange,
   onCancelTask,
+  onOpenDownloadsFolder,
 }: DownloadPageProps) {
   const [parsing, setParsing] = useState(false);
   const [details, setDetails] = useState<Map<number, DetailState>>(new Map());
@@ -381,6 +383,15 @@ export function DownloadPage({
                         title="取消"
                       >
                         ✕
+                      </button>
+                    ) : null}
+                    {task.status === 'completed' ? (
+                      <button
+                        type="button"
+                        className="models-page__task-open-folder"
+                        onClick={onOpenDownloadsFolder}
+                      >
+                        打开文件夹
                       </button>
                     ) : null}
                   </div>

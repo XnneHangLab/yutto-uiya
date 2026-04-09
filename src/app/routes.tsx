@@ -38,6 +38,7 @@ interface RenderPageOptions {
   downloadOptions: DownloadOptions;
   onDownloadOptionsChange: (next: DownloadOptions) => void;
   onCancelTask: (taskId: string) => void;
+  onOpenDownloadsFolder: () => void;
   onOpenPath: (pathKey: string) => void;
   runtimeDriver: RuntimeDriver;
   scriptsReady: boolean;
@@ -121,6 +122,7 @@ export function renderPage(
           downloadOptions={options.downloadOptions}
           onDownloadOptionsChange={options.onDownloadOptionsChange}
           onCancelTask={options.onCancelTask}
+          onOpenDownloadsFolder={options.onOpenDownloadsFolder}
         />
       );
     case 'community':

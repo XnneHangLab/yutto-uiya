@@ -163,6 +163,8 @@
   margin-bottom: 4px;
   opacity: 0.7;
 }
+
+.models-page__task-cancel {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -181,6 +183,21 @@
 .models-page__task-cancel:hover {
   background: rgba(255, 100, 100, 0.12);
   color: #ff9b9b;
+}
+
+.models-page__task-open-folder {
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 6px;
+  transition: background 0.15s ease;
+}
+
+.models-page__task-open-folder:hover {
+  background: rgba(var(--accent-rgb, 100, 160, 255), 0.12);
 }
 
 @keyframes indeterminate-slide {
