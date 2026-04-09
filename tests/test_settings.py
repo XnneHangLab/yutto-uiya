@@ -13,6 +13,7 @@ from uiya.utils.config import (
 )
 
 
+
 class TestSettings:
     def setup_method(self):
         """每个测试方法运行前的设置"""
@@ -28,7 +29,11 @@ class TestSettings:
         index = self.settings.get_index("vip_strict")
         assert get_args(VipStrict)[index] == self.settings.vip_strict
 
-    def test_resolve_download_dir_uses_workspace_root_for_relative_paths(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    def test_resolve_download_dir_uses_workspace_root_for_relative_paths(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ):
         """相对下载目录应基于运行时工作目录，而不是仓库目录。"""
         workspace_root = tmp_path / "workspace"
         workspace_root.mkdir()
@@ -37,6 +42,21 @@ class TestSettings:
         resolved = resolve_download_dir(UiyaSetting(download_dir="./downloads"))
 
         assert resolved == workspace_root / "downloads"
+
+    def test_load_settings_file_prefers_runtime_config_path(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ) -> None:
+        runtime_config = tmp_path / "config" / "uiya.toml"
+        runtime_config.parent.mkdir(parents=True)
+        runtime_config.write_text('ffmpeg_path = "portable-ffmpeg"\n', encoding="utf-8")
+        monkeypatch.setenv("UIYA_RUNTIME_CONFIG", str(runtime_config))
+
+        settings = load_settings_file("uiya.toml", UiyaSetting)
+
+        assert settings.ffmpeg_path == "portable-ffmpeg"
+        assert runtime_config.read_text(encoding="utf-8")
 
 
 if __name__ == "__main__":

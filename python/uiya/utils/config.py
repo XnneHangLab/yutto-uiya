@@ -86,6 +86,14 @@ def runtime_workspace_root() -> Path | None:
     return None
 
 
+def runtime_config_path(setting_name: str) -> Path | None:
+    if env := os.environ.get("UIYA_RUNTIME_CONFIG"):
+        path = Path(env).expanduser()
+        if path.name == setting_name:
+            return path
+    return None
+
+
 def resolve_download_dir(settings: UiyaSetting) -> Path:
     download_dir = Path(settings.download_dir).expanduser()
     if download_dir.is_absolute():
@@ -99,13 +107,19 @@ def resolve_download_dir(settings: UiyaSetting) -> Path:
 
 
 def search_for_settings_file(setting_name: str) -> Path | None:
+    if runtime_path := runtime_config_path(setting_name):
+        return runtime_path if runtime_path.exists() else None
+
     config_dir = Path("config")
     settings_file = config_dir / setting_name
-    if not settings_file.exists():  # 当前目录没找到
-        settings_file = xdg_config_home() / setting_name
-    if not settings_file.exists():  # XDG_CONFIG_HOME 也没找到
-        return None
-    return settings_file
+    if settings_file.exists():
+        return settings_file
+
+    xdg_settings = xdg_config_home() / setting_name
+    if xdg_settings.exists():
+        return xdg_settings
+
+    return None
 
 
 def load_settings_file(
@@ -115,12 +129,11 @@ def load_settings_file(
     """加载配置文件，如果不存在则创建默认配置文件在当前工作目录。"""
     settings_file = search_for_settings_file(setting_name=setting_name)
     if settings_file is None:
-        config_dir = Path("config")
-        if not config_dir.exists():
-            config_dir.mkdir()
-        settings_file = config_dir / setting_name
-        print(f"未找到配置文件，将初始化默认配置:{str(settings_file)}")
-        settings_file.touch()
+        settings_file = runtime_config_path(setting_name) or (Path("config") / setting_name)
+        settings_file.parent.mkdir(parents=True, exist_ok=True)
+        if not settings_file.exists():
+            print(f"未找到配置文件，将初始化默认配置:{str(settings_file)}")
+            settings_file.touch()
     with settings_file.open("r", encoding="utf-8") as f:
         settings_raw: Any = tomllib.loads(f.read())
     validated_settings = setting.model_validate(settings_raw)
@@ -135,8 +148,9 @@ def write_settings_file(
     """将 Setting 对象写入 TOML 文件。"""
     settings_file = search_for_settings_file(setting_name=settings_name)
     if settings_file is None:
-        settings_file = Path("config") / settings_name
-        settings_file.touch()
+        settings_file = runtime_config_path(settings_name) or (Path("config") / settings_name)
+        settings_file.parent.mkdir(parents=True, exist_ok=True)
+        settings_file.touch(exist_ok=True)
     try:
         with settings_file.open("w", encoding="utf-8") as f:
             toml_string = toml_dumps(settings.model_dump())  # type: ignore
