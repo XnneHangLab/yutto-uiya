@@ -135,7 +135,14 @@ def _build_qr_data_url(url: str) -> str:
     import segno
 
     buffer = io.BytesIO()
-    segno.make(url).save(buffer, kind="png", scale=8, border=1)
+    segno.make(url).save(
+        buffer,
+        kind="png",
+        scale=8,
+        border=1,
+        dark="#141c24",
+        light=None,
+    )
     encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
     return f"data:image/png;base64,{encoded}"
 

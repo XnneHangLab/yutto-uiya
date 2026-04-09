@@ -475,11 +475,18 @@
   width: 220px;
   height: 220px;
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.78);
-  background: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.84);
+  backdrop-filter: blur(10px) saturate(1.06);
   box-shadow:
     0 14px 34px rgba(0, 0, 0, 0.18),
     0 1px 0 rgba(255, 255, 255, 0.55) inset;
+}
+
+.launcher-root[data-theme='night'] .settings-shell .settings-auth-modal__qr,
+.launcher-root[data-theme='night'] .settings-shell .settings-auth-modal__placeholder {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(12px) saturate(1.14);
 }
 
 .settings-shell .settings-auth-modal__placeholder {
