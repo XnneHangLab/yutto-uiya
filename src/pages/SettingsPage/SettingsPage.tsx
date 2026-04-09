@@ -56,6 +56,10 @@ export function SettingsPage({
     : '正在检测';
 
   const envReady = environmentProbe?.status === 'ready';
+  const authLabel = environmentProbe
+    ? formatAuthStatus(environmentProbe.authState)
+    : '正在检测';
+  const authReady = environmentProbe?.authState === 'authenticated';
 
   const driverDisplayLabel =
     localDriver === 'conda' ? 'conda / 直接 Python' : 'uv';
@@ -119,6 +123,26 @@ export function SettingsPage({
                 <span className="env-info-label">运行驱动</span>
                 <span className="env-info-value env-info-mono">{driverDisplayLabel}</span>
               </div>
+              {environmentProbe ? (
+                <div className="env-info-row">
+                  <span className="env-info-label">认证状态</span>
+                  <span className={`env-info-badge ${authReady ? 'env-info-badge--ready' : 'env-info-badge--warn'}`}>
+                    {authLabel}
+                  </span>
+                </div>
+              ) : null}
+              {environmentProbe?.authMessage ? (
+                <div className="env-info-row">
+                  <span className="env-info-label">认证详情</span>
+                  <span className="env-info-value">{environmentProbe.authMessage}</span>
+                </div>
+              ) : null}
+              {environmentProbe?.authSource ? (
+                <div className="env-info-row">
+                  <span className="env-info-label">认证来源</span>
+                  <span className="env-info-value env-info-mono">{environmentProbe.authSource}</span>
+                </div>
+              ) : null}
             </div>
 
             <div className="group-title">环境配置</div>
@@ -315,6 +339,21 @@ function formatEnvironmentStatus(status: EnvironmentProbe['status']) {
       return 'uiya 不可用';
     case 'ready':
       return '就绪';
+    default:
+      return status;
+  }
+}
+
+function formatAuthStatus(status: EnvironmentProbe['authState']) {
+  switch (status) {
+    case 'authenticated':
+      return '已登录';
+    case 'missing':
+      return '未登录';
+    case 'invalid':
+      return '认证无效';
+    case 'unknown':
+      return '未知';
     default:
       return status;
   }

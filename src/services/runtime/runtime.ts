@@ -46,6 +46,9 @@ export interface EnvironmentProbe {
   yuttoAvailable: boolean;
   yuttoVersion: string | null;
   ffmpegAvailable: boolean;
+  authState: 'authenticated' | 'missing' | 'invalid' | 'unknown';
+  authMessage: string;
+  authSource: string;
   issues: string[];
   message: string;
 }

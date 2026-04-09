@@ -100,4 +100,14 @@ pub struct EnvironmentProbePayload {
     pub ffmpeg_available: bool,
     pub issues: Vec<String>,
     pub message: String,
+    #[serde(default = "default_auth_state")]
+    pub auth_state: String,
+    #[serde(default)]
+    pub auth_message: String,
+    #[serde(default)]
+    pub auth_source: String,
+}
+
+fn default_auth_state() -> String {
+    "unknown".to_string()
 }

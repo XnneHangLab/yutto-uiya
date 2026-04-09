@@ -23,6 +23,9 @@ describe('SettingsPage', () => {
           yuttoAvailable: true,
           yuttoVersion: '0.0.3',
           ffmpegAvailable: true,
+          authState: 'authenticated',
+          authMessage: '已登录',
+          authSource: '/root/.config/yutto/auth.toml（profile: default）',
           issues: [],
           message: '环境就绪',
         }}
@@ -88,6 +91,9 @@ describe('SettingsPage', () => {
           yuttoAvailable: false,
           yuttoVersion: null,
           ffmpegAvailable: false,
+          authState: 'unknown',
+          authMessage: '',
+          authSource: '',
           issues: ['No module named uiya'],
           message: 'uiya 不可用',
         }}
@@ -142,5 +148,41 @@ describe('SettingsPage', () => {
     const pythonExeRow = screen.getByText('Python 可执行文件').closest('.setting-row');
     expect(pythonExeRow).not.toBeNull();
     expect(within(pythonExeRow as HTMLElement).getByText('🐍')).toBeInTheDocument();
+  });
+
+  it('shows auth warning when runtime is ready but not logged in', () => {
+    render(
+      <SettingsPage
+        workspaceRoot="/repo"
+        workspaceLocked={false}
+        environmentProbe={{
+          workspaceRoot: '/repo',
+          repoRoot: '/repo',
+          status: 'ready',
+          yuttoAvailable: true,
+          yuttoVersion: '0.0.3',
+          ffmpegAvailable: true,
+          authState: 'missing',
+          authMessage: '未登录，只能下载低画质',
+          authSource: '/root/.config/yutto/auth.toml（profile: default）',
+          issues: ['未找到可用认证信息，将只能下载低画质'],
+          message: '环境就绪',
+        }}
+        onChooseWorkspaceRoot={() => undefined}
+        onUseRepoWorkspaceRoot={() => undefined}
+        runtimeDriver="uv"
+        pythonExePath=""
+        onChoosePythonExe={vi.fn().mockResolvedValue(null)}
+        ffmpegMode="system"
+        ffmpegExePath=""
+        onChooseFfmpegExe={vi.fn().mockResolvedValue(null)}
+        noProxy={false}
+        onSave={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('就绪')).toBeInTheDocument();
+    expect(screen.getByText('未登录，只能下载低画质')).toBeInTheDocument();
+    expect(screen.getByText('/root/.config/yutto/auth.toml（profile: default）')).toBeInTheDocument();
   });
 });

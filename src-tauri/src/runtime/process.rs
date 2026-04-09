@@ -21,6 +21,9 @@ result = {
     "yuttoAvailable": False,
     "yuttoVersion": None,
     "ffmpegAvailable": False,
+    "authState": "unknown",
+    "authMessage": "",
+    "authSource": "",
     "issues": [],
     "message": "环境就绪",
 }
@@ -34,6 +37,34 @@ except Exception as error:
     result["status"] = "yutto-unavailable"
     result["issues"].append(str(error))
     result["message"] = "uiya 不可用，请检查 Python 环境"
+
+if result["status"] == "ready":
+    try:
+        from yutto.auth import default_auth_file, load_auth_file
+
+        auth_profile = "default"
+        auth_file = default_auth_file()
+        result["authSource"] = f"{auth_file}（profile: {auth_profile}）"
+        auth_file_model = load_auth_file(auth_file)
+
+        if auth_file_model is None:
+            result["authState"] = "missing"
+            result["authMessage"] = "未登录，只能下载低画质"
+            result["issues"].append("未找到可用认证信息，将只能下载低画质")
+        else:
+            entry = auth_file_model.profiles.get(auth_profile)
+            if entry is None or not entry.sessdata:
+                result["authState"] = "missing"
+                result["authMessage"] = "未登录，只能下载低画质"
+                result["issues"].append("未找到可用认证信息，将只能下载低画质")
+            else:
+                result["authState"] = "authenticated"
+                result["authMessage"] = "已登录"
+    except Exception as error:
+        traceback.print_exc()
+        result["authState"] = "invalid"
+        result["authMessage"] = "认证信息无效，只能下载低画质"
+        result["issues"].append(f"认证信息无效，将只能下载低画质: {error}")
 
 ffmpeg_cmd = os.environ.get("UIYA_FFMPEG_PATH") or "ffmpeg"
 if ffmpeg_cmd == "ffmpeg":
@@ -1103,6 +1134,9 @@ fn build_probe_payload(
         ffmpeg_available: false,
         issues,
         message,
+        auth_state: "unknown".to_string(),
+        auth_message: String::new(),
+        auth_source: String::new(),
     }
 }
 
@@ -1226,6 +1260,9 @@ mod tests {
         assert_eq!(payload.workspace_root, "");
         assert_eq!(payload.repo_root, "");
         assert_eq!(payload.status, "ready");
+        assert_eq!(payload.auth_state, "unknown");
+        assert_eq!(payload.auth_message, "");
+        assert_eq!(payload.auth_source, "");
     }
 
     #[test]
