@@ -12,6 +12,13 @@ use super::state::{
     RuntimeState,
 };
 
+fn runtime_driver_api_value(driver: &RuntimeDriverConfig) -> &'static str {
+    match driver {
+        RuntimeDriverConfig::Uv => "uv",
+        RuntimeDriverConfig::DirectPython { .. } => "conda",
+    }
+}
+
 #[tauri::command]
 pub async fn inspect_runtime(
     app: AppHandle,
@@ -29,10 +36,7 @@ pub async fn inspect_runtime(
     })
     .await?;
 
-    let runtime_driver = match &driver {
-        RuntimeDriverConfig::Uv => "Uv",
-        RuntimeDriverConfig::DirectPython { .. } => "DirectPython",
-    };
+    let runtime_driver = runtime_driver_api_value(&driver);
     let python_path = match &driver {
         RuntimeDriverConfig::DirectPython { python_path } => {
             Some(python_path.display().to_string())
@@ -569,6 +573,8 @@ async fn switch_workspace_root(
 
 #[cfg(test)]
 mod tests {
+    use super::RuntimeDriverConfig;
+
     #[test]
     fn run_blocking_runtime_action_moves_work_off_the_calling_thread() {
         let caller_thread = format!("{:?}", std::thread::current().id());
@@ -579,5 +585,16 @@ mod tests {
             .unwrap();
 
         assert_ne!(worker_thread, caller_thread);
+    }
+
+    #[test]
+    fn runtime_driver_api_value_uses_uv_and_conda() {
+        assert_eq!(super::runtime_driver_api_value(&RuntimeDriverConfig::Uv), "uv");
+        assert_eq!(
+            super::runtime_driver_api_value(&RuntimeDriverConfig::DirectPython {
+                python_path: std::path::PathBuf::from("/app/env/python"),
+            }),
+            "conda"
+        );
     }
 }

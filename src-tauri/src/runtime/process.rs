@@ -71,7 +71,8 @@ if ffmpeg_cmd == "ffmpeg":
     try:
         import tomllib
         from pathlib import Path
-        config_path = Path("config") / "uiya.toml"
+        config_override = (os.environ.get("UIYA_RUNTIME_CONFIG") or "").strip()
+        config_path = Path(config_override) if config_override else (Path("config") / "uiya.toml")
         if config_path.exists():
             with open(config_path, "rb") as _f:
                 _cfg = tomllib.load(_f)
@@ -1299,7 +1300,7 @@ mod tests {
     use super::{
         build_direct_python_command, build_terminal_failure_event, build_uv_python_command,
         build_windows_open_command, managed_path_from_payload, runtime_event_from_python_payload,
-        EnvironmentProbePayload,
+        EnvironmentProbePayload, ENVIRONMENT_PROBE_SCRIPT,
     };
 
     #[test]
@@ -1367,6 +1368,11 @@ mod tests {
             key == "UIYA_RUNTIME_CONFIG"
                 && value.as_deref() == Some("/app/config/uiya.toml")
         }));
+    }
+
+    #[test]
+    fn environment_probe_script_prefers_runtime_config_env_path() {
+        assert!(ENVIRONMENT_PROBE_SCRIPT.contains("UIYA_RUNTIME_CONFIG"));
     }
 
     #[test]
