@@ -139,7 +139,7 @@ def _build_qr_data_url(url: str) -> str:
         buffer,
         kind="png",
         scale=8,
-        border=1,
+        border=0,
         dark="#141c24",
         light=None,
     )

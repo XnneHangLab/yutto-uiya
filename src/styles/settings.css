@@ -475,19 +475,17 @@
   width: 220px;
   height: 220px;
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.56);
-  background: rgba(255, 255, 255, 0.58);
-  backdrop-filter: blur(14px) saturate(1.08) brightness(1.05);
-  box-shadow:
-    0 14px 34px rgba(0, 0, 0, 0.18),
-    0 1px 0 rgba(255, 255, 255, 0.55) inset;
+  border: 0;
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.14);
 }
 
 .launcher-root[data-theme='night'] .settings-shell .settings-auth-modal__qr-shell,
 .launcher-root[data-theme='night'] .settings-shell .settings-auth-modal__placeholder {
-  border-color: rgba(255, 255, 255, 0.42);
-  background: rgba(255, 255, 255, 0.42);
-  backdrop-filter: blur(16px) saturate(1.18) brightness(1.08);
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.22);
 }
 
 .settings-shell .settings-auth-modal__qr-shell {
@@ -497,9 +495,9 @@
 
 .settings-shell .settings-auth-modal__qr {
   display: block;
-  width: 220px;
-  height: 220px;
-  border-radius: 20px;
+  width: 168px;
+  height: 168px;
+  border-radius: 0;
   background: transparent;
   image-rendering: crisp-edges;
 }
