@@ -67,6 +67,7 @@ export interface RuntimeTaskRecord {
   progressCurrent: number;
   progressTotal: number;
   updatedAt: string;
+  saveDir: string;
 }
 
 export interface RuntimeEvent {
@@ -171,6 +172,7 @@ export function applyRuntimeEvent(
     progressCurrent: event.progressCurrent,
     progressTotal: event.progressTotal,
     updatedAt: event.timestamp,
+    saveDir: previous?.saveDir ?? '',
   };
 
   if (index === -1) {

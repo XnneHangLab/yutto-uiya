@@ -48,6 +48,7 @@ impl QueueState {
             progress_current: 0,
             progress_total: 3,
             updated_at: current_timestamp(),
+            save_dir: dir_override.clone().unwrap_or_default(),
         };
         self.waiting.push_back(QueuedTask {
             task_id: task_id.clone(),

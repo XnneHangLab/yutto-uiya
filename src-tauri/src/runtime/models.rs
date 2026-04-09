@@ -23,6 +23,9 @@ pub struct RuntimeTaskRecord {
     pub progress_current: u64,
     pub progress_total: u64,
     pub updated_at: String,
+    /// Relative path under the downloads root where this task's files are saved.
+    /// Empty string means the downloads root itself (single-video download).
+    pub save_dir: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]

@@ -66,7 +66,7 @@ interface DownloadPageProps {
   downloadOptions: DownloadOptions;
   onDownloadOptionsChange: (next: DownloadOptions) => void;
   onCancelTask: (taskId: string) => void;
-  onOpenDownloadsFolder: () => void;
+  onOpenDownloadsFolder: (relativePath?: string) => void;
 }
 
 export function DownloadPage({
@@ -389,7 +389,7 @@ export function DownloadPage({
                       <button
                         type="button"
                         className="models-page__task-open-folder"
-                        onClick={onOpenDownloadsFolder}
+                        onClick={() => onOpenDownloadsFolder(task.saveDir || undefined)}
                       >
                         打开文件夹
                       </button>
