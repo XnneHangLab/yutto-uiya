@@ -246,6 +246,9 @@ pub fn open_path_command(path: String) -> Result<(), String> {
 pub fn open_managed_path(state: State<'_, RuntimeState>, path_key: String) -> Result<(), String> {
     let workspace_root = state.current_workspace_root();
     let path = resolve_managed_path(&workspace_root, &path_key)?;
+    if !path.exists() {
+        std::fs::create_dir_all(&path).map_err(|e| e.to_string())?;
+    }
     open_path(&path)
 }
 
