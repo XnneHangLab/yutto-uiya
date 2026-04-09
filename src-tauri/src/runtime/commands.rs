@@ -19,6 +19,18 @@ fn runtime_driver_api_value(driver: &RuntimeDriverConfig) -> &'static str {
     }
 }
 
+fn apply_runtime_state_update(
+    state: &RuntimeState,
+    next_driver: RuntimeDriverConfig,
+    next_ffmpeg: String,
+    round_trip_result: Result<serde_json::Value, String>,
+) -> Result<serde_json::Value, String> {
+    let payload = round_trip_result?;
+    state.set_driver_config(next_driver);
+    state.set_ffmpeg_path(next_ffmpeg);
+    Ok(payload)
+}
+
 #[tauri::command]
 pub async fn inspect_runtime(
     app: AppHandle,
@@ -484,24 +496,38 @@ pub async fn set_runtime_driver(
         }
         other => return Err(format!("unsupported runtime driver: {other}")),
     };
-    state.set_driver_config(driver_config.clone());
 
-    let resolved_ffmpeg = ffmpeg_path
+    let next_ffmpeg = ffmpeg_path
         .map(|p| p.trim().to_string())
         .filter(|p| !p.is_empty())
         .unwrap_or_else(|| "ffmpeg".to_string());
-    state.set_ffmpeg_path(resolved_ffmpeg.clone());
 
     let resolved_no_proxy = no_proxy.unwrap_or(false);
 
     let repo_root = state.repo_root.clone();
     let workspace_root = state.current_workspace_root();
-    run_blocking_runtime_action(move || {
-        run_save_settings_command(&repo_root, &workspace_root, &driver_config, &resolved_ffmpeg, resolved_no_proxy)?;
-        let probe = run_probe_command(&repo_root, &workspace_root, &driver_config, &resolved_ffmpeg, &app)?;
+    let driver_for_round_trip = driver_config.clone();
+    let ffmpeg_for_round_trip = next_ffmpeg.clone();
+    let round_trip_result = run_blocking_runtime_action(move || {
+        run_save_settings_command(
+            &repo_root,
+            &workspace_root,
+            &driver_for_round_trip,
+            &ffmpeg_for_round_trip,
+            resolved_no_proxy,
+        )?;
+        let probe = run_probe_command(
+            &repo_root,
+            &workspace_root,
+            &driver_for_round_trip,
+            &ffmpeg_for_round_trip,
+            &app,
+        )?;
         serde_json::to_value(probe).map_err(|error| error.to_string())
     })
-    .await
+    .await;
+
+    apply_runtime_state_update(state.inner(), driver_config, next_ffmpeg, round_trip_result)
 }
 
 #[tauri::command]
@@ -573,7 +599,8 @@ async fn switch_workspace_root(
 
 #[cfg(test)]
 mod tests {
-    use super::RuntimeDriverConfig;
+    use super::{RuntimeDriverConfig, RuntimeState};
+    use std::path::PathBuf;
 
     #[test]
     fn run_blocking_runtime_action_moves_work_off_the_calling_thread() {
@@ -596,5 +623,54 @@ mod tests {
             }),
             "conda"
         );
+    }
+
+    #[test]
+    fn apply_runtime_state_update_keeps_previous_values_on_error() {
+        let state = RuntimeState::new(PathBuf::from("/repo"), PathBuf::from("/workspace"));
+        state.set_driver_config(RuntimeDriverConfig::DirectPython {
+            python_path: PathBuf::from("/workspace/env/python"),
+        });
+        state.set_ffmpeg_path("/workspace/tools/ffmpeg".to_string());
+
+        let result = super::apply_runtime_state_update(
+            &state,
+            RuntimeDriverConfig::Uv,
+            "ffmpeg".to_string(),
+            Err("probe failed".to_string()),
+        );
+
+        assert!(result.is_err());
+        assert_eq!(
+            state.current_driver_config(),
+            RuntimeDriverConfig::DirectPython {
+                python_path: PathBuf::from("/workspace/env/python"),
+            }
+        );
+        assert_eq!(state.current_ffmpeg_path(), "/workspace/tools/ffmpeg");
+    }
+
+    #[test]
+    fn apply_runtime_state_update_commits_values_on_success() {
+        let state = RuntimeState::new(PathBuf::from("/repo"), PathBuf::from("/workspace"));
+
+        let result = super::apply_runtime_state_update(
+            &state,
+            RuntimeDriverConfig::DirectPython {
+                python_path: PathBuf::from("/workspace/env/python"),
+            },
+            "/workspace/tools/ffmpeg".to_string(),
+            Ok(serde_json::json!({"status": "ready"})),
+        )
+        .unwrap();
+
+        assert_eq!(result["status"], "ready");
+        assert_eq!(
+            state.current_driver_config(),
+            RuntimeDriverConfig::DirectPython {
+                python_path: PathBuf::from("/workspace/env/python"),
+            }
+        );
+        assert_eq!(state.current_ffmpeg_path(), "/workspace/tools/ffmpeg");
     }
 }
