@@ -407,35 +407,34 @@ def cmd_parse(target: str) -> None:
     else:
         collection_dir = ""
 
-    # Match each parse item to its per-video leaf dir by title.
-    # Yutto sanitizes the title with repair_filename before using it as a dir/file
-    # name (e.g. "/" → "／", ":" → "：", "..." → "……"). Apply the same transform.
-    # The logged filename is repair_filename(name), where name may carry a page
-    # suffix like "_p1". The directory basename is repair_filename(title) without
-    # the suffix. Strip "_pN" from the end so the lookup still matches.
+    # Compute per-item dir from path template structure rather than filesystem
+    # matching.  For 收藏夹 the template is "{series_title}/{title}/{name}" so each
+    # video gets its own subdirectory named after the (repaired) title; leaf_dirs
+    # are children of collection_dir → is_per_video = True.  For 合集 the template
+    # is "{series_title}/{title}" where {title} is the file stem so all videos land
+    # flat in the series dir; the single leaf IS collection_dir → is_per_video = False.
     import re as _re
     try:
         from yutto.path_templates import repair_filename as _repair_filename
     except ImportError:
         def _repair_filename(s: str) -> str:  # type: ignore[misc]
             return s
-    dir_by_basename: dict[str, str] = {
-        leaf.parts[-1]: leaf.as_posix() for leaf in leaf_dirs if leaf.parts
-    }
+    collection_dir_path = pathlib.Path(collection_dir) if collection_dir else None
+    is_per_video = bool(
+        collection_dir
+        and leaf_dirs
+        and not any(d == collection_dir_path for d in leaf_dirs)
+    )
     for item in items:
-        raw = item["title"]
-        # Strip page suffix FIRST (from raw title), THEN apply repair_filename.
-        # repair_filename converts trailing dots to "……", but when "_p1" follows
-        # the dots they are not trailing, so the conversion is skipped.  Stripping
-        # "_p1" first exposes the trailing dots so repair_filename converts them,
-        # matching the directory name yutto created.
-        raw_no_page = _re.sub(r'_p\d+$', '', raw)
-        repaired = _repair_filename(raw)
-        repaired_no_page = _repair_filename(raw_no_page)
-        item["dir"] = (
-            dir_by_basename.get(repaired)
-            or dir_by_basename.get(repaired_no_page, collection_dir)
-        )
+        if is_per_video:
+            # Strip page suffix FIRST then apply repair_filename so trailing dots
+            # in the title (e.g. "title....") become "……", matching the directory
+            # name yutto created.
+            raw_no_page = _re.sub(r'_p\d+$', '', item["title"])
+            subdir = _repair_filename(raw_no_page)
+            item["dir"] = f"{collection_dir}/{subdir}"
+        else:
+            item["dir"] = collection_dir
 
     # Sort highest code first (best quality first)
     video_qualities = [{"label": label, "code": code}
