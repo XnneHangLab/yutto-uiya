@@ -4,3 +4,6 @@ __pycache__/
 *.pyc
 *.pyo
 config/yutto.toml
+downloads/
+ffmpeg/
+node_modules/
