@@ -293,12 +293,15 @@ def cmd_parse(target: str) -> None:
 
     print(f"[run] {shlex.join(command)}", flush=True)
 
-    # Snapshot downloads/ subdirectories before yutto runs so we can detect
-    # which collection directory it creates (yutto mkdir's even with --skip-download).
+    # Record the start time before yutto runs. We detect the collection
+    # output directory by finding files whose mtime >= parse_start — this
+    # works even when the collection directory already existed from a prior
+    # parse (unlike a directory-existence snapshot).
     import pathlib
+    import time
     downloads_path = pathlib.Path("./downloads")
     downloads_path.mkdir(parents=True, exist_ok=True)
-    dirs_before = {p.name for p in downloads_path.iterdir() if p.is_dir()}
+    parse_start = time.time()
 
     items: list[dict] = []
     current_title: str | None = None
@@ -349,9 +352,28 @@ def cmd_parse(target: str) -> None:
 
     proc.wait()
 
-    dirs_after = {p.name for p in downloads_path.iterdir() if p.is_dir()}
-    new_dirs = dirs_after - dirs_before
-    collection_dir = new_dirs.pop() if len(new_dirs) == 1 else ""
+    # Walk downloads/ recursively and collect parent dirs of any file whose
+    # mtime is >= parse_start. These are the directories yutto wrote into
+    # during this parse run. If all items share one dir, that's collection_dir.
+    # If spread across siblings, fall back to their common ancestor.
+    new_file_dirs: set[pathlib.Path] = set()
+    for root, _dirs, files in os.walk(downloads_path):
+        root_path = pathlib.Path(root)
+        for fname in files:
+            try:
+                if (root_path / fname).stat().st_mtime >= parse_start:
+                    rel = root_path.relative_to(downloads_path)
+                    if rel != pathlib.Path('.'):
+                        new_file_dirs.add(rel)
+            except OSError:
+                pass
+    if len(new_file_dirs) == 1:
+        collection_dir = next(iter(new_file_dirs)).as_posix()
+    elif len(new_file_dirs) > 1:
+        common = pathlib.Path(os.path.commonpath([str(p) for p in new_file_dirs]))
+        collection_dir = common.as_posix() if str(common) not in (".", "") else ""
+    else:
+        collection_dir = ""
 
     # Sort highest code first (best quality first)
     video_qualities = [{"label": label, "code": code}
