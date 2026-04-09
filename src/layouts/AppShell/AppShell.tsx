@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Sidebar } from '../../components/navigation/Sidebar/Sidebar';
 import { Topbar } from '../../components/window/Topbar/Topbar';
 import { navItems, type PageId } from '../../data/nav';
@@ -28,10 +28,12 @@ import {
 } from '../../services/runtime/bridge';
 import {
   applyRuntimeEvent,
+  applyParseRuntimeEvent,
   buildFolderItemsFromPaths,
   createConsoleLogFromRuntimeEvent,
   DEFAULT_DOWNLOAD_OPTIONS,
   getQueueSummary,
+  isParseRuntimeEvent,
   isEnvironmentReady,
   type DownloadOptions,
   type EnvironmentProbe,
@@ -74,6 +76,7 @@ export function AppShell() {
   const [parseDirOverride, setParseDirOverride] = useState('');
   const [parseVideoQualities, setParseVideoQualities] = useState<QualityOption[]>([]);
   const [downloadOptions, setDownloadOptions] = useState<DownloadOptions>(DEFAULT_DOWNLOAD_OPTIONS);
+  const parsingTargetRef = useRef<string | null>(null);
 
   useEffect(() => {
     writeStoredTheme(theme);
@@ -149,6 +152,27 @@ export function AppShell() {
 
     void subscribeRuntimeEvents(
       (event) => {
+        if (isParseRuntimeEvent(event)) {
+          if (parsingTargetRef.current && event.target === parsingTargetRef.current) {
+            setParseItems((current) => applyParseRuntimeEvent(current, event));
+
+            if (event.event === 'parse.started') {
+              setParseSelected(new Set());
+              setParseDirOverride('');
+              setParseVideoQualities([]);
+            } else if (event.event === 'parse.item' && event.parseItem) {
+              setParseSelected((current) => {
+                const next = new Set(current);
+                next.add(event.parseItem!.index);
+                return next;
+              });
+            }
+          }
+
+          setLogs((current) => [...current, createConsoleLogFromRuntimeEvent(event)]);
+          return;
+        }
+
         if (event.event === 'download.completed' || event.event === 'download.failed') {
           void refreshInspectionSnapshot();
         }
@@ -160,7 +184,7 @@ export function AppShell() {
           // Progress-style line: keep only the last segment after \r (in-place overwrite)
           const visible = line.split('\r').filter((s) => s.trim()).pop() ?? line;
           setLogs((current) => {
-            const last = current.at(-1);
+            const last = current[current.length - 1];
             if (last?.kind === 'progress') {
               return [...current.slice(0, -1), createConsoleLog('progress', visible)];
             }
@@ -232,6 +256,7 @@ export function AppShell() {
       return [];
     }
     try {
+      parsingTargetRef.current = url;
       const result = await parseTarget(url);
       setParseItems(result.items);
       setParseSelected(new Set(result.items.map((item) => item.index)));
@@ -247,6 +272,10 @@ export function AppShell() {
         createConsoleLog('stderr', `解析失败: ${toErrorMessage(error)}`),
       ]);
       return [];
+    } finally {
+      if (parsingTargetRef.current === url) {
+        parsingTargetRef.current = null;
+      }
     }
   }
 

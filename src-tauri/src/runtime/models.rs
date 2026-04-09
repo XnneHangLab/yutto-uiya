@@ -48,6 +48,8 @@ pub struct RuntimeEventPayload {
     pub downloaded: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub total: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parse_item: Option<ParsedVideoItem>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -57,7 +59,7 @@ pub struct PythonEnvelope {
     pub payload: serde_json::Value,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ParsedVideoItem {
     pub index: u64,

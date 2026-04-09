@@ -325,11 +325,26 @@ def cmd_parse(target: str) -> None:
     def emit_payload(payload: dict) -> None:
         print(json.dumps({"kind": "payload", "payload": payload}, ensure_ascii=False), flush=True)
 
+    def emit_event(payload: dict) -> None:
+        print(json.dumps({"kind": "event", "payload": payload}, ensure_ascii=False), flush=True)
+
+    def fail(message: str) -> None:
+        emit_event({
+            "event": "parse.failed",
+            "target": target,
+            "status": "failed",
+            "message": message,
+            "progressCurrent": 0,
+            "progressTotal": 0,
+            "progressUnit": "item",
+        })
+        emit_payload({"items": [], "videoQualities": [], "audioQualities": [], "error": message})
+        sys.exit(1)
+
     try:
         settings = load_settings_file("uiya.toml", UiyaSetting)
     except Exception as exc:
-        emit_payload({"items": [], "videoQualities": [], "audioQualities": [], "error": f"配置加载失败: {exc}"})
-        sys.exit(1)
+        fail(f"配置加载失败: {exc}")
 
     try:
         basic = YuttoBasicSetting(
@@ -346,8 +361,7 @@ def cmd_parse(target: str) -> None:
         write_settings_file("yutto.toml", yutto_cfg)
         yutto_toml = search_for_settings_file("yutto.toml")
     except Exception as exc:
-        emit_payload({"items": [], "videoQualities": [], "audioQualities": [], "error": f"配置写入失败: {exc}"})
-        sys.exit(1)
+        fail(f"配置写入失败: {exc}")
 
     command: list[str] = [
         "uv", "run", "--no-sync", "yutto", target,
@@ -393,9 +407,28 @@ def cmd_parse(target: str) -> None:
 
     items: list[dict] = []
     current_title: str | None = None
+    view_payload_cache: dict[tuple[str, str], dict | None] = {}
     # ordered dicts: code → label, deduplicating across multiple videos in a playlist
     seen_video_qualities: dict[int, str] = {}
     seen_audio_qualities: dict[int, str] = {}
+
+    def cached_view_fetcher(url: str) -> dict | None:
+        identity = _extract_bilibili_video_identity(url)
+        if identity is None:
+            return None
+        if identity not in view_payload_cache:
+            view_payload_cache[identity] = _fetch_bilibili_view_payload(url)
+        return view_payload_cache[identity]
+
+    emit_event({
+        "event": "parse.started",
+        "target": target,
+        "status": "parsing",
+        "message": "开始解析",
+        "progressCurrent": 0,
+        "progressTotal": 0,
+        "progressUnit": "item",
+    })
 
     try:
         proc = subprocess.Popen(
@@ -406,8 +439,7 @@ def cmd_parse(target: str) -> None:
             errors="replace",
         )
     except Exception as exc:
-        emit_payload({"items": [], "videoQualities": [], "audioQualities": [], "error": f"启动解析进程失败: {exc}"})
-        sys.exit(1)
+        fail(f"启动解析进程失败: {exc}")
 
     assert proc.stdout is not None
     for raw_line in proc.stdout:
@@ -419,10 +451,26 @@ def cmd_parse(target: str) -> None:
             current_title = m_title.group(1).strip()
         m_link = link_re.search(line)
         if m_link and current_title is not None:
-            items.append({
+            item = {
                 "index": len(items) + 1,
-                "title": current_title,
+                "title": _resolve_single_download_title(
+                    m_link.group(1),
+                    current_title,
+                    cached_view_fetcher,
+                ),
                 "url": m_link.group(1),
+                "dir": "",
+            }
+            items.append(item)
+            emit_event({
+                "event": "parse.item",
+                "target": target,
+                "status": "parsing",
+                "message": f"解析到视频: {item['title']}",
+                "progressCurrent": len(items),
+                "progressTotal": 0,
+                "progressUnit": "item",
+                "parseItem": item,
             })
             current_title = None
         m_vq = video_quality_re.search(line)
@@ -438,24 +486,9 @@ def cmd_parse(target: str) -> None:
             if code is not None and code not in seen_audio_qualities:
                 seen_audio_qualities[code] = label
 
-    proc.wait()
-
-    view_payload_cache: dict[tuple[str, str], dict | None] = {}
-
-    def cached_view_fetcher(url: str) -> dict | None:
-        identity = _extract_bilibili_video_identity(url)
-        if identity is None:
-            return None
-        if identity not in view_payload_cache:
-            view_payload_cache[identity] = _fetch_bilibili_view_payload(url)
-        return view_payload_cache[identity]
-
-    for item in items:
-        item["title"] = _resolve_single_download_title(
-            item["url"],
-            item["title"],
-            cached_view_fetcher,
-        )
+    returncode = proc.wait()
+    if returncode != 0:
+        fail(f"解析失败，退出码 {returncode}")
 
     # Diff against before-snapshot to find directories created during this parse.
     new_dirs = _all_dirs(downloads_path) - before_dirs
@@ -522,6 +555,16 @@ def cmd_parse(target: str) -> None:
                        for code, label in sorted(seen_video_qualities.items(), reverse=True)]
     audio_qualities = [{"label": label, "code": code}
                        for code, label in sorted(seen_audio_qualities.items(), reverse=True)]
+
+    emit_event({
+        "event": "parse.completed",
+        "target": target,
+        "status": "completed",
+        "message": f"解析完成，共 {len(items)} 个视频",
+        "progressCurrent": len(items),
+        "progressTotal": len(items),
+        "progressUnit": "item",
+    })
 
     emit_payload({"url": target, "dir": collection_dir, "items": items, "videoQualities": video_qualities, "audioQualities": audio_qualities})
 

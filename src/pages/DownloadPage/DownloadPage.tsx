@@ -344,7 +344,7 @@ export function DownloadPage({
               <button
                 type="button"
                 className="download-submit-btn"
-                disabled={parseSelected.size === 0 || noneChecked}
+                disabled={parseSelected.size === 0 || noneChecked || parsing}
                 onClick={handleDownloadSelected}
               >
                 下载所选 ({parseSelected.size})

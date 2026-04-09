@@ -85,6 +85,7 @@ export interface RuntimeEvent {
   percent?: number;
   downloaded?: string;
   total?: string;
+  parseItem?: VideoParseItem;
 }
 
 export interface VideoParseItem {
@@ -160,6 +161,10 @@ export function applyRuntimeEvent(
   current: RuntimeTaskRecord[],
   event: RuntimeEvent,
 ): RuntimeTaskRecord[] {
+  if (isParseRuntimeEvent(event)) {
+    return current;
+  }
+
   const next = [...current];
   const index = next.findIndex((item) => item.taskId === event.taskId);
   const previous = index === -1 ? null : next[index];
@@ -181,6 +186,38 @@ export function applyRuntimeEvent(
     next.push(task);
   } else {
     next[index] = task;
+  }
+
+  return next;
+}
+
+export function isParseRuntimeEvent(event: RuntimeEvent) {
+  return event.event.startsWith('parse.');
+}
+
+export function applyParseRuntimeEvent(
+  current: VideoParseItem[],
+  event: RuntimeEvent,
+): VideoParseItem[] {
+  if (!isParseRuntimeEvent(event)) {
+    return current;
+  }
+
+  if (event.event === 'parse.started') {
+    return [];
+  }
+
+  if (event.event !== 'parse.item' || !event.parseItem) {
+    return current;
+  }
+
+  const next = [...current];
+  const index = next.findIndex((item) => item.index === event.parseItem?.index);
+
+  if (index === -1) {
+    next.push(event.parseItem);
+  } else {
+    next[index] = event.parseItem;
   }
 
   return next;

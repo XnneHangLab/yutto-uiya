@@ -104,37 +104,87 @@ pub fn run_parse_command(
 ) -> Result<ParseResult, String> {
     emit_raw_log(app, &format!("[parse] 正在解析 {target} …"));
 
-    let output = build_python_command_for_driver(
+    let mut command = build_python_command_for_driver(
         repo_root,
         workspace_root,
         driver,
         ["-m", "uiya.cli", "parse", target],
-    )
-    .env("UIYA_FFMPEG_PATH", ffmpeg_path)
-    .output()
-    .map_err(|error| format!("failed to run parse command: {error}"))?;
+    );
+    command
+        .env("UIYA_FFMPEG_PATH", ffmpeg_path)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
 
-    emit_stderr_lines(app, &output.stderr);
+    let mut child = command
+        .spawn()
+        .map_err(|error| format!("failed to run parse command: {error}"))?;
 
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let lines: Vec<&str> = stdout.lines().collect();
-    let Some(&last_line) = lines.last() else {
-        return Err("parse command returned no output".to_string());
-    };
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| "parse command missing stdout".to_string())?;
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| "parse command missing stderr".to_string())?;
 
-    // Forward all but the last line (raw yutto output) as runtime:raw-log
-    for line in lines[..lines.len().saturating_sub(1)].iter() {
-        let line = line.trim();
-        if !line.is_empty() {
-            emit_raw_log(app, line);
+    let app_for_stderr = app.clone();
+    let stderr_handle = thread::spawn(move || {
+        let reader = BufReader::new(stderr);
+        for line in reader.lines().map_while(Result::ok) {
+            let line = line.trim().to_string();
+            if !line.is_empty() {
+                let _ = app_for_stderr.emit("runtime:raw-log", line);
+            }
+        }
+    });
+
+    let mut final_payload: Option<serde_json::Value> = None;
+    let reader = BufReader::new(stdout);
+    for line in reader.lines() {
+        let line = line.map_err(|error| format!("failed to read parse command stdout: {error}"))?;
+        let line = line.trim().to_string();
+        if line.is_empty() {
+            continue;
+        }
+
+        match serde_json::from_str::<PythonEnvelope>(&line) {
+            Ok(envelope) => match envelope.kind.as_str() {
+                "event" => {
+                    let timestamp = super::state::current_timestamp();
+                    let event = runtime_event_from_python_payload("", target, &envelope.payload, &timestamp);
+                    let _ = app.emit("runtime:event", &event);
+                }
+                "payload" => {
+                    final_payload = Some(envelope.payload);
+                }
+                _ => emit_raw_log(app, &line),
+            },
+            Err(_) => emit_raw_log(app, &line),
         }
     }
 
-    let envelope: PythonEnvelope =
-        serde_json::from_str(last_line).map_err(|error| {
-            format!("failed to parse parse-command output: {error} (last line: {last_line:?})")
-        })?;
-    let result: ParseResult = serde_json::from_value(envelope.payload.clone())
+    let status = child
+        .wait()
+        .map_err(|error| format!("failed to wait for parse command: {error}"))?;
+    let _ = stderr_handle.join();
+
+    let payload = final_payload.ok_or_else(|| {
+        if status.success() {
+            "parse command returned no payload".to_string()
+        } else {
+            format!("parse command failed with exit code {:?}", status.code())
+        }
+    })?;
+
+    if !status.success() {
+        if let Some(error) = payload.get("error").and_then(serde_json::Value::as_str) {
+            return Err(error.to_string());
+        }
+        return Err(format!("parse command failed with exit code {:?}", status.code()));
+    }
+
+    let result: ParseResult = serde_json::from_value(payload)
         .map_err(|error| format!("failed to deserialize parse result: {error}"))?;
 
     emit_raw_log(app, &format!("[parse] 解析完成，共 {} 个视频", result.items.len()));
@@ -750,6 +800,7 @@ fn build_terminal_failure_event(
         percent: None,
         downloaded: None,
         total: None,
+        parse_item: None,
     }
 }
 
@@ -779,6 +830,10 @@ fn runtime_event_from_python_payload(
         percent: payload["percent"].as_u64(),
         downloaded: payload["downloaded"].as_str().map(str::to_string),
         total: payload["total"].as_str().map(str::to_string),
+        parse_item: payload
+            .get("parseItem")
+            .cloned()
+            .and_then(|value| serde_json::from_value(value).ok()),
     }
 }
 
@@ -1249,5 +1304,40 @@ mod tests {
         assert_eq!(event.percent, Some(42));
         assert_eq!(event.downloaded.as_deref(), Some("75.0M"));
         assert_eq!(event.total.as_deref(), Some("180M"));
+    }
+
+    #[test]
+    fn runtime_event_from_python_payload_keeps_parse_item_fields() {
+        let payload = json!({
+            "event": "parse.item",
+            "target": "https://www.bilibili.com/video/BV1xx411c7mD",
+            "status": "parsing",
+            "message": "解析到视频",
+            "progressCurrent": 1,
+            "progressTotal": 0,
+            "progressUnit": "item",
+            "parseItem": {
+                "index": 1,
+                "title": "测试视频_p1",
+                "url": "https://www.bilibili.com/video/BV1xx411c7mD?p=1",
+                "dir": ""
+            }
+        });
+
+        let event = runtime_event_from_python_payload(
+            "",
+            "https://www.bilibili.com/video/BV1xx411c7mD",
+            &payload,
+            "1712300002",
+        );
+
+        let parse_item = event.parse_item.expect("parse item should be present");
+        assert_eq!(event.event, "parse.item");
+        assert_eq!(parse_item.index, 1);
+        assert_eq!(parse_item.title, "测试视频_p1");
+        assert_eq!(
+            parse_item.url,
+            "https://www.bilibili.com/video/BV1xx411c7mD?p=1"
+        );
     }
 }

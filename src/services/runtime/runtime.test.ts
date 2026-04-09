@@ -1,7 +1,9 @@
 import {
   applyRuntimeEvent,
+  applyParseRuntimeEvent,
   buildFolderItemsFromPaths,
   createConsoleLogFromRuntimeEvent,
+  isParseRuntimeEvent,
   type RuntimeTaskRecord,
 } from './runtime';
 import { listen } from '@tauri-apps/api/event';
@@ -60,6 +62,7 @@ describe('runtime helpers', () => {
         progressCurrent: 1,
         progressTotal: 3,
         updatedAt: '1712300000',
+        saveDir: '',
       },
     ]);
   });
@@ -100,6 +103,7 @@ describe('runtime helpers', () => {
         progressCurrent: 1,
         progressTotal: 3,
         updatedAt: '1712300001',
+        saveDir: '',
       },
     ]);
   });
@@ -135,6 +139,58 @@ describe('runtime helpers', () => {
 
     expect(log.kind).toBe('stderr');
     expect(log.text).toContain('network error');
+  });
+
+  it('recognizes parse runtime events and upserts parse items', () => {
+    const event = {
+      event: 'parse.item',
+      taskId: '',
+      target: 'https://www.bilibili.com/video/BV1xx411c7mD',
+      status: 'parsing',
+      message: '解析到视频',
+      progressCurrent: 1,
+      progressTotal: 0,
+      progressUnit: 'item',
+      timestamp: '1712300003',
+      parseItem: {
+        index: 1,
+        title: '测试视频_p1',
+        url: 'https://www.bilibili.com/video/BV1xx411c7mD?p=1',
+        dir: '',
+      },
+    } as const;
+
+    expect(isParseRuntimeEvent(event)).toBe(true);
+    expect(applyParseRuntimeEvent([], event)).toEqual([
+      {
+        index: 1,
+        title: '测试视频_p1',
+        url: 'https://www.bilibili.com/video/BV1xx411c7mD?p=1',
+        dir: '',
+      },
+    ]);
+  });
+
+  it('ignores parse runtime events when updating download tasks', () => {
+    const next = applyRuntimeEvent([], {
+      event: 'parse.item',
+      taskId: '',
+      target: 'https://www.bilibili.com/video/BV1xx411c7mD',
+      status: 'parsing',
+      message: '解析到视频',
+      progressCurrent: 1,
+      progressTotal: 0,
+      progressUnit: 'item',
+      timestamp: '1712300003',
+      parseItem: {
+        index: 1,
+        title: '测试视频_p1',
+        url: 'https://www.bilibili.com/video/BV1xx411c7mD?p=1',
+        dir: '',
+      },
+    });
+
+    expect(next).toEqual([]);
   });
 
   it('cleans up registered listeners when runtime subscription partially fails', async () => {

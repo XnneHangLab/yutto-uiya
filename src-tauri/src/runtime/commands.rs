@@ -185,6 +185,7 @@ pub fn cancel_task(
             progress_unit: "stage".to_string(),
             timestamp,
             desc: None, percent: None, downloaded: None, total: None,
+            parse_item: None,
         });
         return Ok(());
     }
@@ -220,6 +221,7 @@ pub fn cancel_task(
                 progress_unit: "stage".to_string(),
                 timestamp,
                 desc: None, percent: None, downloaded: None, total: None,
+                parse_item: None,
             });
         }
     }

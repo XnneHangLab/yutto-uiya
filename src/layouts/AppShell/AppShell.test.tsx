@@ -132,12 +132,74 @@ describe('AppShell', () => {
       'https://www.bilibili.com/video/BV1xx411c7mD',
       expect.any(Object),
       '测试视频',
+      undefined,
     );
 
     // Task should appear in queue
     await waitFor(() =>
       expect(screen.getByText('已进入下载队列')).toBeInTheDocument(),
     );
+  });
+
+  it('shows parse items incrementally before parseTarget resolves', async () => {
+    let resolveParse: ((value: {
+      items: Array<{ index: number; title: string; url: string; dir: string }>;
+      videoQualities: Array<{ label: string; code: number }>;
+      audioQualities: Array<{ label: string; code: number }>;
+      dir?: string;
+    }) => void) | null = null;
+
+    vi.mocked(runtimeBridge.parseTarget).mockImplementation(
+      () => new Promise((resolve) => {
+        resolveParse = resolve;
+      }),
+    );
+
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: '下载管理' }));
+
+    const urlInput = await screen.findByLabelText('Bilibili 视频链接');
+    await user.type(urlInput, 'https://www.bilibili.com/video/BV1xx411c7mD');
+    await user.click(screen.getByRole('button', { name: '解析' }));
+
+    act(() => {
+      runtimeBridge.__emitRuntimeEvent({
+        event: 'parse.item',
+        taskId: '',
+        target: 'https://www.bilibili.com/video/BV1xx411c7mD',
+        status: 'parsing',
+        message: '解析到视频',
+        progressCurrent: 1,
+        progressTotal: 0,
+        progressUnit: 'item',
+        timestamp: '1712300004',
+        parseItem: {
+          index: 1,
+          title: '测试视频_p1',
+          url: 'https://www.bilibili.com/video/BV1xx411c7mD?p=1',
+          dir: '',
+        },
+      });
+    });
+
+    await screen.findByText('测试视频_p1');
+
+    act(() => {
+      resolveParse?.({
+        items: [
+          {
+            index: 1,
+            title: '测试视频_p1',
+            url: 'https://www.bilibili.com/video/BV1xx411c7mD?p=1',
+            dir: '',
+          },
+        ],
+        videoQualities: [],
+        audioQualities: [],
+      });
+    });
   });
 
   it('blocks download actions until environment probe is ready', async () => {
