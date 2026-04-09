@@ -410,12 +410,51 @@
 }
 
 .settings-shell .settings-auth-modal__panel {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   width: min(420px, calc(100vw - 32px));
   padding: 22px;
   border-radius: 18px;
   background: linear-gradient(180deg, var(--card-bg-start), var(--card-bg-end));
   border: 1px solid var(--line);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+}
+
+.settings-shell .settings-auth-modal__panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background-image: url('../../assets/imgs/2233.jpg');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  transform: scale(1.04);
+}
+
+.settings-shell .settings-auth-modal__panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.54), rgba(255, 255, 255, 0.78)),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.04));
+}
+
+.launcher-root[data-theme='day'] .settings-shell .settings-auth-modal__panel::before {
+  filter: brightness(0.9) saturate(0.95);
+}
+
+.launcher-root[data-theme='night'] .settings-shell .settings-auth-modal__panel::before {
+  filter: brightness(0.42) saturate(1.18);
+}
+
+.launcher-root[data-theme='night'] .settings-shell .settings-auth-modal__panel::after {
+  background:
+    linear-gradient(180deg, rgba(12, 18, 28, 0.42), rgba(8, 12, 18, 0.76)),
+    linear-gradient(135deg, rgba(72, 108, 160, 0.18), rgba(18, 28, 44, 0.1));
 }
 
 .settings-shell .settings-auth-modal__title {
@@ -435,9 +474,12 @@
 .settings-shell .settings-auth-modal__placeholder {
   width: 220px;
   height: 220px;
-  border-radius: 16px;
-  border: 1px solid var(--line);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.78);
   background: #fff;
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.18),
+    0 1px 0 rgba(255, 255, 255, 0.55) inset;
 }
 
 .settings-shell .settings-auth-modal__placeholder {
