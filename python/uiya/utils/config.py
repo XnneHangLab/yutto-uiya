@@ -108,7 +108,8 @@ def resolve_download_dir(settings: UiyaSetting) -> Path:
 
 def search_for_settings_file(setting_name: str) -> Path | None:
     if runtime_path := runtime_config_path(setting_name):
-        return runtime_path if runtime_path.exists() else None
+        if runtime_path.exists():
+            return runtime_path
 
     config_dir = Path("config")
     settings_file = config_dir / setting_name

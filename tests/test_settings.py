@@ -48,16 +48,55 @@ class TestSettings:
         monkeypatch: pytest.MonkeyPatch,
         tmp_path: Path,
     ) -> None:
-        runtime_config = tmp_path / "config" / "uiya.toml"
+        runtime_config = tmp_path / "runtime" / "config" / "uiya.toml"
         runtime_config.parent.mkdir(parents=True)
-        runtime_config.write_text('ffmpeg_path = "portable-ffmpeg"\n', encoding="utf-8")
+        runtime_config.write_text(
+            'ffmpeg_path = "portable-ffmpeg"\n',
+            encoding="utf-8",
+        )
+        local_root = tmp_path / "workspace"
+        local_root.mkdir(parents=True)
+        local_config = local_root / "config" / "uiya.toml"
+        local_config.parent.mkdir(parents=True)
+        base_config = Path("config/uiya.toml").read_text(encoding="utf-8")
+        local_config.write_text(
+            base_config.replace('ffmpeg_path = "ffmpeg"', 'ffmpeg_path = "repo-ffmpeg"'),
+            encoding="utf-8",
+        )
+
         monkeypatch.setenv("UIYA_RUNTIME_CONFIG", str(runtime_config))
+        monkeypatch.chdir(local_root)
 
         settings = load_settings_file("uiya.toml", UiyaSetting)
 
         assert settings.ffmpeg_path == "portable-ffmpeg"
-        assert runtime_config.read_text(encoding="utf-8")
+        runtime_contents = runtime_config.read_text(encoding="utf-8")
+        assert "portable-ffmpeg" in runtime_contents
+        assert "repo-ffmpeg" in local_config.read_text(encoding="utf-8")
 
+    def test_load_settings_falls_back_to_repo_when_runtime_missing(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ) -> None:
+        runtime_config = tmp_path / "runtime" / "config" / "uiya.toml"
+        local_root = tmp_path / "workspace"
+        local_root.mkdir(parents=True)
+        local_config = local_root / "config" / "uiya.toml"
+        local_config.parent.mkdir(parents=True)
+        base_config = Path("config/uiya.toml").read_text(encoding="utf-8")
+        local_config.write_text(
+            base_config.replace('ffmpeg_path = "ffmpeg"', 'ffmpeg_path = "repo-ffmpeg"'),
+            encoding="utf-8",
+        )
+
+        monkeypatch.setenv("UIYA_RUNTIME_CONFIG", str(runtime_config))
+        monkeypatch.chdir(local_root)
+
+        settings = load_settings_file("uiya.toml", UiyaSetting)
+
+        assert settings.ffmpeg_path == "repo-ffmpeg"
+        assert not runtime_config.exists()
 
 if __name__ == "__main__":
     pytest.main()
