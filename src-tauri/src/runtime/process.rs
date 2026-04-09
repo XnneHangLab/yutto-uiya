@@ -255,6 +255,7 @@ pub fn run_auth_login_command(
     repo_root: &Path,
     workspace_root: &Path,
     driver: &RuntimeDriverConfig,
+    state: &RuntimeState,
     app: &AppHandle,
 ) -> Result<(), String> {
     emit_raw_log(app, "[auth] 开始登录流程 …");
@@ -270,6 +271,10 @@ pub fn run_auth_login_command(
     let mut child = command
         .spawn()
         .map_err(|error| format!("failed to run auth-login command: {error}"))?;
+    state.set_auth_process_pid(child.id());
+    if state.auth_cancel_requested() {
+        kill_process(child.id());
+    }
 
     let stdout = child
         .stdout

@@ -148,6 +148,12 @@ impl QueueState {
     }
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub(crate) struct AuthProcessState {
+    pid: Option<u32>,
+    cancel_requested: bool,
+}
+
 #[derive(Clone)]
 pub struct RuntimeState {
     pub repo_root: PathBuf,
@@ -157,7 +163,7 @@ pub struct RuntimeState {
     pub ffmpeg_path: Arc<Mutex<String>>,
     /// PID of the currently-running download subprocess (task_id, child_pid).
     pub active_download: Arc<Mutex<Option<(String, u32)>>>,
-    pub active_auth: Arc<Mutex<bool>>,
+    pub(crate) active_auth: Arc<Mutex<Option<AuthProcessState>>>,
 }
 
 impl RuntimeState {
@@ -169,7 +175,7 @@ impl RuntimeState {
             driver_config: Arc::new(Mutex::new(RuntimeDriverConfig::Uv)),
             ffmpeg_path: Arc::new(Mutex::new("ffmpeg".to_string())),
             active_download: Arc::new(Mutex::new(None)),
-            active_auth: Arc::new(Mutex::new(false)),
+            active_auth: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -198,11 +204,51 @@ impl RuntimeState {
     }
 
     pub fn auth_in_progress(&self) -> bool {
-        *self.active_auth.lock().unwrap()
+        self.active_auth.lock().unwrap().is_some()
     }
 
-    pub fn set_auth_in_progress(&self, next: bool) {
-        *self.active_auth.lock().unwrap() = next;
+    pub fn begin_auth_process(&self) {
+        *self.active_auth.lock().unwrap() = Some(AuthProcessState::default());
+    }
+
+    pub fn set_auth_process_pid(&self, pid: u32) {
+        if let Some(active) = self.active_auth.lock().unwrap().as_mut() {
+            active.pid = Some(pid);
+        }
+    }
+
+    #[cfg(test)]
+    pub fn current_auth_pid(&self) -> Option<u32> {
+        self.active_auth
+            .lock()
+            .unwrap()
+            .as_ref()
+            .and_then(|active| active.pid)
+    }
+
+    pub fn auth_cancel_requested(&self) -> bool {
+        self.active_auth
+            .lock()
+            .unwrap()
+            .as_ref()
+            .map(|active| active.cancel_requested)
+            .unwrap_or(false)
+    }
+
+    pub fn request_auth_cancel(&self) -> Option<u32> {
+        let mut active_auth = self.active_auth.lock().unwrap();
+        let active = active_auth.as_mut()?;
+        active.cancel_requested = true;
+        active.pid
+    }
+
+    pub fn finish_auth_process(&self) -> bool {
+        self.active_auth
+            .lock()
+            .unwrap()
+            .take()
+            .map(|active| active.cancel_requested)
+            .unwrap_or(false)
     }
 }
 
@@ -232,7 +278,8 @@ pub fn resolve_workspace_root(repo_root: &PathBuf) -> Result<PathBuf, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{QueueState, TaskStatus};
+    use super::{QueueState, RuntimeState, TaskStatus};
+    use std::path::PathBuf;
 
     #[test]
     fn enqueue_adds_a_task_and_keeps_it_queued() {
@@ -312,5 +359,25 @@ mod tests {
         queue.apply_update(&task.task_id, TaskStatus::Completed, "完成".to_string(), 3, 3);
         queue.worker_running = false;
         assert!(!queue.has_active_tasks());
+    }
+
+    #[test]
+    fn auth_process_state_tracks_pid_and_cancel_flag() {
+        let state = RuntimeState::new(PathBuf::from("/repo"), PathBuf::from("/repo"));
+
+        state.begin_auth_process();
+        assert!(state.auth_in_progress());
+        assert_eq!(state.current_auth_pid(), None);
+
+        state.set_auth_process_pid(4321);
+        assert_eq!(state.current_auth_pid(), Some(4321));
+
+        let cancel_pid = state.request_auth_cancel();
+        assert_eq!(cancel_pid, Some(4321));
+
+        let was_cancelled = state.finish_auth_process();
+        assert!(was_cancelled);
+        assert!(!state.auth_in_progress());
+        assert_eq!(state.current_auth_pid(), None);
     }
 }

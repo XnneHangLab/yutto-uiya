@@ -81,6 +81,10 @@ export function startAuthLogin() {
   return invoke<void>('start_auth_login');
 }
 
+export function cancelAuthLogin() {
+  return invoke<void>('cancel_auth_login');
+}
+
 export function logoutAuth() {
   return invoke<string>('logout_auth');
 }

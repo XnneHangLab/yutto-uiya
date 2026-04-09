@@ -161,7 +161,7 @@ pub async fn start_auth_login(
         return Err("当前已有登录流程进行中".to_string());
     }
 
-    state.set_auth_in_progress(true);
+    state.begin_auth_process();
     let repo_root = state.repo_root.clone();
     let workspace_root = state.current_workspace_root();
     let driver = state.current_driver_config();
@@ -169,8 +169,35 @@ pub async fn start_auth_login(
     let app_handle = app.clone();
 
     tauri::async_runtime::spawn_blocking(move || {
-        let result = run_auth_login_command(&repo_root, &workspace_root, &driver, &app_handle);
-        runtime_state.set_auth_in_progress(false);
+        let result = run_auth_login_command(
+            &repo_root,
+            &workspace_root,
+            &driver,
+            &runtime_state,
+            &app_handle,
+        );
+        let cancelled = runtime_state.finish_auth_process();
+        if cancelled && result.is_err() {
+            let timestamp = super::state::current_timestamp();
+            let _ = app_handle.emit("runtime:event", &super::models::RuntimeEventPayload {
+                event: "auth.login.cancelled".to_string(),
+                task_id: String::new(),
+                target: "auth".to_string(),
+                status: "cancelled".to_string(),
+                message: "已取消登录".to_string(),
+                progress_current: 0,
+                progress_total: 3,
+                progress_unit: "step".to_string(),
+                timestamp,
+                desc: None,
+                percent: None,
+                downloaded: None,
+                total: None,
+                parse_item: None,
+                auth_qr_data_url: None,
+            });
+            return;
+        }
         if let Err(error) = result {
             let timestamp = super::state::current_timestamp();
             let _ = app_handle.emit("runtime:event", &super::models::RuntimeEventPayload {
@@ -192,6 +219,19 @@ pub async fn start_auth_login(
             });
         }
     });
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn cancel_auth_login(state: State<'_, RuntimeState>) -> Result<(), String> {
+    if !state.auth_in_progress() {
+        return Ok(());
+    }
+
+    if let Some(pid) = state.request_auth_cancel() {
+        kill_process(pid);
+    }
 
     Ok(())
 }

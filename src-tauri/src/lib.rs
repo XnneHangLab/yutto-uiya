@@ -36,6 +36,7 @@ pub fn run() {
             runtime::commands::fetch_video_meta,
             runtime::commands::cancel_task,
             runtime::commands::start_auth_login,
+            runtime::commands::cancel_auth_login,
             runtime::commands::logout_auth,
         ])
         .build(tauri::generate_context!())

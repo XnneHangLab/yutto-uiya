@@ -10,6 +10,7 @@ import {
 } from '../../services/launcher/launcher';
 import {
   startAuthLogin,
+  cancelAuthLogin,
   chooseWorkspaceRoot,
   cancelTask,
   enqueueDownload,
@@ -210,8 +211,15 @@ export function AppShell() {
               setAuthDialogOpen(false);
               setAuthDialogQrDataUrl('');
               void refreshEnvironmentStatus();
-            } else if (event.event === 'auth.login.failed') {
+            } else if (
+              event.event === 'auth.login.failed'
+              || event.event === 'auth.login.cancelled'
+            ) {
               setAuthBusy(false);
+              if (event.event === 'auth.login.cancelled') {
+                setAuthDialogOpen(false);
+                setAuthDialogQrDataUrl('');
+              }
             }
           } else if (event.event === 'auth.logout.completed') {
             setAuthBusy(false);
@@ -453,6 +461,22 @@ export function AppShell() {
     }
   }
 
+  async function handleCloseAuthDialog() {
+    setAuthDialogOpen(false);
+    if (!authBusy) {
+      return;
+    }
+
+    try {
+      await cancelAuthLogin();
+    } catch (error) {
+      setLogs((current) => [
+        ...current,
+        createConsoleLog('stderr', `取消登录失败: ${toErrorMessage(error)}`),
+      ]);
+    }
+  }
+
   async function handleOpenManagedPath(pathKey: string) {
     try {
       await openManagedPath(pathKey);
@@ -606,7 +630,7 @@ export function AppShell() {
               authDialogQrDataUrl,
               onStartAuthLogin: handleStartAuthLogin,
               onLogoutAuth: handleLogoutAuth,
-              onCloseAuthDialog: () => setAuthDialogOpen(false),
+              onCloseAuthDialog: handleCloseAuthDialog,
               onSave: handleSaveSettings,
               onSetAutoScroll: setAutoScroll,
               onSetWrapLines: setWrapLines,
