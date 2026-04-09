@@ -555,29 +555,42 @@ pub fn kill_process(pid: u32) {
 }
 
 pub fn open_path(path: &Path) -> Result<(), String> {
+    let normalized_path = path
+        .canonicalize()
+        .map_err(|error| format!("failed to resolve open path {}: {error}", path.display()))?;
+
     #[cfg(target_os = "windows")]
-    let mut command = {
-        let mut command = Command::new("explorer");
-        command.arg(path);
-        command
-    };
+    let mut command = build_windows_open_command(&normalized_path);
 
     #[cfg(target_os = "linux")]
     let mut command = {
         let mut command = Command::new("xdg-open");
-        command.arg(path);
+        command.arg(&normalized_path);
         command
     };
 
     #[cfg(target_os = "macos")]
     let mut command = {
         let mut command = Command::new("open");
-        command.arg(path);
+        command.arg(&normalized_path);
         command
     };
 
     command.spawn().map_err(|error| error.to_string())?;
     Ok(())
+}
+
+#[cfg(any(target_os = "windows", test))]
+fn build_windows_open_command(path: &Path) -> Command {
+    let mut command = Command::new("powershell");
+    command
+        .args([
+            "-NoProfile",
+            "-Command",
+            "Invoke-Item -LiteralPath $env:UIYA_OPEN_PATH",
+        ])
+        .env("UIYA_OPEN_PATH", path);
+    command
 }
 
 pub fn pick_workspace_root() -> Result<Option<PathBuf>, String> {
@@ -1058,8 +1071,8 @@ mod tests {
     use serde_json::json;
 
     use super::{
-        build_terminal_failure_event, build_uv_python_command, managed_path_from_payload,
-        runtime_event_from_python_payload, EnvironmentProbePayload,
+        build_terminal_failure_event, build_uv_python_command, build_windows_open_command,
+        managed_path_from_payload, runtime_event_from_python_payload, EnvironmentProbePayload,
     };
 
     #[test]
@@ -1101,6 +1114,43 @@ mod tests {
         }));
         assert!(envs.iter().any(|(key, value)| {
             key == "PYTHONUNBUFFERED" && value.as_deref() == Some("1")
+        }));
+    }
+
+    #[test]
+    fn build_windows_open_command_uses_literal_path_via_env() {
+        let command = build_windows_open_command(Path::new(r"C:\Users\demo\Downloads"));
+        let args = command
+            .get_args()
+            .map(|value| value.to_string_lossy().into_owned())
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            command.get_program().to_string_lossy(),
+            "powershell"
+        );
+        assert_eq!(
+            args,
+            vec![
+                "-NoProfile".to_string(),
+                "-Command".to_string(),
+                "Invoke-Item -LiteralPath $env:UIYA_OPEN_PATH".to_string(),
+            ]
+        );
+
+        let envs = command
+            .get_envs()
+            .map(|(key, value)| {
+                (
+                    key.to_string_lossy().into_owned(),
+                    value.map(|item| item.to_string_lossy().into_owned()),
+                )
+            })
+            .collect::<Vec<_>>();
+
+        assert!(envs.iter().any(|(key, value)| {
+            key == "UIYA_OPEN_PATH"
+                && value.as_deref() == Some(r"C:\Users\demo\Downloads")
         }));
     }
 

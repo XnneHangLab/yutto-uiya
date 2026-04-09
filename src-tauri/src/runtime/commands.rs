@@ -241,22 +241,25 @@ pub fn list_managed_folders(state: State<'_, RuntimeState>) -> Result<serde_json
 }
 
 #[tauri::command]
-pub fn open_path_command(path: String) -> Result<(), String> {
-    open_path(&std::path::PathBuf::from(path))
+pub fn open_path_command(app: AppHandle, path: String) -> Result<(), String> {
+    let target = std::path::PathBuf::from(path);
+    let _ = app.emit("runtime:raw-log", format!("[open] {}", target.display()));
+    open_path(&target)
 }
 
 #[tauri::command]
-pub fn open_managed_path(state: State<'_, RuntimeState>, path_key: String) -> Result<(), String> {
+pub fn open_managed_path(app: AppHandle, state: State<'_, RuntimeState>, path_key: String) -> Result<(), String> {
     let workspace_root = state.current_workspace_root();
     let path = resolve_managed_path(&workspace_root, &path_key)?;
     if !path.exists() {
         std::fs::create_dir_all(&path).map_err(|e| e.to_string())?;
     }
+    let _ = app.emit("runtime:raw-log", format!("[open] {}", path.display()));
     open_path(&path)
 }
 
 #[tauri::command]
-pub fn open_task_save_dir(state: State<'_, RuntimeState>, relative_path: String) -> Result<(), String> {
+pub fn open_task_save_dir(app: AppHandle, state: State<'_, RuntimeState>, relative_path: String) -> Result<(), String> {
     let workspace_root = state.current_workspace_root();
     let downloads_dir = resolve_managed_path(&workspace_root, "downloads")?;
     let target = if relative_path.is_empty() {
@@ -268,6 +271,7 @@ pub fn open_task_save_dir(state: State<'_, RuntimeState>, relative_path: String)
     if !open_target.exists() {
         std::fs::create_dir_all(open_target).map_err(|e| e.to_string())?;
     }
+    let _ = app.emit("runtime:raw-log", format!("[open] {}", open_target.display()));
     open_path(open_target)
 }
 
