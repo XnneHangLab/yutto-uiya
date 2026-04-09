@@ -70,6 +70,7 @@ export function AppShell() {
   const [parseItems, setParseItems] = useState<VideoParseItem[]>([]);
   const [parseSelected, setParseSelected] = useState<Set<number>>(new Set());
   const [downloadUrl, setDownloadUrl] = useState('');
+  const [parseDirOverride, setParseDirOverride] = useState('');
   const [parseVideoQualities, setParseVideoQualities] = useState<QualityOption[]>([]);
   const [downloadOptions, setDownloadOptions] = useState<DownloadOptions>(DEFAULT_DOWNLOAD_OPTIONS);
 
@@ -202,7 +203,7 @@ export function AppShell() {
     }
 
     try {
-      const task = await enqueueDownload(url, downloadOptions, label);
+      const task = await enqueueDownload(url, downloadOptions, label, parseDirOverride || undefined);
       setTasks((current) => {
         const next = current.filter((item) => item.taskId !== task.taskId);
         next.push(task);
@@ -233,6 +234,7 @@ export function AppShell() {
       const result = await parseTarget(url);
       setParseItems(result.items);
       setParseSelected(new Set(result.items.map((item) => item.index)));
+      setParseDirOverride(result.dir ?? '');
       setParseVideoQualities(result.videoQualities);
       if (result.videoQualities.length > 0) {
         setDownloadOptions((prev) => ({ ...prev, videoQuality: result.videoQualities[0].code }));
@@ -250,6 +252,7 @@ export function AppShell() {
   function handleClearParseItems() {
     setParseItems([]);
     setParseSelected(new Set());
+    setParseDirOverride('');
     setParseVideoQualities([]);
     setDownloadOptions(DEFAULT_DOWNLOAD_OPTIONS);
   }

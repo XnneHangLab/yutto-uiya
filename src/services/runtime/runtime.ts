@@ -110,6 +110,7 @@ export interface QualityOption {
 
 export interface VideoParseResult {
   items: VideoParseItem[];
+  dir: string;
   videoQualities: QualityOption[];
   audioQualities: QualityOption[];
 }

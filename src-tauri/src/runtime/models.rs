@@ -73,6 +73,7 @@ pub struct QualityOption {
 #[serde(rename_all = "camelCase")]
 pub struct ParseResult {
     pub url: String,
+    pub dir: String,
     pub items: Vec<ParsedVideoItem>,
     pub video_qualities: Vec<QualityOption>,
     pub audio_qualities: Vec<QualityOption>,

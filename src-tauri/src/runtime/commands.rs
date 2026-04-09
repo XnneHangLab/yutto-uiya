@@ -112,6 +112,7 @@ pub async fn enqueue_download(
     require_cover: Option<bool>,
     video_quality: Option<u32>,
     audio_quality: Option<u32>,
+    dir_override: Option<String>,
 ) -> Result<serde_json::Value, String> {
     let (target, fallback_label) = validate_download_target(&target)?;
     let display_label = label
@@ -123,9 +124,10 @@ pub async fn enqueue_download(
     let rc = require_cover.unwrap_or(false);
     let vq = video_quality.unwrap_or(127);
     let aq = audio_quality.unwrap_or(30280);
+    let dir = dir_override.filter(|s| !s.is_empty());
     let (task, should_spawn_worker) = {
         let mut queue = state.queue.lock().unwrap();
-        queue.enqueue_with_worker_control(target.to_string(), display_label, rv, ra, rc, vq, aq, None)
+        queue.enqueue_with_worker_control(target.to_string(), display_label, rv, ra, rc, vq, aq, None, dir)
     };
 
     if should_spawn_worker {

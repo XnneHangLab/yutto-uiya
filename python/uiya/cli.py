@@ -69,6 +69,7 @@ def cmd_download(
     video_quality: int = 127,
     audio_quality: int = 30280,
     select_index: int | None = None,
+    dir_override: str | None = None,
 ) -> None:
     """
     Build and run a yutto download job for *target* (a BiliBili URL).
@@ -108,6 +109,8 @@ def cmd_download(
 
     # ── 2. write a fresh yutto.toml with runtime-resolved values ─────────
     try:
+        import pathlib
+        dl_dir = pathlib.Path(settings.download_dir) / dir_override if dir_override else settings.download_dir
         basic = YuttoBasicSetting(
             num_workers=8,
             video_quality=video_quality,
@@ -115,7 +118,7 @@ def cmd_download(
             sessdata=settings.SESS_DATA,
             vip_strict=settings.vip_strict == "open",
             login_strict=settings.login_strict == "open",
-            dir=str(settings.download_dir),
+            dir=str(dl_dir),
         )
         resource = YuttoResourceSettings(
             require_video=require_video,
@@ -290,6 +293,13 @@ def cmd_parse(target: str) -> None:
 
     print(f"[run] {shlex.join(command)}", flush=True)
 
+    # Snapshot downloads/ subdirectories before yutto runs so we can detect
+    # which collection directory it creates (yutto mkdir's even with --skip-download).
+    import pathlib
+    downloads_path = pathlib.Path("./downloads")
+    downloads_path.mkdir(parents=True, exist_ok=True)
+    dirs_before = {p.name for p in downloads_path.iterdir() if p.is_dir()}
+
     items: list[dict] = []
     current_title: str | None = None
     # ordered dicts: code → label, deduplicating across multiple videos in a playlist
@@ -339,13 +349,17 @@ def cmd_parse(target: str) -> None:
 
     proc.wait()
 
+    dirs_after = {p.name for p in downloads_path.iterdir() if p.is_dir()}
+    new_dirs = dirs_after - dirs_before
+    collection_dir = new_dirs.pop() if len(new_dirs) == 1 else ""
+
     # Sort highest code first (best quality first)
     video_qualities = [{"label": label, "code": code}
                        for code, label in sorted(seen_video_qualities.items(), reverse=True)]
     audio_qualities = [{"label": label, "code": code}
                        for code, label in sorted(seen_audio_qualities.items(), reverse=True)]
 
-    emit_payload({"url": target, "items": items, "videoQualities": video_qualities, "audioQualities": audio_qualities})
+    emit_payload({"url": target, "dir": collection_dir, "items": items, "videoQualities": video_qualities, "audioQualities": audio_qualities})
 
 
 def cmd_fetch_meta(url: str) -> None:
@@ -441,6 +455,7 @@ def main() -> None:
     dl_parser.add_argument("--video-quality", type=int, default=127)
     dl_parser.add_argument("--audio-quality", type=int, default=30280)
     dl_parser.add_argument("--select-index", type=int, default=None)
+    dl_parser.add_argument("--dir-override", default=None)
 
     parse_parser = subparsers.add_parser("parse")
     parse_parser.add_argument("target")
@@ -465,6 +480,7 @@ def main() -> None:
             video_quality=args.video_quality,
             audio_quality=args.audio_quality,
             select_index=args.select_index,
+            dir_override=args.dir_override,
         )
     elif args.command == "parse":
         cmd_parse(args.target)

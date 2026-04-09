@@ -334,6 +334,7 @@ pub fn run_download_command(
     require_cover: bool,
     video_quality: u32,
     audio_quality: u32,
+    dir_override: Option<String>,
 ) -> Result<(), String> {
     let driver = state.current_driver_config();
     let ffmpeg_path = state.current_ffmpeg_path();
@@ -353,6 +354,9 @@ pub fn run_download_command(
         .env("UIYA_FFMPEG_PATH", &ffmpeg_path)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
+    if let Some(dir) = &dir_override {
+        command.arg("--dir-override").arg(dir);
+    }
 
     let mut child = command
         .spawn()
@@ -510,6 +514,7 @@ pub fn drain_download_queue(app: AppHandle, state: RuntimeState) {
             task.require_cover,
             task.video_quality,
             task.audio_quality,
+            task.dir_override.clone(),
         ) {
             // If the task was already marked cancelled (by cancel_task), don't overwrite.
             let already_cancelled = {
