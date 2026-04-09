@@ -386,14 +386,21 @@ def cmd_parse(target: str) -> None:
         collection_dir = ""
 
     # Match each parse item to its per-video leaf dir by title.
-    # Yutto names the output dir after the sanitized video title, so the
-    # basename of the leaf dir should equal the title from the log.
-    # Fall back to collection_dir when no match is found.
+    # Yutto sanitizes the title with repair_filename before using it as a dir/file
+    # name (e.g. "/" → "／", ":" → "："). Apply the same transform here so the
+    # lookup matches.  Falls back to collection_dir (correct for 合集, where all
+    # videos share a single output directory, not per-video subdirs).
+    try:
+        from yutto.path_templates import repair_filename as _repair_filename
+    except ImportError:
+        def _repair_filename(s: str) -> str:  # type: ignore[misc]
+            return s
     dir_by_basename: dict[str, str] = {
         leaf.parts[-1]: leaf.as_posix() for leaf in leaf_dirs if leaf.parts
     }
     for item in items:
-        item["dir"] = dir_by_basename.get(item["title"], collection_dir)
+        repaired = _repair_filename(item["title"])
+        item["dir"] = dir_by_basename.get(repaired, collection_dir)
 
     # Sort highest code first (best quality first)
     video_qualities = [{"label": label, "code": code}
