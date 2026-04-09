@@ -380,9 +380,9 @@ def cmd_parse(target: str) -> None:
         import re as _re2
         repaired_titles = set()
         for item in items:
-            r = _repair_fn2(item["title"])
-            repaired_titles.add(r)
-            repaired_titles.add(_re2.sub(r'_p\d+$', '', r))
+            raw = item["title"]
+            repaired_titles.add(_repair_fn2(raw))
+            repaired_titles.add(_repair_fn2(_re2.sub(r'_p\d+$', '', raw)))
         for root, dirs, _files in os.walk(downloads_path):
             root_path = pathlib.Path(root)
             for d in dirs:
@@ -423,8 +423,15 @@ def cmd_parse(target: str) -> None:
         leaf.parts[-1]: leaf.as_posix() for leaf in leaf_dirs if leaf.parts
     }
     for item in items:
-        repaired = _repair_filename(item["title"])
-        repaired_no_page = _re.sub(r'_p\d+$', '', repaired)
+        raw = item["title"]
+        # Strip page suffix FIRST (from raw title), THEN apply repair_filename.
+        # repair_filename converts trailing dots to "……", but when "_p1" follows
+        # the dots they are not trailing, so the conversion is skipped.  Stripping
+        # "_p1" first exposes the trailing dots so repair_filename converts them,
+        # matching the directory name yutto created.
+        raw_no_page = _re.sub(r'_p\d+$', '', raw)
+        repaired = _repair_filename(raw)
+        repaired_no_page = _repair_filename(raw_no_page)
         item["dir"] = (
             dir_by_basename.get(repaired)
             or dir_by_basename.get(repaired_no_page, collection_dir)
