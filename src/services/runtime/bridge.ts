@@ -53,6 +53,10 @@ export function openManagedPath(pathKey: string) {
   return invoke<void>('open_managed_path', { pathKey });
 }
 
+export function openTaskSaveDir(relativePath: string) {
+  return invoke<void>('open_task_save_dir', { relativePath });
+}
+
 export function exportConsoleLogs(contents: string) {
   return invoke<string>('export_console_logs', { contents });
 }

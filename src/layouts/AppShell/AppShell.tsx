@@ -17,7 +17,7 @@ import {
   listDownloadTasks,
   listManagedFolders,
   openManagedPath,
-  openPath,
+  openTaskSaveDir,
   parseTarget,
   pickFfmpegPath,
   pickPythonPath,
@@ -312,13 +312,8 @@ export function AppShell() {
   }
 
   async function handleOpenFolder(relativePath?: string) {
-    const downloadDir = inspection?.downloadDir;
     try {
-      if (relativePath && downloadDir) {
-        await openPath(`${downloadDir}/${relativePath}`);
-      } else {
-        await openManagedPath('downloads');
-      }
+      await openTaskSaveDir(relativePath ?? '');
     } catch (error) {
       setLogs((current) => [
         ...current,

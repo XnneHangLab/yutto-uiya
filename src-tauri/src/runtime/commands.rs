@@ -256,6 +256,22 @@ pub fn open_managed_path(state: State<'_, RuntimeState>, path_key: String) -> Re
 }
 
 #[tauri::command]
+pub fn open_task_save_dir(state: State<'_, RuntimeState>, relative_path: String) -> Result<(), String> {
+    let workspace_root = state.current_workspace_root();
+    let downloads_dir = resolve_managed_path(&workspace_root, "downloads")?;
+    let target = if relative_path.is_empty() {
+        downloads_dir.clone()
+    } else {
+        downloads_dir.join(&relative_path)
+    };
+    let open_target = if target.exists() { &target } else { &downloads_dir };
+    if !open_target.exists() {
+        std::fs::create_dir_all(open_target).map_err(|e| e.to_string())?;
+    }
+    open_path(open_target)
+}
+
+#[tauri::command]
 pub fn export_console_logs(
     state: State<'_, RuntimeState>,
     contents: String,
