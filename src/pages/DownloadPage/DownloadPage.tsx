@@ -53,7 +53,7 @@ type DetailState =
 
 interface DownloadPageProps {
   tasks: RuntimeTaskRecord[];
-  onDownload: (url: string, label?: string, itemIndex?: number) => void;
+  onDownload: (url: string, label?: string, itemDir?: string) => void;
   onParse: (url: string) => Promise<VideoParseItem[]>;
   scriptsReady: boolean;
   parseItems: VideoParseItem[];
@@ -135,7 +135,7 @@ export function DownloadPage({
   function handleDownloadSelected() {
     for (const item of parseItems) {
       if (parseSelected.has(item.index)) {
-        onDownload(item.url, item.title, item.index);
+        onDownload(item.url, item.title, item.dir || undefined);
       }
     }
   }

@@ -293,15 +293,23 @@ def cmd_parse(target: str) -> None:
 
     print(f"[run] {shlex.join(command)}", flush=True)
 
-    # Record the start time before yutto runs. We detect the collection
-    # output directory by finding files whose mtime >= parse_start — this
-    # works even when the collection directory already existed from a prior
-    # parse (unlike a directory-existence snapshot).
+    # Snapshot all directories under downloads/ BEFORE running yutto.
+    # We diff against the post-parse state to find newly-created dirs.
+    # Unlike mtime, this works even when the collection already exists:
+    # on re-parse the dirs are already present in `before_dirs` so they
+    # won't appear in the diff, and we fall back to title matching instead.
     import pathlib
-    import time
     downloads_path = pathlib.Path("./downloads")
     downloads_path.mkdir(parents=True, exist_ok=True)
-    parse_start = time.time()
+
+    def _all_dirs(base: pathlib.Path) -> set[pathlib.Path]:
+        result: set[pathlib.Path] = set()
+        for root, dirs, _files in os.walk(base):
+            for d in dirs:
+                result.add((pathlib.Path(root) / d).relative_to(base))
+        return result
+
+    before_dirs = _all_dirs(downloads_path)
 
     items: list[dict] = []
     current_title: str | None = None
@@ -352,20 +360,28 @@ def cmd_parse(target: str) -> None:
 
     proc.wait()
 
-    # Walk downloads/ recursively and collect directories whose mtime is
-    # >= parse_start. --skip-download creates directories but NOT files, so
-    # we must scan dirs rather than files.
-    new_dirs: set[pathlib.Path] = set()
-    for root, dirs, _files in os.walk(downloads_path):
-        root_path = pathlib.Path(root)
-        for d in dirs:
-            dp = root_path / d
-            try:
-                if dp.stat().st_mtime >= parse_start:
-                    rel = dp.relative_to(downloads_path)
-                    new_dirs.add(rel)
-            except OSError:
-                pass
+    # Diff against before-snapshot to find directories created during this parse.
+    new_dirs = _all_dirs(downloads_path) - before_dirs
+
+    # Re-parse fallback: if no new dirs were created (all already existed), try
+    # to locate per-video dirs by matching the repaired item titles against
+    # directory basenames.  This covers 收藏夹 re-parses where each video has
+    # its own subdir named after the video title (after repair_filename).
+    # For 合集 (where the video title is used as a file stem, not a dir name)
+    # this search will simply return nothing, which is correct — all items in a
+    # 合集 share a single output directory detected via collection_dir.
+    if not new_dirs and len(items) > 1:
+        try:
+            from yutto.path_templates import repair_filename as _repair_fn2
+        except ImportError:
+            def _repair_fn2(s: str) -> str:  # type: ignore[misc]
+                return s
+        repaired_titles = {_repair_fn2(item["title"]) for item in items}
+        for root, dirs, _files in os.walk(downloads_path):
+            root_path = pathlib.Path(root)
+            for d in dirs:
+                if d in repaired_titles:
+                    new_dirs.add((root_path / d).relative_to(downloads_path))
     # Use only leaf dirs (those that are not proper ancestors of other new dirs)
     # so that commonpath gives the deepest shared parent, not the top-level root.
     # E.g. for 收藏夹: new_dirs = {收藏夹, 收藏夹/dataset, 收藏夹/dataset/v1, ...}
