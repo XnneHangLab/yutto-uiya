@@ -12,8 +12,16 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
+import urllib.parse
+import urllib.request
+
+_BILIBILI_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "Referer": "https://www.bilibili.com",
+}
 
 
 def _video_quality_code(label: str) -> int | None:
@@ -41,6 +49,75 @@ def _audio_quality_code(label: str) -> int | None:
     if "128" in s: return 30232
     if "64" in s: return 30216
     return None
+
+
+def _extract_bilibili_video_identity(url: str) -> tuple[str, str] | None:
+    if bvid_match := re.search(r"(BV[1-9A-HJ-NP-Za-km-z]{10})", url):
+        return ("bvid", bvid_match.group(1))
+    if aid_match := re.search(r"/video/av(\d+)", url):
+        return ("aid", aid_match.group(1))
+    return None
+
+
+def _extract_bilibili_page(url: str) -> int:
+    query = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+    try:
+        return max(1, int(query.get("p", ["1"])[0]))
+    except (TypeError, ValueError):
+        return 1
+
+
+def _fetch_bilibili_view_payload(url: str) -> dict | None:
+    identity = _extract_bilibili_video_identity(url)
+    if identity is None:
+        return None
+
+    key, value = identity
+    api_url = f"https://api.bilibili.com/x/web-interface/view?{key}={value}"
+    try:
+        request = urllib.request.Request(api_url, headers=_BILIBILI_HEADERS)
+        with urllib.request.urlopen(request, timeout=10) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except Exception:
+        return None
+
+    if payload.get("code") != 0:
+        return None
+    data = payload.get("data")
+    return data if isinstance(data, dict) else None
+
+
+def _resolve_single_download_title(
+    url: str,
+    fallback_title: str,
+    view_fetcher: callable = _fetch_bilibili_view_payload,
+) -> str:
+    payload = view_fetcher(url)
+    if not payload:
+        return fallback_title
+
+    title = str(payload.get("title", "")).strip()
+    if not title:
+        return fallback_title
+
+    return f"{title}_p{_extract_bilibili_page(url)}"
+
+
+def _assign_parse_item_dirs(items: list[dict], collection_dir: str, is_per_video: bool) -> None:
+    try:
+        from yutto.path_templates import repair_filename as _repair_filename
+    except ImportError:
+        def _repair_filename(s: str) -> str:  # type: ignore[misc]
+            return s
+
+    for item in items:
+        if is_per_video:
+            raw_title = str(item.get("title", ""))
+            raw_no_page = re.sub(r"_p\d+$", "", raw_title)
+            subdir = _repair_filename(raw_no_page)
+            item["dir"] = f"{collection_dir}/{subdir}" if collection_dir else subdir
+        else:
+            item["dir"] = collection_dir
 
 
 def cmd_inspect_runtime() -> None:
@@ -234,7 +311,6 @@ def cmd_parse(target: str) -> None:
     runtime:raw-log by Rust) then emits a final JSON payload with the
     parsed item list and available quality tiers.
     """
-    import re
     import shlex
 
     from uiya._dataclass import YuttoBasicSetting, YuttoResourceSettings, YuttoSettings
@@ -364,6 +440,23 @@ def cmd_parse(target: str) -> None:
 
     proc.wait()
 
+    view_payload_cache: dict[tuple[str, str], dict | None] = {}
+
+    def cached_view_fetcher(url: str) -> dict | None:
+        identity = _extract_bilibili_video_identity(url)
+        if identity is None:
+            return None
+        if identity not in view_payload_cache:
+            view_payload_cache[identity] = _fetch_bilibili_view_payload(url)
+        return view_payload_cache[identity]
+
+    for item in items:
+        item["title"] = _resolve_single_download_title(
+            item["url"],
+            item["title"],
+            cached_view_fetcher,
+        )
+
     # Diff against before-snapshot to find directories created during this parse.
     new_dirs = _all_dirs(downloads_path) - before_dirs
 
@@ -416,28 +509,13 @@ def cmd_parse(target: str) -> None:
     # are children of collection_dir → is_per_video = True.  For 合集 the template
     # is "{series_title}/{title}" where {title} is the file stem so all videos land
     # flat in the series dir; the single leaf IS collection_dir → is_per_video = False.
-    import re as _re
-    try:
-        from yutto.path_templates import repair_filename as _repair_filename
-    except ImportError:
-        def _repair_filename(s: str) -> str:  # type: ignore[misc]
-            return s
     collection_dir_path = pathlib.Path(collection_dir) if collection_dir else None
     is_per_video = bool(
         collection_dir
         and leaf_dirs
         and not any(d == collection_dir_path for d in leaf_dirs)
     )
-    for item in items:
-        if is_per_video:
-            # Strip page suffix FIRST then apply repair_filename so trailing dots
-            # in the title (e.g. "title....") become "……", matching the directory
-            # name yutto created.
-            raw_no_page = _re.sub(r'_p\d+$', '', item["title"])
-            subdir = _repair_filename(raw_no_page)
-            item["dir"] = f"{collection_dir}/{subdir}"
-        else:
-            item["dir"] = collection_dir
+    _assign_parse_item_dirs(items, collection_dir, is_per_video)
 
     # Sort highest code first (best quality first)
     video_qualities = [{"label": label, "code": code}
