@@ -47,13 +47,14 @@ def cmd_inspect_runtime() -> None:
     from uiya.utils.config import UiyaSetting, load_settings_file
 
     settings = load_settings_file("uiya.toml", UiyaSetting)
+    import pathlib as _pathlib
     payload = {
         "managedPaths": [
             {"key": "workspace", "path": "."},
             {"key": "downloads", "path": str(settings.download_dir)},
             {"key": "logs", "path": "./logs"},
         ],
-        "downloadDir": str(settings.download_dir),
+        "downloadDir": _pathlib.Path(settings.download_dir).resolve().as_posix(),
         "sessData": bool(settings.SESS_DATA),
         "ffmpegPath": settings.ffmpeg_path,
         "noProxy": settings.no_proxy,
@@ -376,7 +377,12 @@ def cmd_parse(target: str) -> None:
         except ImportError:
             def _repair_fn2(s: str) -> str:  # type: ignore[misc]
                 return s
-        repaired_titles = {_repair_fn2(item["title"]) for item in items}
+        import re as _re2
+        repaired_titles = set()
+        for item in items:
+            r = _repair_fn2(item["title"])
+            repaired_titles.add(r)
+            repaired_titles.add(_re2.sub(r'_p\d+$', '', r))
         for root, dirs, _files in os.walk(downloads_path):
             root_path = pathlib.Path(root)
             for d in dirs:
@@ -403,9 +409,11 @@ def cmd_parse(target: str) -> None:
 
     # Match each parse item to its per-video leaf dir by title.
     # Yutto sanitizes the title with repair_filename before using it as a dir/file
-    # name (e.g. "/" → "／", ":" → "："). Apply the same transform here so the
-    # lookup matches.  Falls back to collection_dir (correct for 合集, where all
-    # videos share a single output directory, not per-video subdirs).
+    # name (e.g. "/" → "／", ":" → "：", "..." → "……"). Apply the same transform.
+    # The logged filename is repair_filename(name), where name may carry a page
+    # suffix like "_p1". The directory basename is repair_filename(title) without
+    # the suffix. Strip "_pN" from the end so the lookup still matches.
+    import re as _re
     try:
         from yutto.path_templates import repair_filename as _repair_filename
     except ImportError:
@@ -416,7 +424,11 @@ def cmd_parse(target: str) -> None:
     }
     for item in items:
         repaired = _repair_filename(item["title"])
-        item["dir"] = dir_by_basename.get(repaired, collection_dir)
+        repaired_no_page = _re.sub(r'_p\d+$', '', repaired)
+        item["dir"] = (
+            dir_by_basename.get(repaired)
+            or dir_by_basename.get(repaired_no_page, collection_dir)
+        )
 
     # Sort highest code first (best quality first)
     video_qualities = [{"label": label, "code": code}
