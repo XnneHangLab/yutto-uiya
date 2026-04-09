@@ -138,8 +138,12 @@ def cmd_download(
     # ── 3. assemble yutto command ─────────────────────────────────────────
     command: list[str] = ["uv", "run", "--no-sync", "yutto", target, "--no-color"]
     if select_index is not None:
-        # Batch mode needed so yutto builds the collection directory structure.
+        # Batch mode with specific page index.
         command += ["-b", "-p", str(select_index)]
+    elif dir_override:
+        # Batch mode without page filter: yutto uses ugc_video_batch extractor
+        # which puts files in {title}/ subdir, matching the collection structure.
+        command.append("-b")
     if yutto_toml:
         command += ["--config", str(yutto_toml)]
     # UIYA_FFMPEG_PATH env var (set by Rust) takes priority, but only when it
@@ -352,25 +356,35 @@ def cmd_parse(target: str) -> None:
 
     proc.wait()
 
-    # Walk downloads/ recursively and collect parent dirs of any file whose
-    # mtime is >= parse_start. These are the directories yutto wrote into
-    # during this parse run. If all items share one dir, that's collection_dir.
-    # If spread across siblings, fall back to their common ancestor.
-    new_file_dirs: set[pathlib.Path] = set()
-    for root, _dirs, files in os.walk(downloads_path):
+    # Walk downloads/ recursively and collect directories whose mtime is
+    # >= parse_start. --skip-download creates directories but NOT files, so
+    # we must scan dirs rather than files.
+    new_dirs: set[pathlib.Path] = set()
+    for root, dirs, _files in os.walk(downloads_path):
         root_path = pathlib.Path(root)
-        for fname in files:
+        for d in dirs:
+            dp = root_path / d
             try:
-                if (root_path / fname).stat().st_mtime >= parse_start:
-                    rel = root_path.relative_to(downloads_path)
-                    if rel != pathlib.Path('.'):
-                        new_file_dirs.add(rel)
+                if dp.stat().st_mtime >= parse_start:
+                    rel = dp.relative_to(downloads_path)
+                    new_dirs.add(rel)
             except OSError:
                 pass
-    if len(new_file_dirs) == 1:
-        collection_dir = next(iter(new_file_dirs)).as_posix()
-    elif len(new_file_dirs) > 1:
-        common = pathlib.Path(os.path.commonpath([str(p) for p in new_file_dirs]))
+    # Use only leaf dirs (those that are not proper ancestors of other new dirs)
+    # so that commonpath gives the deepest shared parent, not the top-level root.
+    # E.g. for 收藏夹: new_dirs = {收藏夹, 收藏夹/dataset, 收藏夹/dataset/v1, ...}
+    # leaf_dirs = {收藏夹/dataset/v1, ...} → commonpath = 收藏夹/dataset ✓
+    leaf_dirs = {d for d in new_dirs if not any(
+        d2 != d and d2.is_relative_to(d) for d2 in new_dirs
+    )}
+    dirs_for_common = leaf_dirs or new_dirs
+    # Only set collection_dir for multi-video results; for single videos the
+    # detected dir would be the video title itself which would cause double-
+    # nesting if used as dir_override.
+    if len(items) > 1 and len(dirs_for_common) == 1:
+        collection_dir = next(iter(dirs_for_common)).as_posix()
+    elif len(items) > 1 and len(dirs_for_common) > 1:
+        common = pathlib.Path(os.path.commonpath([str(p) for p in dirs_for_common]))
         collection_dir = common.as_posix() if str(common) not in (".", "") else ""
     else:
         collection_dir = ""
