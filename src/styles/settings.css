@@ -470,23 +470,38 @@
   padding: 20px 0 10px;
 }
 
-.settings-shell .settings-auth-modal__qr,
+.settings-shell .settings-auth-modal__qr-shell,
 .settings-shell .settings-auth-modal__placeholder {
   width: 220px;
   height: 220px;
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  background: rgba(255, 255, 255, 0.84);
-  backdrop-filter: blur(10px) saturate(1.06);
+  border: 1px solid rgba(255, 255, 255, 0.56);
+  background: rgba(255, 255, 255, 0.58);
+  backdrop-filter: blur(14px) saturate(1.08) brightness(1.05);
   box-shadow:
     0 14px 34px rgba(0, 0, 0, 0.18),
     0 1px 0 rgba(255, 255, 255, 0.55) inset;
 }
 
-.launcher-root[data-theme='night'] .settings-shell .settings-auth-modal__qr,
+.launcher-root[data-theme='night'] .settings-shell .settings-auth-modal__qr-shell,
 .launcher-root[data-theme='night'] .settings-shell .settings-auth-modal__placeholder {
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(12px) saturate(1.14);
+  border-color: rgba(255, 255, 255, 0.42);
+  background: rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(16px) saturate(1.18) brightness(1.08);
+}
+
+.settings-shell .settings-auth-modal__qr-shell {
+  display: grid;
+  place-items: center;
+}
+
+.settings-shell .settings-auth-modal__qr {
+  display: block;
+  width: 220px;
+  height: 220px;
+  border-radius: 20px;
+  background: transparent;
+  image-rendering: crisp-edges;
 }
 
 .settings-shell .settings-auth-modal__placeholder {

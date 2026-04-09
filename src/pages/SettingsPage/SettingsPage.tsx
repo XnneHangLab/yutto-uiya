@@ -371,7 +371,9 @@ export function SettingsPage({
             <div className="settings-auth-modal__title">扫码登录</div>
             <div className="settings-auth-modal__body">
               {authDialogQrDataUrl ? (
-                <img className="settings-auth-modal__qr" src={authDialogQrDataUrl} alt="登录二维码" />
+                <div className="settings-auth-modal__qr-shell">
+                  <img className="settings-auth-modal__qr" src={authDialogQrDataUrl} alt="登录二维码" />
+                </div>
               ) : (
                 <div className="settings-auth-modal__placeholder">正在生成二维码…</div>
               )}
