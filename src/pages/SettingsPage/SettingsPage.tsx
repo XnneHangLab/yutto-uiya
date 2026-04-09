@@ -26,6 +26,13 @@ interface SettingsPageProps {
   ffmpegExePath: string;
   onChooseFfmpegExe: () => Promise<string | null>;
   noProxy: boolean;
+  authBusy: boolean;
+  authDialogOpen: boolean;
+  authDialogStatus: string;
+  authDialogQrDataUrl: string;
+  onStartAuthLogin: () => void;
+  onLogoutAuth: () => void;
+  onCloseAuthDialog: () => void;
   onSave: (driver: RuntimeDriver, pythonExePath: string, ffmpegMode: 'system' | 'local', ffmpegExePath: string, noProxy: boolean) => void;
 }
 
@@ -42,6 +49,13 @@ export function SettingsPage({
   ffmpegExePath,
   onChooseFfmpegExe,
   noProxy,
+  authBusy,
+  authDialogOpen,
+  authDialogStatus,
+  authDialogQrDataUrl,
+  onStartAuthLogin,
+  onLogoutAuth,
+  onCloseAuthDialog,
   onSave,
 }: SettingsPageProps) {
   const [activeTab, setActiveTab] = useState<SettingsTabId>('general');
@@ -60,6 +74,7 @@ export function SettingsPage({
     ? formatAuthStatus(environmentProbe.authState)
     : '正在检测';
   const authReady = environmentProbe?.authState === 'authenticated';
+  const showLoginAction = environmentProbe?.authState !== 'authenticated';
 
   const driverDisplayLabel =
     localDriver === 'conda' ? 'conda / 直接 Python' : 'uv';
@@ -141,6 +156,32 @@ export function SettingsPage({
                 <div className="env-info-row">
                   <span className="env-info-label">认证来源</span>
                   <span className="env-info-value env-info-mono">{environmentProbe.authSource}</span>
+                </div>
+              ) : null}
+              {environmentProbe ? (
+                <div className="env-info-row">
+                  <span className="env-info-label">认证操作</span>
+                  <div className="workspace-actions">
+                    {showLoginAction ? (
+                      <button
+                        type="button"
+                        className="workspace-button"
+                        onClick={onStartAuthLogin}
+                        disabled={authBusy}
+                      >
+                        登录
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="workspace-button workspace-button--secondary"
+                        onClick={onLogoutAuth}
+                        disabled={authBusy}
+                      >
+                        退出登录
+                      </button>
+                    )}
+                  </div>
                 </div>
               ) : null}
             </div>
@@ -323,6 +364,31 @@ export function SettingsPage({
           </div>
         )}
       </div>
+
+      {authDialogOpen ? (
+        <div className="settings-auth-modal" role="dialog" aria-modal="true" aria-label="扫码登录">
+          <div className="settings-auth-modal__panel">
+            <div className="settings-auth-modal__title">扫码登录</div>
+            <div className="settings-auth-modal__body">
+              {authDialogQrDataUrl ? (
+                <img className="settings-auth-modal__qr" src={authDialogQrDataUrl} alt="登录二维码" />
+              ) : (
+                <div className="settings-auth-modal__placeholder">正在生成二维码…</div>
+              )}
+              <p className="settings-auth-modal__status">{authDialogStatus || '正在生成二维码…'}</p>
+            </div>
+            <div className="settings-auth-modal__actions">
+              <button
+                type="button"
+                className="workspace-button workspace-button--secondary"
+                onClick={onCloseAuthDialog}
+              >
+                关闭
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

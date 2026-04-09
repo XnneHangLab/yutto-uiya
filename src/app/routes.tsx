@@ -53,6 +53,13 @@ interface RenderPageOptions {
   ffmpegExePath: string;
   onChooseFfmpegExe: () => Promise<string | null>;
   noProxy: boolean;
+  authBusy: boolean;
+  authDialogOpen: boolean;
+  authDialogStatus: string;
+  authDialogQrDataUrl: string;
+  onStartAuthLogin: () => void;
+  onLogoutAuth: () => void;
+  onCloseAuthDialog: () => void;
   onSave: (driver: RuntimeDriver, pythonExePath: string, ffmpegMode: 'system' | 'local', ffmpegExePath: string, noProxy: boolean) => void;
   onSetAutoScroll: (next: boolean) => void;
   onSetWrapLines: (next: boolean) => void;
@@ -88,6 +95,13 @@ export function renderPage(
           ffmpegExePath={options.ffmpegExePath}
           onChooseFfmpegExe={options.onChooseFfmpegExe}
           noProxy={options.noProxy}
+          authBusy={options.authBusy}
+          authDialogOpen={options.authDialogOpen}
+          authDialogStatus={options.authDialogStatus}
+          authDialogQrDataUrl={options.authDialogQrDataUrl}
+          onStartAuthLogin={options.onStartAuthLogin}
+          onLogoutAuth={options.onLogoutAuth}
+          onCloseAuthDialog={options.onCloseAuthDialog}
           onSave={options.onSave}
         />
       );

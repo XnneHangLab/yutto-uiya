@@ -35,6 +35,8 @@ pub fn run() {
             runtime::commands::parse_target,
             runtime::commands::fetch_video_meta,
             runtime::commands::cancel_task,
+            runtime::commands::start_auth_login,
+            runtime::commands::logout_auth,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

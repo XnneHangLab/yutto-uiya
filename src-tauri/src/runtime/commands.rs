@@ -3,8 +3,9 @@ use tauri::{AppHandle, Emitter, State};
 use super::process::{
     drain_download_queue,
     ensure_environment_ready, kill_process, open_path, pick_ffmpeg_path, pick_python_path, pick_workspace_root,
-    resolve_managed_path, run_fetch_meta_command, run_inspect_command, run_parse_command,
-    run_probe_command, run_save_settings_command, write_console_log,
+    resolve_managed_path, run_auth_login_command, run_auth_logout_command, run_fetch_meta_command,
+    run_inspect_command, run_parse_command, run_probe_command, run_save_settings_command,
+    write_console_log,
 };
 use super::state::{resolve_repo_root, resolve_workspace_root, RuntimeDriverConfig, RuntimeState};
 
@@ -140,6 +141,7 @@ pub async fn enqueue_download(
             driver_config: state.driver_config.clone(),
             ffmpeg_path: state.ffmpeg_path.clone(),
             active_download: state.active_download.clone(),
+            active_auth: state.active_auth.clone(),
         };
 
         tauri::async_runtime::spawn_blocking(move || {
@@ -148,6 +150,89 @@ pub async fn enqueue_download(
     }
 
     serde_json::to_value(task).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+pub async fn start_auth_login(
+    app: AppHandle,
+    state: State<'_, RuntimeState>,
+) -> Result<(), String> {
+    if state.auth_in_progress() {
+        return Err("当前已有登录流程进行中".to_string());
+    }
+
+    state.set_auth_in_progress(true);
+    let repo_root = state.repo_root.clone();
+    let workspace_root = state.current_workspace_root();
+    let driver = state.current_driver_config();
+    let runtime_state = state.inner().clone();
+    let app_handle = app.clone();
+
+    tauri::async_runtime::spawn_blocking(move || {
+        let result = run_auth_login_command(&repo_root, &workspace_root, &driver, &app_handle);
+        runtime_state.set_auth_in_progress(false);
+        if let Err(error) = result {
+            let timestamp = super::state::current_timestamp();
+            let _ = app_handle.emit("runtime:event", &super::models::RuntimeEventPayload {
+                event: "auth.login.failed".to_string(),
+                task_id: String::new(),
+                target: "auth".to_string(),
+                status: "failed".to_string(),
+                message: error,
+                progress_current: 0,
+                progress_total: 0,
+                progress_unit: "step".to_string(),
+                timestamp,
+                desc: None,
+                percent: None,
+                downloaded: None,
+                total: None,
+                parse_item: None,
+                auth_qr_data_url: None,
+            });
+        }
+    });
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn logout_auth(
+    app: AppHandle,
+    state: State<'_, RuntimeState>,
+) -> Result<String, String> {
+    if state.auth_in_progress() {
+        return Err("登录流程进行中，暂时不能退出登录".to_string());
+    }
+
+    let repo_root = state.repo_root.clone();
+    let workspace_root = state.current_workspace_root();
+    let driver = state.current_driver_config();
+    let message = run_blocking_runtime_action(move || {
+        run_auth_logout_command(&repo_root, &workspace_root, &driver)
+    })
+    .await?;
+
+    let timestamp = super::state::current_timestamp();
+    let _ = app.emit("runtime:event", &super::models::RuntimeEventPayload {
+        event: "auth.logout.completed".to_string(),
+        task_id: String::new(),
+        target: "auth".to_string(),
+        status: "completed".to_string(),
+        message: message.clone(),
+        progress_current: 1,
+        progress_total: 1,
+        progress_unit: "step".to_string(),
+        timestamp,
+        desc: None,
+        percent: None,
+        downloaded: None,
+        total: None,
+        parse_item: None,
+        auth_qr_data_url: None,
+    });
+
+    Ok(message)
 }
 
 #[tauri::command]
@@ -186,6 +271,7 @@ pub fn cancel_task(
             timestamp,
             desc: None, percent: None, downloaded: None, total: None,
             parse_item: None,
+            auth_qr_data_url: None,
         });
         return Ok(());
     }
@@ -222,6 +308,7 @@ pub fn cancel_task(
                 timestamp,
                 desc: None, percent: None, downloaded: None, total: None,
                 parse_item: None,
+                auth_qr_data_url: None,
             });
         }
     }

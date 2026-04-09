@@ -157,6 +157,7 @@ pub struct RuntimeState {
     pub ffmpeg_path: Arc<Mutex<String>>,
     /// PID of the currently-running download subprocess (task_id, child_pid).
     pub active_download: Arc<Mutex<Option<(String, u32)>>>,
+    pub active_auth: Arc<Mutex<bool>>,
 }
 
 impl RuntimeState {
@@ -168,6 +169,7 @@ impl RuntimeState {
             driver_config: Arc::new(Mutex::new(RuntimeDriverConfig::Uv)),
             ffmpeg_path: Arc::new(Mutex::new("ffmpeg".to_string())),
             active_download: Arc::new(Mutex::new(None)),
+            active_auth: Arc::new(Mutex::new(false)),
         }
     }
 
@@ -193,6 +195,14 @@ impl RuntimeState {
 
     pub fn set_ffmpeg_path(&self, next: String) {
         *self.ffmpeg_path.lock().unwrap() = next;
+    }
+
+    pub fn auth_in_progress(&self) -> bool {
+        *self.active_auth.lock().unwrap()
+    }
+
+    pub fn set_auth_in_progress(&self, next: bool) {
+        *self.active_auth.lock().unwrap() = next;
     }
 }
 

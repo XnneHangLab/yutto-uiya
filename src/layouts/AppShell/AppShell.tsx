@@ -9,6 +9,7 @@ import {
   type ConsoleLogEntry,
 } from '../../services/launcher/launcher';
 import {
+  startAuthLogin,
   chooseWorkspaceRoot,
   cancelTask,
   enqueueDownload,
@@ -22,6 +23,7 @@ import {
   pickFfmpegPath,
   pickPythonPath,
   probeEnvironment,
+  logoutAuth,
   setRuntimeDriver as setRuntimeDriverApi,
   subscribeRuntimeEvents,
   useRepoWorkspaceRoot,
@@ -33,6 +35,7 @@ import {
   createConsoleLogFromRuntimeEvent,
   DEFAULT_DOWNLOAD_OPTIONS,
   getQueueSummary,
+  isAuthRuntimeEvent,
   isParseRuntimeEvent,
   isEnvironmentReady,
   type DownloadOptions,
@@ -76,7 +79,41 @@ export function AppShell() {
   const [parseDirOverride, setParseDirOverride] = useState('');
   const [parseVideoQualities, setParseVideoQualities] = useState<QualityOption[]>([]);
   const [downloadOptions, setDownloadOptions] = useState<DownloadOptions>(DEFAULT_DOWNLOAD_OPTIONS);
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
+  const [authDialogStatus, setAuthDialogStatus] = useState('');
+  const [authDialogQrDataUrl, setAuthDialogQrDataUrl] = useState('');
   const parsingTargetRef = useRef<string | null>(null);
+
+  async function refreshEnvironmentStatus() {
+    try {
+      const nextProbe = await probeEnvironment();
+      setEnvironmentProbe(nextProbe);
+      if (!isEnvironmentReady(nextProbe)) {
+        setInspection(null);
+        return;
+      }
+      const [nextInspection, paths] = await Promise.all([
+        inspectRuntime(),
+        listManagedFolders(),
+      ]);
+      setInspection(nextInspection);
+      setFolders(buildFolderItemsFromPaths(paths));
+      if (nextInspection.ffmpegPath && nextInspection.ffmpegPath !== 'ffmpeg') {
+        setFfmpegMode('local');
+        setFfmpegExePath(nextInspection.ffmpegPath);
+      } else {
+        setFfmpegMode('system');
+        setFfmpegExePath('');
+      }
+      setNoProxy(nextInspection.noProxy ?? false);
+    } catch (error) {
+      setLogs((current) => [
+        ...current,
+        createConsoleLog('stderr', `刷新环境状态失败: ${toErrorMessage(error)}`),
+      ]);
+    }
+  }
 
   useEffect(() => {
     writeStoredTheme(theme);
@@ -152,6 +189,39 @@ export function AppShell() {
 
     void subscribeRuntimeEvents(
       (event) => {
+        if (isAuthRuntimeEvent(event)) {
+          if (event.event === 'auth.login.started') {
+            setAuthBusy(true);
+            setAuthDialogOpen(true);
+            setAuthDialogStatus(event.message);
+            setAuthDialogQrDataUrl('');
+          } else if (event.event === 'auth.login.qr') {
+            setAuthBusy(true);
+            setAuthDialogOpen(true);
+            setAuthDialogStatus(event.message);
+            setAuthDialogQrDataUrl(event.authQrDataUrl ?? '');
+          } else if (event.event.startsWith('auth.login.')) {
+            setAuthDialogStatus(event.message);
+            if (event.authQrDataUrl) {
+              setAuthDialogQrDataUrl(event.authQrDataUrl);
+            }
+            if (event.event === 'auth.login.completed') {
+              setAuthBusy(false);
+              setAuthDialogOpen(false);
+              setAuthDialogQrDataUrl('');
+              void refreshEnvironmentStatus();
+            } else if (event.event === 'auth.login.failed') {
+              setAuthBusy(false);
+            }
+          } else if (event.event === 'auth.logout.completed') {
+            setAuthBusy(false);
+            void refreshEnvironmentStatus();
+          }
+
+          setLogs((current) => [...current, createConsoleLogFromRuntimeEvent(event)]);
+          return;
+        }
+
         if (isParseRuntimeEvent(event)) {
           if (parsingTargetRef.current && event.target === parsingTargetRef.current) {
             setParseItems((current) => applyParseRuntimeEvent(current, event));
@@ -351,6 +421,38 @@ export function AppShell() {
     }
   }
 
+  async function handleStartAuthLogin() {
+    setAuthDialogOpen(true);
+    setAuthBusy(true);
+    setAuthDialogStatus('正在生成二维码…');
+    setAuthDialogQrDataUrl('');
+    try {
+      await startAuthLogin();
+    } catch (error) {
+      setAuthBusy(false);
+      setAuthDialogStatus(toErrorMessage(error));
+      setLogs((current) => [
+        ...current,
+        createConsoleLog('stderr', `启动登录失败: ${toErrorMessage(error)}`),
+      ]);
+    }
+  }
+
+  async function handleLogoutAuth() {
+    setAuthBusy(true);
+    try {
+      const message = await logoutAuth();
+      setLogs((current) => [...current, createConsoleLog('system', message)]);
+    } catch (error) {
+      setLogs((current) => [
+        ...current,
+        createConsoleLog('stderr', `退出登录失败: ${toErrorMessage(error)}`),
+      ]);
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
   async function handleOpenManagedPath(pathKey: string) {
     try {
       await openManagedPath(pathKey);
@@ -498,6 +600,13 @@ export function AppShell() {
               ffmpegExePath,
               onChooseFfmpegExe: handleChooseFfmpegExe,
               noProxy,
+              authBusy,
+              authDialogOpen,
+              authDialogStatus,
+              authDialogQrDataUrl,
+              onStartAuthLogin: handleStartAuthLogin,
+              onLogoutAuth: handleLogoutAuth,
+              onCloseAuthDialog: () => setAuthDialogOpen(false),
               onSave: handleSaveSettings,
               onSetAutoScroll: setAutoScroll,
               onSetWrapLines: setWrapLines,

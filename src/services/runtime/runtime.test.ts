@@ -1,5 +1,6 @@
 import {
   applyRuntimeEvent,
+  isAuthRuntimeEvent,
   applyParseRuntimeEvent,
   buildFolderItemsFromPaths,
   createConsoleLogFromRuntimeEvent,
@@ -191,6 +192,22 @@ describe('runtime helpers', () => {
     });
 
     expect(next).toEqual([]);
+  });
+
+  it('recognizes auth runtime events', () => {
+    expect(
+      isAuthRuntimeEvent({
+        event: 'auth.login.qr',
+        taskId: '',
+        target: 'auth',
+        status: 'pending',
+        message: '请扫码登录',
+        progressCurrent: 0,
+        progressTotal: 0,
+        progressUnit: 'step',
+        timestamp: '1712300005',
+      }),
+    ).toBe(true);
   });
 
   it('cleans up registered listeners when runtime subscription partially fails', async () => {

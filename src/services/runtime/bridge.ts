@@ -77,6 +77,14 @@ export function cancelTask(taskId: string) {
   return invoke<void>('cancel_task', { taskId });
 }
 
+export function startAuthLogin() {
+  return invoke<void>('start_auth_login');
+}
+
+export function logoutAuth() {
+  return invoke<string>('logout_auth');
+}
+
 export function parseTarget(target: string) {
   return invoke<VideoParseResult>('parse_target', { target });
 }

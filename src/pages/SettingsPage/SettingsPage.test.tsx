@@ -11,6 +11,9 @@ describe('SettingsPage', () => {
     const onChoosePythonExe = vi.fn().mockResolvedValue(null);
     const onChooseFfmpegExe = vi.fn().mockResolvedValue(null);
     const onSave = vi.fn();
+    const onStartAuthLogin = vi.fn();
+    const onLogoutAuth = vi.fn();
+    const onCloseAuthDialog = vi.fn();
 
     render(
       <SettingsPage
@@ -38,6 +41,13 @@ describe('SettingsPage', () => {
         ffmpegExePath=""
         onChooseFfmpegExe={onChooseFfmpegExe}
         noProxy={false}
+        authBusy={false}
+        authDialogOpen={false}
+        authDialogStatus=""
+        authDialogQrDataUrl=""
+        onStartAuthLogin={onStartAuthLogin}
+        onLogoutAuth={onLogoutAuth}
+        onCloseAuthDialog={onCloseAuthDialog}
         onSave={onSave}
       />,
     );
@@ -59,6 +69,7 @@ describe('SettingsPage', () => {
     );
     expect(screen.getByLabelText('工作目录路径')).toHaveValue('/repo');
     expect(screen.getByText('就绪')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '退出登录' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '更改目录' }));
     expect(onChooseWorkspaceRoot).toHaveBeenCalledTimes(1);
@@ -106,6 +117,13 @@ describe('SettingsPage', () => {
         ffmpegExePath=""
         onChooseFfmpegExe={vi.fn().mockResolvedValue(null)}
         noProxy={false}
+        authBusy={false}
+        authDialogOpen={false}
+        authDialogStatus=""
+        authDialogQrDataUrl=""
+        onStartAuthLogin={() => undefined}
+        onLogoutAuth={() => undefined}
+        onCloseAuthDialog={() => undefined}
         onSave={vi.fn()}
       />,
     );
@@ -131,6 +149,13 @@ describe('SettingsPage', () => {
         ffmpegExePath=""
         onChooseFfmpegExe={vi.fn().mockResolvedValue(null)}
         noProxy={false}
+        authBusy={false}
+        authDialogOpen={false}
+        authDialogStatus=""
+        authDialogQrDataUrl=""
+        onStartAuthLogin={() => undefined}
+        onLogoutAuth={() => undefined}
+        onCloseAuthDialog={() => undefined}
         onSave={vi.fn()}
       />,
     );
@@ -177,6 +202,13 @@ describe('SettingsPage', () => {
         ffmpegExePath=""
         onChooseFfmpegExe={vi.fn().mockResolvedValue(null)}
         noProxy={false}
+        authBusy={false}
+        authDialogOpen={false}
+        authDialogStatus=""
+        authDialogQrDataUrl=""
+        onStartAuthLogin={() => undefined}
+        onLogoutAuth={() => undefined}
+        onCloseAuthDialog={() => undefined}
         onSave={vi.fn()}
       />,
     );
@@ -184,5 +216,55 @@ describe('SettingsPage', () => {
     expect(screen.getByText('就绪')).toBeInTheDocument();
     expect(screen.getByText('未登录，只能下载低画质')).toBeInTheDocument();
     expect(screen.getByText('/root/.config/yutto/auth.toml（profile: default）')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '登录' })).toBeInTheDocument();
+  });
+
+  it('renders auth login dialog when requested', async () => {
+    const user = userEvent.setup();
+    const onCloseAuthDialog = vi.fn();
+
+    render(
+      <SettingsPage
+        workspaceRoot="/repo"
+        workspaceLocked={false}
+        environmentProbe={{
+          workspaceRoot: '/repo',
+          repoRoot: '/repo',
+          status: 'ready',
+          yuttoAvailable: true,
+          yuttoVersion: '0.0.3',
+          ffmpegAvailable: true,
+          authState: 'missing',
+          authMessage: '未登录，只能下载低画质',
+          authSource: '/root/.config/yutto/auth.toml（profile: default）',
+          issues: [],
+          message: '环境就绪',
+        }}
+        onChooseWorkspaceRoot={() => undefined}
+        onUseRepoWorkspaceRoot={() => undefined}
+        runtimeDriver="uv"
+        pythonExePath=""
+        onChoosePythonExe={vi.fn().mockResolvedValue(null)}
+        ffmpegMode="system"
+        ffmpegExePath=""
+        onChooseFfmpegExe={vi.fn().mockResolvedValue(null)}
+        noProxy={false}
+        authBusy
+        authDialogOpen
+        authDialogStatus="请使用哔哩哔哩 App 扫码登录"
+        authDialogQrDataUrl="data:image/png;base64,abc"
+        onStartAuthLogin={() => undefined}
+        onLogoutAuth={() => undefined}
+        onCloseAuthDialog={onCloseAuthDialog}
+        onSave={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('dialog', { name: '扫码登录' })).toBeInTheDocument();
+    expect(screen.getByAltText('登录二维码')).toHaveAttribute('src', 'data:image/png;base64,abc');
+    expect(screen.getByText('请使用哔哩哔哩 App 扫码登录')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '关闭' }));
+    expect(onCloseAuthDialog).toHaveBeenCalledTimes(1);
   });
 });

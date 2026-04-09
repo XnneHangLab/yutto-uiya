@@ -71,6 +71,8 @@ vi.mock('../../services/runtime/bridge', async () => {
     openPath: vi.fn().mockResolvedValue(undefined),
     exportConsoleLogs: vi.fn().mockResolvedValue('/repo/logs/launcher.log'),
     parseTarget: vi.fn().mockResolvedValue({ items: [], videoQualities: [], audioQualities: [] }),
+    startAuthLogin: vi.fn().mockResolvedValue(undefined),
+    logoutAuth: vi.fn().mockResolvedValue('已退出登录'),
     subscribeRuntimeEvents: vi.fn().mockImplementation(async (onEvent, onRawLog) => {
       runtimeListeners.add(onEvent);
       rawLogListeners.add(onRawLog);
@@ -213,6 +215,9 @@ describe('AppShell', () => {
       yuttoAvailable: false,
       yuttoVersion: null,
       ffmpegAvailable: false,
+      authState: 'unknown',
+      authMessage: '',
+      authSource: '',
       issues: ['No module named uiya'],
       message: 'uiya 不可用',
     });
@@ -240,5 +245,38 @@ describe('AppShell', () => {
 
     expect((root as Element).getAttribute('data-theme')).toBe('day');
     expect(localStorage.getItem('xnnehanglab.theme')).toBe('day');
+  });
+
+  it('starts auth login from settings and shows qr dialog from runtime events', async () => {
+    const user = userEvent.setup();
+    vi.mocked(runtimeBridge.probeEnvironment).mockResolvedValue({
+      ...readyProbe,
+      authState: 'missing',
+      authMessage: '未登录，只能下载低画质',
+    });
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: '设置' }));
+    await user.click(await screen.findByRole('button', { name: '登录' }));
+
+    expect(runtimeBridge.startAuthLogin).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      runtimeBridge.__emitRuntimeEvent({
+        event: 'auth.login.qr',
+        taskId: '',
+        target: 'auth',
+        status: 'pending',
+        message: '请使用哔哩哔哩 App 扫码登录',
+        progressCurrent: 1,
+        progressTotal: 3,
+        progressUnit: 'step',
+        timestamp: '1712300006',
+        authQrDataUrl: 'data:image/png;base64,abc',
+      });
+    });
+
+    expect(await screen.findByRole('dialog', { name: '扫码登录' })).toBeInTheDocument();
+    expect(screen.getByAltText('登录二维码')).toHaveAttribute('src', 'data:image/png;base64,abc');
   });
 });

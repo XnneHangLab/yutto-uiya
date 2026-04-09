@@ -50,6 +50,8 @@ pub struct RuntimeEventPayload {
     pub total: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub parse_item: Option<ParsedVideoItem>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub auth_qr_data_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

@@ -89,6 +89,7 @@ export interface RuntimeEvent {
   downloaded?: string;
   total?: string;
   parseItem?: VideoParseItem;
+  authQrDataUrl?: string;
 }
 
 export interface VideoParseItem {
@@ -164,7 +165,7 @@ export function applyRuntimeEvent(
   current: RuntimeTaskRecord[],
   event: RuntimeEvent,
 ): RuntimeTaskRecord[] {
-  if (isParseRuntimeEvent(event)) {
+  if (isParseRuntimeEvent(event) || isAuthRuntimeEvent(event)) {
     return current;
   }
 
@@ -196,6 +197,10 @@ export function applyRuntimeEvent(
 
 export function isParseRuntimeEvent(event: RuntimeEvent) {
   return event.event.startsWith('parse.');
+}
+
+export function isAuthRuntimeEvent(event: RuntimeEvent) {
+  return event.event.startsWith('auth.');
 }
 
 export function applyParseRuntimeEvent(

@@ -251,6 +251,130 @@ pub fn run_save_settings_command(
     Ok(())
 }
 
+pub fn run_auth_login_command(
+    repo_root: &Path,
+    workspace_root: &Path,
+    driver: &RuntimeDriverConfig,
+    app: &AppHandle,
+) -> Result<(), String> {
+    emit_raw_log(app, "[auth] 开始登录流程 …");
+
+    let mut command = build_python_command_for_driver(
+        repo_root,
+        workspace_root,
+        driver,
+        ["-m", "uiya.cli", "auth-login"],
+    );
+    command.stdout(Stdio::piped()).stderr(Stdio::piped());
+
+    let mut child = command
+        .spawn()
+        .map_err(|error| format!("failed to run auth-login command: {error}"))?;
+
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| "auth-login command missing stdout".to_string())?;
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| "auth-login command missing stderr".to_string())?;
+
+    let app_for_stderr = app.clone();
+    let stderr_handle = thread::spawn(move || {
+        let reader = BufReader::new(stderr);
+        for line in reader.lines().map_while(Result::ok) {
+            let line = line.trim().to_string();
+            if !line.is_empty() {
+                let _ = app_for_stderr.emit("runtime:raw-log", line);
+            }
+        }
+    });
+
+    let mut final_payload: Option<serde_json::Value> = None;
+    let reader = BufReader::new(stdout);
+    for line in reader.lines() {
+        let line = line.map_err(|error| format!("failed to read auth-login stdout: {error}"))?;
+        let line = line.trim().to_string();
+        if line.is_empty() {
+            continue;
+        }
+
+        match serde_json::from_str::<PythonEnvelope>(&line) {
+            Ok(envelope) => match envelope.kind.as_str() {
+                "event" => {
+                    let timestamp = super::state::current_timestamp();
+                    let event = runtime_event_from_python_payload("", "auth", &envelope.payload, &timestamp);
+                    let _ = app.emit("runtime:event", &event);
+                }
+                "payload" => {
+                    final_payload = Some(envelope.payload);
+                }
+                _ => emit_raw_log(app, &line),
+            },
+            Err(_) => emit_raw_log(app, &line),
+        }
+    }
+
+    let status = child
+        .wait()
+        .map_err(|error| format!("failed to wait for auth-login command: {error}"))?;
+    let _ = stderr_handle.join();
+
+    let payload = final_payload.unwrap_or_else(|| serde_json::json!({}));
+    if !status.success() {
+        if let Some(error) = payload.get("error").and_then(serde_json::Value::as_str) {
+            return Err(error.to_string());
+        }
+        return Err(format!("auth-login command failed with exit code {:?}", status.code()));
+    }
+
+    if payload.get("ok").and_then(serde_json::Value::as_bool) == Some(false) {
+        if let Some(error) = payload.get("error").and_then(serde_json::Value::as_str) {
+            return Err(error.to_string());
+        }
+    }
+
+    Ok(())
+}
+
+pub fn run_auth_logout_command(
+    repo_root: &Path,
+    workspace_root: &Path,
+    driver: &RuntimeDriverConfig,
+) -> Result<String, String> {
+    let output = build_python_command_for_driver(
+        repo_root,
+        workspace_root,
+        driver,
+        ["-m", "uiya.cli", "auth-logout"],
+    )
+    .output()
+    .map_err(|error| format!("failed to run auth-logout command: {error}"))?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let last_line = stdout
+        .lines()
+        .last()
+        .ok_or_else(|| "auth-logout command returned no stdout".to_string())?;
+    let envelope: PythonEnvelope =
+        serde_json::from_str(last_line).map_err(|error| error.to_string())?;
+    let payload = envelope.payload;
+
+    if !output.status.success() || payload.get("ok").and_then(serde_json::Value::as_bool) == Some(false) {
+        if let Some(error) = payload.get("error").and_then(serde_json::Value::as_str) {
+            return Err(error.to_string());
+        }
+        return Err("auth-logout command failed".to_string());
+    }
+
+    Ok(payload
+        .get("message")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("已退出登录")
+        .to_string())
+}
+
 pub fn run_probe_command(repo_root: &Path, workspace_root: &Path, driver: &RuntimeDriverConfig, ffmpeg_path: &str, app: &AppHandle) -> Result<EnvironmentProbePayload, String> {
     emit_raw_log(app, "[probe] 开始检测运行环境 …");
 
@@ -587,6 +711,7 @@ pub fn drain_download_queue(app: AppHandle, state: RuntimeState) {
                 driver_config: state.driver_config.clone(),
                 ffmpeg_path: state.ffmpeg_path.clone(),
                 active_download: state.active_download.clone(),
+                active_auth: state.active_auth.clone(),
             },
             task.task_id.clone(),
             task.target.clone(),
@@ -832,6 +957,7 @@ fn build_terminal_failure_event(
         downloaded: None,
         total: None,
         parse_item: None,
+        auth_qr_data_url: None,
     }
 }
 
@@ -865,6 +991,7 @@ fn runtime_event_from_python_payload(
             .get("parseItem")
             .cloned()
             .and_then(|value| serde_json::from_value(value).ok()),
+        auth_qr_data_url: payload["authQrDataUrl"].as_str().map(str::to_string),
     }
 }
 
@@ -1376,5 +1503,24 @@ mod tests {
             parse_item.url,
             "https://www.bilibili.com/video/BV1xx411c7mD?p=1"
         );
+    }
+
+    #[test]
+    fn runtime_event_from_python_payload_keeps_auth_qr_data_url() {
+        let payload = json!({
+            "event": "auth.login.qr",
+            "target": "auth",
+            "status": "pending",
+            "message": "请扫码登录",
+            "progressCurrent": 1,
+            "progressTotal": 3,
+            "progressUnit": "step",
+            "authQrDataUrl": "data:image/png;base64,abc"
+        });
+
+        let event = runtime_event_from_python_payload("", "auth", &payload, "1712300003");
+
+        assert_eq!(event.event, "auth.login.qr");
+        assert_eq!(event.auth_qr_data_url.as_deref(), Some("data:image/png;base64,abc"));
     }
 }
