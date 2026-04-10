@@ -14,6 +14,7 @@ import type {
   RuntimeInspection,
   RuntimeDriver,
   RuntimeTaskRecord,
+  VideoParseGroup,
   VideoParseItem,
 } from '../services/runtime/runtime';
 
@@ -29,6 +30,7 @@ interface RenderPageOptions {
   onDownload: (url: string, label?: string, itemDir?: string) => void;
   onParse: (url: string) => Promise<VideoParseItem[]>;
   parseItems: VideoParseItem[];
+  parseGroups: VideoParseGroup[];
   parseSelected: Set<number>;
   onParseSelectedChange: (next: Set<number>) => void;
   onClearParseItems: () => void;
@@ -127,6 +129,7 @@ export function renderPage(
           onParse={options.onParse}
           scriptsReady={options.scriptsReady}
           parseItems={options.parseItems}
+          parseGroups={options.parseGroups}
           parseSelected={options.parseSelected}
           onParseSelectedChange={options.onParseSelectedChange}
           onClearParseItems={options.onClearParseItems}

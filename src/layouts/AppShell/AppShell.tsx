@@ -33,6 +33,7 @@ import {
   applyRuntimeEvent,
   applyParseRuntimeEvent,
   buildFolderItemsFromPaths,
+  collectParseItems,
   createConsoleLogFromRuntimeEvent,
   DEFAULT_DOWNLOAD_OPTIONS,
   getQueueSummary,
@@ -46,6 +47,7 @@ import {
   type RuntimeDriver,
   type RuntimeInspection,
   type RuntimeTaskRecord,
+  type VideoParseGroup,
   type VideoParseItem,
 } from '../../services/runtime/runtime';
 import {
@@ -57,6 +59,16 @@ import {
 
 function toErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
+}
+
+function normalizeParseGroups(groups: VideoParseGroup[]): VideoParseGroup[] {
+  return groups.map((group) => ({
+    ...group,
+    items: group.items.map((item) => ({
+      ...item,
+      dir: item.dir || group.dir,
+    })),
+  }));
 }
 
 export function AppShell() {
@@ -75,6 +87,7 @@ export function AppShell() {
   const [ffmpegExePath, setFfmpegExePath] = useState('');
   const [noProxy, setNoProxy] = useState(false);
   const [parseItems, setParseItems] = useState<VideoParseItem[]>([]);
+  const [parseGroups, setParseGroups] = useState<VideoParseGroup[]>([]);
   const [parseSelected, setParseSelected] = useState<Set<number>>(new Set());
   const [downloadUrl, setDownloadUrl] = useState('');
   const [parseDirOverride, setParseDirOverride] = useState('');
@@ -240,6 +253,7 @@ export function AppShell() {
 
             if (event.event === 'parse.started') {
               setParseSelected(new Set());
+              setParseGroups([]);
               setParseDirOverride('');
               setParseVideoQualities([]);
             } else if (event.event === 'parse.item' && event.parseItem) {
@@ -340,8 +354,11 @@ export function AppShell() {
     try {
       parsingTargetRef.current = url;
       const result = await parseTarget(url);
+      const nextGroups = normalizeParseGroups(result.groups ?? []);
+      const nextItems = collectParseItems(result.items, nextGroups);
       setParseItems(result.items);
-      setParseSelected(new Set(result.items.map((item) => item.index)));
+      setParseGroups(nextGroups);
+      setParseSelected(new Set(nextItems.map((item) => item.index)));
       setParseDirOverride(result.dir ?? '');
       setParseVideoQualities(result.videoQualities);
       if (result.videoQualities.length > 0) {
@@ -363,6 +380,7 @@ export function AppShell() {
 
   function handleClearParseItems() {
     setParseItems([]);
+    setParseGroups([]);
     setParseSelected(new Set());
     setParseDirOverride('');
     setParseVideoQualities([]);
@@ -605,6 +623,7 @@ export function AppShell() {
               onDownload: handleDownloadBilibili,
               onParse: handleParseTarget,
               parseItems,
+              parseGroups,
               parseSelected,
               onParseSelectedChange: setParseSelected,
               onClearParseItems: handleClearParseItems,

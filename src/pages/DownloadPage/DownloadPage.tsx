@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { fetchVideoMeta } from '../../services/runtime/bridge';
 import type {
+  VideoParseGroup,
   DownloadOptions,
   QualityOption,
   RuntimeTaskRecord,
   VideoMeta,
   VideoParseItem,
 } from '../../services/runtime/runtime';
+import { collectParseItems } from '../../services/runtime/runtime';
 import '../../styles/models.css';
 
 const taskStatusLabel: Record<string, string> = {
@@ -57,6 +59,7 @@ interface DownloadPageProps {
   onParse: (url: string) => Promise<VideoParseItem[]>;
   scriptsReady: boolean;
   parseItems: VideoParseItem[];
+  parseGroups: VideoParseGroup[];
   parseSelected: Set<number>;
   onParseSelectedChange: (next: Set<number>) => void;
   onClearParseItems: () => void;
@@ -75,6 +78,7 @@ export function DownloadPage({
   onParse,
   scriptsReady,
   parseItems,
+  parseGroups,
   parseSelected,
   onParseSelectedChange,
   onClearParseItems,
@@ -89,6 +93,10 @@ export function DownloadPage({
   const [parsing, setParsing] = useState(false);
   const [details, setDetails] = useState<Map<number, DetailState>>(new Map());
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+  const allParseItems = collectParseItems(parseItems, parseGroups);
+  const hasParseResults = allParseItems.length > 0;
 
   function handleUrlChange(next: string) {
     onDownloadUrlChange(next);
@@ -96,6 +104,7 @@ export function DownloadPage({
       onClearParseItems();
       setDetails(new Map());
       setExpandedIndex(null);
+      setExpandedGroups(new Set());
     }
   }
 
@@ -107,6 +116,7 @@ export function DownloadPage({
     onClearParseItems();
     setDetails(new Map());
     setExpandedIndex(null);
+    setExpandedGroups(new Set());
     try {
       await onParse(trimmed);
     } finally {
@@ -115,10 +125,10 @@ export function DownloadPage({
   }
 
   function handleToggleAll() {
-    if (parseSelected.size === parseItems.length) {
+    if (parseSelected.size === allParseItems.length) {
       onParseSelectedChange(new Set());
     } else {
-      onParseSelectedChange(new Set(parseItems.map((item) => item.index)));
+      onParseSelectedChange(new Set(allParseItems.map((item) => item.index)));
     }
   }
 
@@ -133,11 +143,37 @@ export function DownloadPage({
   }
 
   function handleDownloadSelected() {
-    for (const item of parseItems) {
+    for (const item of allParseItems) {
       if (parseSelected.has(item.index)) {
         onDownload(item.url, item.title, item.dir || undefined);
       }
     }
+  }
+
+  function handleToggleGroup(group: VideoParseGroup) {
+    const groupIndexes = group.items.map((item) => item.index);
+    const allGroupItemsSelected = groupIndexes.every((index) => parseSelected.has(index));
+    const next = new Set(parseSelected);
+
+    if (allGroupItemsSelected) {
+      groupIndexes.forEach((index) => next.delete(index));
+    } else {
+      groupIndexes.forEach((index) => next.add(index));
+    }
+
+    onParseSelectedChange(next);
+  }
+
+  function handleToggleGroupExpanded(groupKey: string) {
+    setExpandedGroups((current) => {
+      const next = new Set(current);
+      if (next.has(groupKey)) {
+        next.delete(groupKey);
+      } else {
+        next.add(groupKey);
+      }
+      return next;
+    });
   }
 
   async function handleToggleDetail(item: VideoParseItem) {
@@ -197,7 +233,39 @@ export function DownloadPage({
     return null;
   }
 
-  const allSelected = parseItems.length > 0 && parseSelected.size === parseItems.length;
+  function renderParseItem(item: VideoParseItem, nested = false) {
+    return (
+      <li key={item.index} className={`parse-item${nested ? ' parse-item--nested' : ''}`}>
+        <div className="parse-item__row">
+          <label className="parse-item__label">
+            <input
+              type="checkbox"
+              className="parse-item__checkbox"
+              checked={parseSelected.has(item.index)}
+              aria-label={`选择视频 ${item.title}`}
+              onChange={() => handleToggleItem(item.index)}
+            />
+            <span className="parse-item__index">{item.index}</span>
+            <span className="parse-item__title">{item.title}</span>
+          </label>
+          <button
+            type="button"
+            className={`parse-item__detail-btn${expandedIndex === item.index ? ' parse-item__detail-btn--active' : ''}`}
+            onClick={() => handleToggleDetail(item)}
+          >
+            详情
+          </button>
+        </div>
+        {expandedIndex === item.index ? (
+          <div className="parse-item__detail">
+            {renderDetailPanel(item.index)}
+          </div>
+        ) : null}
+      </li>
+    );
+  }
+
+  const allSelected = allParseItems.length > 0 && parseSelected.size === allParseItems.length;
   const noneChecked = !downloadOptions.requireVideo && !downloadOptions.requireAudio && !downloadOptions.requireCover;
 
   return (
@@ -231,47 +299,57 @@ export function DownloadPage({
         </form>
       </section>
 
-      {parseItems.length > 0 ? (
+      {hasParseResults ? (
         <>
           <section className="parse-results">
             <div className="parse-results__header">
               <span className="parse-results__title">
                 解析结果
-                <span className="parse-results__count">{parseItems.length} 个视频</span>
+                <span className="parse-results__count">{allParseItems.length} 个视频</span>
               </span>
               <button type="button" className="parse-bulk-btn" onClick={handleToggleAll}>
                 {allSelected ? '取消全选' : '全选'}
               </button>
             </div>
             <ul className="parse-results__list">
-              {parseItems.map((item) => (
-                <li key={item.index} className="parse-item">
-                  <div className="parse-item__row">
-                    <label className="parse-item__label">
-                      <input
-                        type="checkbox"
-                        className="parse-item__checkbox"
-                        checked={parseSelected.has(item.index)}
-                        onChange={() => handleToggleItem(item.index)}
-                      />
-                      <span className="parse-item__index">{item.index}</span>
-                      <span className="parse-item__title">{item.title}</span>
-                    </label>
-                    <button
-                      type="button"
-                      className={`parse-item__detail-btn${expandedIndex === item.index ? ' parse-item__detail-btn--active' : ''}`}
-                      onClick={() => handleToggleDetail(item)}
-                    >
-                      详情
-                    </button>
-                  </div>
-                  {expandedIndex === item.index ? (
-                    <div className="parse-item__detail">
-                      {renderDetailPanel(item.index)}
+              {parseItems.map((item) => renderParseItem(item))}
+              {parseGroups.map((group, groupIndex) => {
+                const groupKey = `${group.dir || group.title}-${groupIndex}`;
+                const expanded = expandedGroups.has(groupKey);
+                const allGroupItemsSelected = group.items.length > 0
+                  && group.items.every((item) => parseSelected.has(item.index));
+
+                return (
+                  <li key={groupKey} className="parse-group">
+                    <div className="parse-group__header">
+                      <label className="parse-group__label">
+                        <input
+                          type="checkbox"
+                          className="parse-item__checkbox"
+                          checked={allGroupItemsSelected}
+                          aria-label={`选择分组 ${group.title}`}
+                          onChange={() => handleToggleGroup(group)}
+                        />
+                        <span className="parse-group__title">{group.title}</span>
+                        <span className="parse-group__count">{group.items.length} 个视频</span>
+                      </label>
+                      <button
+                        type="button"
+                        className={`parse-group__toggle${expanded ? ' parse-group__toggle--expanded' : ''}`}
+                        aria-label={`${expanded ? '收起' : '展开'}分组 ${group.title}`}
+                        onClick={() => handleToggleGroupExpanded(groupKey)}
+                      >
+                        {expanded ? '收起' : '展开'}
+                      </button>
                     </div>
-                  ) : null}
-                </li>
-              ))}
+                    {expanded ? (
+                      <ul className="parse-group__items">
+                        {group.items.map((item) => renderParseItem(item, true))}
+                      </ul>
+                    ) : null}
+                  </li>
+                );
+              })}
             </ul>
           </section>
 

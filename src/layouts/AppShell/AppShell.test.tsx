@@ -117,6 +117,7 @@ describe('AppShell', () => {
   it('navigates to download page, parses a URL, and enqueues selected items', async () => {
     vi.mocked(runtimeBridge.parseTarget).mockResolvedValue({
       items: [{ index: 1, title: '测试视频', url: 'https://www.bilibili.com/video/BV1xx411c7mD' }],
+      groups: [],
       videoQualities: [],
       audioQualities: [],
     });
@@ -147,6 +148,61 @@ describe('AppShell', () => {
     // Task should appear in queue
     await waitFor(() =>
       expect(screen.getByText('已进入下载队列')).toBeInTheDocument(),
+    );
+  });
+
+  it('enqueues grouped child items with the shared group directory', async () => {
+    vi.mocked(runtimeBridge.parseTarget).mockResolvedValue({
+      items: [],
+      groups: [
+        {
+          title: '合集',
+          dir: '合集目录',
+          items: [
+            {
+              index: 1,
+              title: '合集视频 1',
+              url: 'https://www.bilibili.com/video/BV1xx411c7mD?p=1',
+              dir: '',
+            },
+            {
+              index: 2,
+              title: '合集视频 2',
+              url: 'https://www.bilibili.com/video/BV1xx411c7mD?p=2',
+              dir: '',
+            },
+          ],
+        },
+      ],
+      videoQualities: [],
+      audioQualities: [],
+    });
+
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: '下载管理' }));
+
+    const urlInput = await screen.findByLabelText('Bilibili 视频链接');
+    await user.type(urlInput, 'https://www.bilibili.com/video/BV1xx411c7mD');
+
+    await user.click(screen.getByRole('button', { name: '解析' }));
+    await user.click(await screen.findByRole('button', { name: '展开分组 合集' }));
+    await user.click(screen.getByRole('button', { name: '下载所选 (2)' }));
+
+    expect(runtimeBridge.enqueueDownload).toHaveBeenNthCalledWith(
+      1,
+      'https://www.bilibili.com/video/BV1xx411c7mD?p=1',
+      expect.any(Object),
+      '合集视频 1',
+      '合集目录',
+    );
+    expect(runtimeBridge.enqueueDownload).toHaveBeenNthCalledWith(
+      2,
+      'https://www.bilibili.com/video/BV1xx411c7mD?p=2',
+      expect.any(Object),
+      '合集视频 2',
+      '合集目录',
     );
   });
 
@@ -207,6 +263,7 @@ describe('AppShell', () => {
         ],
         videoQualities: [],
         audioQualities: [],
+        groups: [],
       });
     });
   });
