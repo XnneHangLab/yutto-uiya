@@ -23,6 +23,12 @@ _BILIBILI_HEADERS = {
     "Referer": "https://www.bilibili.com",
 }
 
+TITLE_RE = re.compile(r"\bINFO\b.*开始处理视频\s+(.+)")
+LINK_RE = re.compile(r"\bLINK\b\s+(https?://\S+)")
+GROUP_RE = re.compile(r"^\s*列表\s+(.+?)\s*$")
+VIDEO_QUALITY_RE = re.compile(r"视频质量.*?<(.+?)>")
+AUDIO_QUALITY_RE = re.compile(r"音频质量.*?<(.+?)>")
+
 
 def _video_quality_code(label: str) -> int | None:
     s = label.strip()
@@ -87,11 +93,18 @@ def _fetch_bilibili_view_payload(url: str) -> dict | None:
     return data if isinstance(data, dict) else None
 
 
+def _is_playlist_page_title(title: str) -> bool:
+    return bool(re.match(r"^P\d+[_\s].+", title.strip()))
+
+
 def _resolve_single_download_title(
     url: str,
     fallback_title: str,
     view_fetcher: callable = _fetch_bilibili_view_payload,
 ) -> str:
+    if _is_playlist_page_title(fallback_title):
+        return fallback_title
+
     payload = view_fetcher(url)
     if not payload:
         return fallback_title
@@ -118,6 +131,110 @@ def _assign_parse_item_dirs(items: list[dict], collection_dir: str, is_per_video
             item["dir"] = f"{collection_dir}/{subdir}" if collection_dir else subdir
         else:
             item["dir"] = collection_dir
+
+
+class _ParseContext:
+    def __init__(self) -> None:
+        self.next_index = 1
+        self.current_title: str | None = None
+        self.current_group: dict | None = None
+        self.items: list[dict] = []
+        self.groups: list[dict] = []
+        self.seen_video_qualities: dict[int, str] = {}
+        self.seen_audio_qualities: dict[int, str] = {}
+
+    def _flush_group(self) -> None:
+        if self.current_group and self.current_group["items"]:
+            self.groups.append(self.current_group)
+        self.current_group = None
+
+    def consume(self, line: str, view_fetcher: callable) -> dict | None:
+        if m_group := GROUP_RE.search(line):
+            self._flush_group()
+            self.current_group = {"title": m_group.group(1).strip(), "dir": "", "items": []}
+            return None
+
+        if m_title := TITLE_RE.search(line):
+            self.current_title = m_title.group(1).strip()
+            return None
+
+        if m_link := LINK_RE.search(line):
+            if self.current_title is None:
+                return None
+
+            item = {
+                "index": self.next_index,
+                "title": _resolve_single_download_title(
+                    m_link.group(1),
+                    self.current_title,
+                    view_fetcher,
+                ),
+                "url": m_link.group(1),
+                "dir": "",
+            }
+            self.next_index += 1
+
+            if self.current_group is not None and _is_playlist_page_title(item["title"]):
+                self.current_group["items"].append(item)
+            else:
+                self._flush_group()
+                self.items.append(item)
+
+            self.current_title = None
+            return item
+
+        if m_vq := VIDEO_QUALITY_RE.search(line):
+            label = m_vq.group(1).strip()
+            code = _video_quality_code(label)
+            if code is not None and code not in self.seen_video_qualities:
+                self.seen_video_qualities[code] = label
+            return None
+
+        if m_aq := AUDIO_QUALITY_RE.search(line):
+            label = m_aq.group(1).strip()
+            code = _audio_quality_code(label)
+            if code is not None and code not in self.seen_audio_qualities:
+                self.seen_audio_qualities[code] = label
+            return None
+
+        return None
+
+    def finish(self) -> dict:
+        self._flush_group()
+        return {
+            "items": self.items,
+            "groups": self.groups,
+            "videoQualities": [
+                {"label": label, "code": code}
+                for code, label in sorted(self.seen_video_qualities.items(), reverse=True)
+            ],
+            "audioQualities": [
+                {"label": label, "code": code}
+                for code, label in sorted(self.seen_audio_qualities.items(), reverse=True)
+            ],
+        }
+
+
+def _parse_skip_download_lines(lines: list[str], view_fetcher: callable) -> dict:
+    context = _ParseContext()
+    for line in lines:
+        context.consume(line, view_fetcher)
+    return context.finish()
+
+
+def _assign_parse_group_dirs(groups: list[dict], collection_dir: str) -> None:
+    try:
+        from yutto.path_templates import repair_filename as _repair_filename
+    except ImportError:
+        def _repair_filename(s: str) -> str:  # type: ignore[misc]
+            return s
+
+    for group in groups:
+        repaired_title = _repair_filename(str(group.get("title", "")))
+        group_dir = f"{collection_dir}/{repaired_title}" if collection_dir else repaired_title
+        group["dir"] = group_dir
+        for item in group.get("items", []):
+            item["dir"] = group_dir
 
 
 def _resolve_runtime_proxy(settings) -> str:
@@ -365,7 +482,7 @@ def cmd_parse(target: str) -> None:
             "progressTotal": 0,
             "progressUnit": "item",
         })
-        emit_payload({"items": [], "videoQualities": [], "audioQualities": [], "error": message})
+        emit_payload({"items": [], "groups": [], "videoQualities": [], "audioQualities": [], "error": message})
         sys.exit(1)
 
     try:
@@ -407,11 +524,6 @@ def cmd_parse(target: str) -> None:
     elif settings.custom_proxy_pool and settings.proxy_pool:
         command += ["--proxy", settings.proxy_pool]
 
-    title_re = re.compile(r'\bINFO\b.*开始处理视频\s+(.+)')
-    link_re = re.compile(r'\bLINK\b\s+(https?://\S+)')
-    video_quality_re = re.compile(r'视频质量.*?<(.+?)>')
-    audio_quality_re = re.compile(r'音频质量.*?<(.+?)>')
-
     print(f"[run] {shlex.join(command)}", flush=True)
 
     # Snapshot all directories under downloads/ BEFORE running yutto.
@@ -432,12 +544,7 @@ def cmd_parse(target: str) -> None:
 
     before_dirs = _all_dirs(downloads_path)
 
-    items: list[dict] = []
-    current_title: str | None = None
     view_payload_cache: dict[tuple[str, str], dict | None] = {}
-    # ordered dicts: code → label, deduplicating across multiple videos in a playlist
-    seen_video_qualities: dict[int, str] = {}
-    seen_audio_qualities: dict[int, str] = {}
 
     def cached_view_fetcher(url: str) -> dict | None:
         identity = _extract_bilibili_video_identity(url)
@@ -457,6 +564,8 @@ def cmd_parse(target: str) -> None:
         "progressUnit": "item",
     })
 
+    context = _ParseContext()
+
     try:
         proc = subprocess.Popen(
             command,
@@ -473,49 +582,33 @@ def cmd_parse(target: str) -> None:
         line = raw_line.rstrip("\r\n")
         if line.strip():
             print(line, flush=True)  # forwarded as runtime:raw-log
-        m_title = title_re.search(line)
-        if m_title:
-            current_title = m_title.group(1).strip()
-        m_link = link_re.search(line)
-        if m_link and current_title is not None:
-            item = {
-                "index": len(items) + 1,
-                "title": _resolve_single_download_title(
-                    m_link.group(1),
-                    current_title,
-                    cached_view_fetcher,
-                ),
-                "url": m_link.group(1),
-                "dir": "",
-            }
-            items.append(item)
+        item = context.consume(line, cached_view_fetcher)
+        if item is not None:
             emit_event({
                 "event": "parse.item",
                 "target": target,
                 "status": "parsing",
                 "message": f"解析到视频: {item['title']}",
-                "progressCurrent": len(items),
+                "progressCurrent": item["index"],
                 "progressTotal": 0,
                 "progressUnit": "item",
                 "parseItem": item,
             })
-            current_title = None
-        m_vq = video_quality_re.search(line)
-        if m_vq:
-            label = m_vq.group(1).strip()
-            code = _video_quality_code(label)
-            if code is not None and code not in seen_video_qualities:
-                seen_video_qualities[code] = label
-        m_aq = audio_quality_re.search(line)
-        if m_aq:
-            label = m_aq.group(1).strip()
-            code = _audio_quality_code(label)
-            if code is not None and code not in seen_audio_qualities:
-                seen_audio_qualities[code] = label
 
     returncode = proc.wait()
     if returncode != 0:
         fail(f"解析失败，退出码 {returncode}")
+
+    parsed = context.finish()
+    items = parsed["items"]
+    groups = parsed["groups"]
+    video_qualities = parsed["videoQualities"]
+    audio_qualities = parsed["audioQualities"]
+
+    all_items: list[dict] = items[:]
+    for group in groups:
+        all_items.extend(group.get("items", []))
+    total_items = len(all_items)
 
     # Diff against before-snapshot to find directories created during this parse.
     new_dirs = _all_dirs(downloads_path) - before_dirs
@@ -527,7 +620,7 @@ def cmd_parse(target: str) -> None:
     # For 合集 (where the video title is used as a file stem, not a dir name)
     # this search will simply return nothing, which is correct — all items in a
     # 合集 share a single output directory detected via collection_dir.
-    if not new_dirs and len(items) > 1:
+    if not new_dirs and total_items > 1:
         try:
             from yutto.path_templates import repair_filename as _repair_fn2
         except ImportError:
@@ -535,7 +628,7 @@ def cmd_parse(target: str) -> None:
                 return s
         import re as _re2
         repaired_titles = set()
-        for item in items:
+        for item in all_items:
             raw = item["title"]
             repaired_titles.add(_repair_fn2(raw))
             repaired_titles.add(_repair_fn2(_re2.sub(r'_p\d+$', '', raw)))
@@ -555,9 +648,9 @@ def cmd_parse(target: str) -> None:
     # Only set collection_dir for multi-video results; for single videos the
     # detected dir would be the video title itself which would cause double-
     # nesting if used as dir_override.
-    if len(items) > 1 and len(dirs_for_common) == 1:
+    if total_items > 1 and len(dirs_for_common) == 1:
         collection_dir = next(iter(dirs_for_common)).as_posix()
-    elif len(items) > 1 and len(dirs_for_common) > 1:
+    elif total_items > 1 and len(dirs_for_common) > 1:
         common = pathlib.Path(os.path.commonpath([str(p) for p in dirs_for_common]))
         collection_dir = common.as_posix() if str(common) not in (".", "") else ""
     else:
@@ -576,24 +669,26 @@ def cmd_parse(target: str) -> None:
         and not any(d == collection_dir_path for d in leaf_dirs)
     )
     _assign_parse_item_dirs(items, collection_dir, is_per_video)
-
-    # Sort highest code first (best quality first)
-    video_qualities = [{"label": label, "code": code}
-                       for code, label in sorted(seen_video_qualities.items(), reverse=True)]
-    audio_qualities = [{"label": label, "code": code}
-                       for code, label in sorted(seen_audio_qualities.items(), reverse=True)]
+    _assign_parse_group_dirs(groups, collection_dir)
 
     emit_event({
         "event": "parse.completed",
         "target": target,
         "status": "completed",
-        "message": f"解析完成，共 {len(items)} 个视频",
-        "progressCurrent": len(items),
-        "progressTotal": len(items),
+        "message": f"解析完成，共 {total_items} 个视频",
+        "progressCurrent": total_items,
+        "progressTotal": total_items,
         "progressUnit": "item",
     })
 
-    emit_payload({"url": target, "dir": collection_dir, "items": items, "videoQualities": video_qualities, "audioQualities": audio_qualities})
+    emit_payload({
+        "url": target,
+        "dir": collection_dir,
+        "items": items,
+        "groups": groups,
+        "videoQualities": video_qualities,
+        "audioQualities": audio_qualities,
+    })
 
 
 def cmd_fetch_meta(url: str) -> None:
