@@ -18,7 +18,7 @@ vi.mock('../../services/runtime/bridge', () => ({
 }));
 
 describe('DownloadPage', () => {
-  it('replaces fallback parse title with fetched meta title after opening details', async () => {
+  it('keeps parse title after opening details', async () => {
     const user = userEvent.setup();
 
     render(
@@ -54,11 +54,9 @@ describe('DownloadPage', () => {
 
     await waitFor(() =>
       expect(
-        screen.getAllByText('不是AI，我用相机实拍了40首古诗词里的中国'),
-      ).toHaveLength(2),
+        screen.getByText('不是AI，我用相机实拍了40首古诗词里的中国'),
+      ).toBeInTheDocument(),
     );
-    await waitFor(() =>
-      expect(screen.queryByText('mmexport1768031333059')).not.toBeInTheDocument(),
-    );
+    expect(screen.getByText('mmexport1768031333059')).toBeInTheDocument();
   });
 });

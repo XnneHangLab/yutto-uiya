@@ -51,22 +51,6 @@ type DetailState =
   | { phase: 'loaded'; meta: VideoMeta }
   | { phase: 'error'; message: string };
 
-function resolveDisplayTitle(item: VideoParseItem, detail: DetailState | undefined) {
-  if (detail?.phase !== 'loaded') {
-    return item.title;
-  }
-
-  const metaTitle = detail.meta.title.trim();
-  if (!metaTitle) {
-    return item.title;
-  }
-
-  const pageSuffix = item.title.match(/(_p\d+)$/)?.[1] ?? '';
-  return pageSuffix && !metaTitle.endsWith(pageSuffix)
-    ? `${metaTitle}${pageSuffix}`
-    : metaTitle;
-}
-
 interface DownloadPageProps {
   tasks: RuntimeTaskRecord[];
   onDownload: (url: string, label?: string, itemDir?: string) => void;
@@ -151,11 +135,7 @@ export function DownloadPage({
   function handleDownloadSelected() {
     for (const item of parseItems) {
       if (parseSelected.has(item.index)) {
-        onDownload(
-          item.url,
-          resolveDisplayTitle(item, details.get(item.index)),
-          item.dir || undefined,
-        );
+        onDownload(item.url, item.title, item.dir || undefined);
       }
     }
   }
@@ -264,11 +244,7 @@ export function DownloadPage({
               </button>
             </div>
             <ul className="parse-results__list">
-              {parseItems.map((item) => {
-                const detail = details.get(item.index);
-                const displayTitle = resolveDisplayTitle(item, detail);
-
-                return (
+              {parseItems.map((item) => (
                 <li key={item.index} className="parse-item">
                   <div className="parse-item__row">
                     <label className="parse-item__label">
@@ -279,7 +255,7 @@ export function DownloadPage({
                         onChange={() => handleToggleItem(item.index)}
                       />
                       <span className="parse-item__index">{item.index}</span>
-                      <span className="parse-item__title">{displayTitle}</span>
+                      <span className="parse-item__title">{item.title}</span>
                     </label>
                     <button
                       type="button"
@@ -295,8 +271,7 @@ export function DownloadPage({
                     </div>
                   ) : null}
                 </li>
-                );
-              })}
+              ))}
             </ul>
           </section>
 
