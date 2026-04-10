@@ -19,6 +19,13 @@ fn runtime_driver_api_value(driver: &RuntimeDriverConfig) -> &'static str {
     }
 }
 
+fn resolve_round_trip_drivers(
+    current_driver: &RuntimeDriverConfig,
+    target_driver: &RuntimeDriverConfig,
+) -> (RuntimeDriverConfig, RuntimeDriverConfig) {
+    (current_driver.clone(), target_driver.clone())
+}
+
 fn apply_runtime_state_update(
     state: &RuntimeState,
     next_driver: RuntimeDriverConfig,
@@ -506,20 +513,21 @@ pub async fn set_runtime_driver(
 
     let repo_root = state.repo_root.clone();
     let workspace_root = state.current_workspace_root();
-    let driver_for_round_trip = driver_config.clone();
+    let current_driver = state.current_driver_config();
+    let (save_driver, probe_driver) = resolve_round_trip_drivers(&current_driver, &driver_config);
     let ffmpeg_for_round_trip = next_ffmpeg.clone();
     let round_trip_result = run_blocking_runtime_action(move || {
         run_save_settings_command(
             &repo_root,
             &workspace_root,
-            &driver_for_round_trip,
+            &save_driver,
             &ffmpeg_for_round_trip,
             resolved_no_proxy,
         )?;
         let probe = run_probe_command(
             &repo_root,
             &workspace_root,
-            &driver_for_round_trip,
+            &probe_driver,
             &ffmpeg_for_round_trip,
             &app,
         )?;
@@ -672,5 +680,34 @@ mod tests {
             }
         );
         assert_eq!(state.current_ffmpeg_path(), "/workspace/tools/ffmpeg");
+    }
+
+    #[test]
+    fn apply_runtime_state_update_commits_values_on_non_ready_probe_payload() {
+        let state = RuntimeState::new(PathBuf::from("/repo"), PathBuf::from("/workspace"));
+
+        let result = super::apply_runtime_state_update(
+            &state,
+            RuntimeDriverConfig::Uv,
+            "ffmpeg".to_string(),
+            Ok(serde_json::json!({"status": "uv-unavailable"})),
+        )
+        .unwrap();
+
+        assert_eq!(result["status"], "uv-unavailable");
+        assert_eq!(state.current_driver_config(), RuntimeDriverConfig::Uv);
+        assert_eq!(state.current_ffmpeg_path(), "ffmpeg");
+    }
+
+    #[test]
+    fn resolve_round_trip_drivers_saves_with_current_and_probes_with_target() {
+        let current = RuntimeDriverConfig::DirectPython {
+            python_path: PathBuf::from("/app/env/python"),
+        };
+        let target = RuntimeDriverConfig::Uv;
+
+        let (save_driver, probe_driver) = super::resolve_round_trip_drivers(&current, &target);
+        assert_eq!(save_driver, current);
+        assert_eq!(probe_driver, target);
     }
 }
