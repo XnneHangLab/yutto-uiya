@@ -208,6 +208,22 @@ describe('runtime helpers', () => {
     ).toEqual([1, 2, 3]);
   });
 
+  it('returns standalone parse items when groups are missing', () => {
+    expect(
+      collectParseItems(
+        [
+          {
+            index: 1,
+            title: '单个视频',
+            url: 'https://example.com/1',
+            dir: '',
+          },
+        ],
+        undefined,
+      ).map((item) => item.index),
+    ).toEqual([1]);
+  });
+
   it('ignores parse runtime events when updating download tasks', () => {
     const next = applyRuntimeEvent([], {
       event: 'parse.item',
