@@ -28,7 +28,7 @@
   margin: 0 0 8px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--muted);
+  color: var(--accent);
 }
 
 .versions-current-card h1,
@@ -65,9 +65,9 @@
   min-height: 30px;
   padding: 0 12px;
   border-radius: 999px;
-  border: 1px solid var(--line);
-  background: var(--panel-2);
-  color: var(--text);
+  border: 1px solid rgba(63, 163, 255, 0.22);
+  background: rgba(63, 163, 255, 0.09);
+  color: var(--accent);
   font-size: 12px;
   font-weight: 600;
 }
