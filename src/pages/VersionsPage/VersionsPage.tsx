@@ -5,14 +5,14 @@ interface VersionTimelineEntry {
   version: string;
   badge: string;
   title: string;
-  summary: string;
+  summary?: string;
 }
 
 const CURRENT_VERSION = {
   version: 'v2.0.0',
   date: '2026-4-11',
   channel: '稳定版',
-  summary: '将前端由 streamlit 迁移至 tauri。版本信息集中展示',
+  summary: '将前端由 streamlit 迁移至 tauri',
 };
 
 const VERSION_TIMELINE: VersionTimelineEntry[] = [
@@ -21,7 +21,6 @@ const VERSION_TIMELINE: VersionTimelineEntry[] = [
     version: 'v2.0.0',
     badge: '当前',
     title: '将前端由 streamlit 迁移至 tauri',
-    summary: '版本信息集中展示',
   },
 ];
 
@@ -54,6 +53,7 @@ export function VersionsPage() {
       <section className="versions-timeline-card">
         <div className="versions-section-head">
           <h2>版本时间线</h2>
+          <p>将来会存留历史版本，并按时间继续追加在这里。</p>
         </div>
 
         <div className="versions-timeline">
@@ -70,7 +70,7 @@ export function VersionsPage() {
                   <span className="versions-timeline__badge">{entry.badge}</span>
                 </div>
                 <h3>{entry.title}</h3>
-                <p>{entry.summary}</p>
+                {entry.summary ? <p>{entry.summary}</p> : null}
               </div>
             </article>
           ))}

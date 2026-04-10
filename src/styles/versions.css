@@ -106,12 +106,21 @@
 
 .versions-section-head {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
   margin-bottom: 22px;
 }
 
 .versions-section-head h2 {
   font-size: 22px;
+}
+
+.versions-section-head p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--muted);
 }
 
 .versions-timeline {
