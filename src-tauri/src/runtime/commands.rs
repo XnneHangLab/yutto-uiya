@@ -2,7 +2,7 @@ use tauri::{AppHandle, Emitter, State};
 
 use super::process::{
     drain_download_queue,
-    ensure_environment_ready, kill_process, open_path, pick_ffmpeg_path, pick_python_path, pick_workspace_root,
+    ensure_environment_ready, kill_process, open_path, open_url, pick_ffmpeg_path, pick_python_path, pick_workspace_root,
     resolve_managed_path, run_auth_login_command, run_auth_logout_command, run_fetch_meta_command,
     run_inspect_command, run_parse_command, run_probe_command, run_save_settings_command,
     write_console_log,
@@ -424,6 +424,11 @@ pub fn open_path_command(app: AppHandle, path: String) -> Result<(), String> {
     let target = std::path::PathBuf::from(path);
     let _ = app.emit("runtime:raw-log", format!("[open] {}", target.display()));
     open_path(&target)
+}
+
+#[tauri::command]
+pub fn open_url_command(url: String) -> Result<(), String> {
+    open_url(&url)
 }
 
 #[tauri::command]

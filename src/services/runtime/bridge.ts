@@ -97,6 +97,10 @@ export function openPath(path: string) {
   return invoke<void>('open_path_command', { path });
 }
 
+export function openUrl(url: string) {
+  return invoke<void>('open_url_command', { url });
+}
+
 export function fetchVideoMeta(url: string) {
   return invoke<VideoMeta>('fetch_video_meta', { url });
 }

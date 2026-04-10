@@ -824,7 +824,33 @@ pub fn open_path(path: &Path) -> Result<(), String> {
     Ok(())
 }
 
-#[cfg(any(target_os = "windows", test))]
+pub fn open_url(url: &str) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    let mut command = {
+        let mut command = new_background_command("powershell");
+        command
+            .args(["-NoProfile", "-Command", "Start-Process $env:UIYA_OPEN_URL"])
+            .env("UIYA_OPEN_URL", url);
+        command
+    };
+
+    #[cfg(target_os = "linux")]
+    let mut command = {
+        let mut command = Command::new("xdg-open");
+        command.arg(url);
+        command
+    };
+
+    #[cfg(target_os = "macos")]
+    let mut command = {
+        let mut command = Command::new("open");
+        command.arg(url);
+        command
+    };
+
+    command.spawn().map_err(|error| error.to_string())?;
+    Ok(())
+}
 fn build_windows_open_command(path: &Path) -> Command {
     let mut command = new_background_command("powershell");
     command

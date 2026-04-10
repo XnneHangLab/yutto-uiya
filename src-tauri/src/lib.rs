@@ -28,6 +28,7 @@ pub fn run() {
             runtime::commands::open_managed_path,
             runtime::commands::open_task_save_dir,
             runtime::commands::open_path_command,
+            runtime::commands::open_url_command,
             runtime::commands::export_console_logs,
             runtime::commands::set_runtime_driver,
             runtime::commands::pick_python_path_command,
