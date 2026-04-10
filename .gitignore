@@ -1,4 +1,5 @@
 .codex
+.worktree/
 .venv/
 __pycache__/
 *.pyc
