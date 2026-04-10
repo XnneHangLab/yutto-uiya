@@ -1,3 +1,4 @@
+use std::ffi::OsStr;
 use std::fs;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
@@ -8,6 +9,12 @@ use tauri::{AppHandle, Emitter};
 
 use super::models::{EnvironmentProbePayload, ParseResult, PythonEnvelope, RuntimeEventPayload, TaskStatus};
 use super::state::{RuntimeDriverConfig, RuntimeState};
+
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 const ENVIRONMENT_PROBE_SCRIPT: &str = r#"
 import importlib
@@ -97,6 +104,30 @@ except Exception as error:
 
 print(json.dumps(result, ensure_ascii=False), flush=True)
 "#;
+
+fn mark_command_as_background(command: &mut Command) {
+    #[cfg(target_os = "windows")]
+    {
+        command.creation_flags(CREATE_NO_WINDOW);
+    }
+
+    #[cfg(test)]
+    {
+        command.env("UIYA_HIDE_CONSOLE_WINDOW", "1");
+    }
+
+    #[cfg(all(not(target_os = "windows"), not(test)))]
+    let _ = command;
+}
+
+fn new_background_command<S>(program: S) -> Command
+where
+    S: AsRef<OsStr>,
+{
+    let mut command = Command::new(program);
+    mark_command_as_background(&mut command);
+    command
+}
 
 pub fn run_inspect_command(repo_root: &Path, workspace_root: &Path, driver: &RuntimeDriverConfig, app: &AppHandle) -> Result<serde_json::Value, String> {
     emit_raw_log(app, "[inspect] 正在读取运行时信息 …");
@@ -397,7 +428,7 @@ pub fn run_probe_command(repo_root: &Path, workspace_root: &Path, driver: &Runti
 
     match driver {
         RuntimeDriverConfig::Uv => {
-            let uv_version = Command::new("uv")
+            let uv_version = new_background_command("uv")
                 .arg("--version")
                 .current_dir(repo_root)
                 .output()
@@ -758,7 +789,7 @@ pub fn drain_download_queue(app: AppHandle, state: RuntimeState) {
 /// Kill the process with the given PID. On Windows, kills the whole process tree.
 pub fn kill_process(pid: u32) {
     #[cfg(target_os = "windows")]
-    let _ = std::process::Command::new("taskkill")
+    let _ = new_background_command("taskkill")
         .args(["/F", "/T", "/PID", &pid.to_string()])
         .output();
     #[cfg(not(target_os = "windows"))]
@@ -795,7 +826,7 @@ pub fn open_path(path: &Path) -> Result<(), String> {
 
 #[cfg(any(target_os = "windows", test))]
 fn build_windows_open_command(path: &Path) -> Command {
-    let mut command = Command::new("powershell");
+    let mut command = new_background_command("powershell");
     command
         .args([
             "-NoProfile",
@@ -809,7 +840,7 @@ fn build_windows_open_command(path: &Path) -> Command {
 pub fn pick_workspace_root() -> Result<Option<PathBuf>, String> {
     #[cfg(target_os = "windows")]
     {
-        let output = Command::new("powershell")
+        let output = new_background_command("powershell")
             .args([
                 "-NoProfile",
                 "-Command",
@@ -1025,7 +1056,7 @@ where
     I: IntoIterator<Item = S>,
     S: AsRef<str>,
 {
-    let mut command = Command::new("uv");
+    let mut command = new_background_command("uv");
     command
         .arg("run")
         .arg("--no-sync")
@@ -1052,7 +1083,7 @@ where
     I: IntoIterator<Item = S>,
     S: AsRef<str>,
 {
-    let mut command = Command::new(python_path);
+    let mut command = new_background_command(python_path);
     command
         .current_dir(repo_root)
         .env("UIYA_WORKSPACE_ROOT", workspace_root)
@@ -1091,7 +1122,7 @@ fn runtime_config_path(workspace_root: &Path) -> PathBuf {
 pub fn pick_python_path() -> Result<Option<PathBuf>, String> {
     #[cfg(target_os = "windows")]
     {
-        let output = Command::new("powershell")
+        let output = new_background_command("powershell")
             .args([
                 "-NoProfile",
                 "-Command",
@@ -1175,7 +1206,7 @@ pub fn pick_python_path() -> Result<Option<PathBuf>, String> {
 pub fn pick_ffmpeg_path() -> Result<Option<PathBuf>, String> {
     #[cfg(target_os = "windows")]
     {
-        let output = Command::new("powershell")
+        let output = new_background_command("powershell")
             .args([
                 "-NoProfile",
                 "-Command",
@@ -1341,6 +1372,10 @@ mod tests {
                 && value.as_deref() == Some("/tmp/workspace")
         }));
         assert!(envs.iter().any(|(key, value)| {
+            key == "UIYA_HIDE_CONSOLE_WINDOW"
+                && value.as_deref() == Some("1")
+        }));
+        assert!(envs.iter().any(|(key, value)| {
             key == "PYTHONUNBUFFERED" && value.as_deref() == Some("1")
         }));
     }
@@ -1367,6 +1402,10 @@ mod tests {
         assert!(envs.iter().any(|(key, value)| {
             key == "UIYA_RUNTIME_CONFIG"
                 && value.as_deref() == Some("/app/config/uiya.toml")
+        }));
+        assert!(envs.iter().any(|(key, value)| {
+            key == "UIYA_HIDE_CONSOLE_WINDOW"
+                && value.as_deref() == Some("1")
         }));
     }
 
@@ -1409,6 +1448,10 @@ mod tests {
         assert!(envs.iter().any(|(key, value)| {
             key == "UIYA_OPEN_PATH"
                 && value.as_deref() == Some(r"C:\Users\demo\Downloads")
+        }));
+        assert!(envs.iter().any(|(key, value)| {
+            key == "UIYA_HIDE_CONSOLE_WINDOW"
+                && value.as_deref() == Some("1")
         }));
     }
 
