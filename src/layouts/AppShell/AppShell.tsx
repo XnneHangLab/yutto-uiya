@@ -99,6 +99,8 @@ export function AppShell() {
         listManagedFolders(),
       ]);
       setInspection(nextInspection);
+      setRuntimeDriver(nextInspection.runtimeDriver);
+      setPythonExePath(nextInspection.pythonPath ?? '');
       setFolders(buildFolderItemsFromPaths(paths));
       if (nextInspection.ffmpegPath && nextInspection.ffmpegPath !== 'ffmpeg') {
         setFfmpegMode('local');
@@ -134,6 +136,8 @@ export function AppShell() {
           return;
         }
         setInspection(nextInspection);
+        setRuntimeDriver(nextInspection.runtimeDriver);
+        setPythonExePath(nextInspection.pythonPath ?? '');
         setFolders(buildFolderItemsFromPaths(paths));
         if (nextInspection.ffmpegPath && nextInspection.ffmpegPath !== 'ffmpeg') {
           setFfmpegMode('local');
@@ -380,6 +384,8 @@ export function AppShell() {
       listManagedFolders(),
     ]);
     setInspection(nextInspection);
+    setRuntimeDriver(nextInspection.runtimeDriver);
+    setPythonExePath(nextInspection.pythonPath ?? '');
     setFolders(buildFolderItemsFromPaths(paths));
     if (nextInspection.ffmpegPath && nextInspection.ffmpegPath !== 'ffmpeg') {
       setFfmpegMode('local');

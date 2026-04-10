@@ -74,7 +74,7 @@ describe('SettingsPage', () => {
     await user.click(screen.getByRole('button', { name: '更改目录' }));
     expect(onChooseWorkspaceRoot).toHaveBeenCalledTimes(1);
 
-    await user.click(screen.getByRole('button', { name: '重置为项目目录' }));
+    await user.click(screen.getByRole('button', { name: '重置为应用目录' }));
     expect(onUseRepoWorkspaceRoot).toHaveBeenCalledTimes(1);
 
     await user.click(screen.getByRole('button', { name: '保存并重新检测' }));
@@ -129,7 +129,7 @@ describe('SettingsPage', () => {
     );
 
     expect(screen.getByRole('button', { name: '更改目录' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '重置为项目目录' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '重置为应用目录' })).toBeDisabled();
   });
 
   it('shows python exe path input when conda driver is selected', async () => {

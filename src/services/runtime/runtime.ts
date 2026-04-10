@@ -59,6 +59,9 @@ export interface RuntimeInspection {
   sessData: boolean;
   ffmpegPath: string;
   noProxy: boolean;
+  runtimeDriver: RuntimeDriver;
+  pythonPath: string;
+  appRoot: string;
 }
 
 export interface RuntimeTaskRecord {

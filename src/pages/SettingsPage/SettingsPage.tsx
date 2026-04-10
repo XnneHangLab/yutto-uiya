@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SettingCard } from '../../components/settings/SettingCard/SettingCard';
 import { SettingRow } from '../../components/settings/SettingRow/SettingRow';
 import { SettingsTabs } from '../../components/settings/SettingsTabs/SettingsTabs';
@@ -64,6 +64,14 @@ export function SettingsPage({
   const [localFfmpegMode, setLocalFfmpegMode] = useState<'system' | 'local'>(ffmpegMode);
   const [localFfmpegExePath, setLocalFfmpegExePath] = useState(ffmpegExePath);
   const [localNoProxy, setLocalNoProxy] = useState(noProxy);
+
+  useEffect(() => {
+    setLocalDriver(runtimeDriver);
+    setLocalPythonExePath(pythonExePath);
+    setLocalFfmpegMode(ffmpegMode);
+    setLocalFfmpegExePath(ffmpegExePath);
+    setLocalNoProxy(noProxy);
+  }, [runtimeDriver, pythonExePath, ffmpegMode, ffmpegExePath, noProxy]);
 
   const environmentLabel = environmentProbe
     ? formatEnvironmentStatus(environmentProbe.status)
@@ -220,7 +228,7 @@ export function SettingsPage({
                     onClick={onUseRepoWorkspaceRoot}
                     disabled={workspaceLocked}
                   >
-                    重置为项目目录
+                    重置为应用目录
                   </button>
                 </div>
               </SettingRow>

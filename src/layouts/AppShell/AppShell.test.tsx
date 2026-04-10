@@ -36,6 +36,9 @@ const {
     sessData: false,
     ffmpegPath: 'ffmpeg',
     noProxy: false,
+    runtimeDriver: 'uv',
+    pythonPath: '',
+    appRoot: '/repo',
   },
   defaultManagedFolders: [
     { key: 'workspace', label: '根目录', path: '/repo' },
@@ -279,6 +282,23 @@ describe('AppShell', () => {
 
     expect(await screen.findByRole('dialog', { name: '扫码登录' })).toBeInTheDocument();
     expect(screen.getByAltText('登录二维码')).toHaveAttribute('src', 'data:image/png;base64,abc');
+  });
+
+  it('hydrates portable python path from runtime inspection for conda settings', async () => {
+    const user = userEvent.setup();
+    vi.mocked(runtimeBridge.inspectRuntime).mockResolvedValue({
+      ...defaultInspection,
+      runtimeDriver: 'uv',
+      pythonPath: '/portable/env/python.exe',
+      appRoot: '/portable',
+    });
+
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: '设置' }));
+    await user.click(await screen.findByRole('button', { name: 'conda' }));
+
+    expect(screen.getByLabelText('Python 可执行文件路径')).toHaveValue('/portable/env/python.exe');
   });
 
   it('cancels auth login when closing the qr dialog and allows restarting', async () => {
