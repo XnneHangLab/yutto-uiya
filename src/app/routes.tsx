@@ -115,7 +115,7 @@ export function renderPage(
       return (
         <PlaceholderPage
           title="版本管理"
-          description="预留运行时版本切换和回滚能力。"
+          description="当前版本：v2.0.0。历史版本：当前你看到的就是最新版本，暂时没有历史版本。"
         />
       );
     case 'models':
