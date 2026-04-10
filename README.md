@@ -72,6 +72,14 @@ npm run tauri dev
 npm run tauri build
 ```
 
+## 交流群
+
+<p align="center">
+  <img src="./assets/imgs/qq_group.png" width="200" />
+  <br/>
+  QQ 群：1080284048
+</p>
+
 ## 相关链接
 
 - [yutto](https://github.com/yutto-dev/yutto) — 本项目使用的下载核心
