@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import { HomePage } from '../pages/HomePage/HomePage';
 import { ConsolePage } from '../pages/ConsolePage/ConsolePage';
 import { DownloadPage } from '../pages/DownloadPage/DownloadPage';
+import { CommunityPage } from '../pages/CommunityPage/CommunityPage';
 import { PlaceholderPage } from '../pages/PlaceholderPage/PlaceholderPage';
 import { SettingsPage } from '../pages/SettingsPage/SettingsPage';
 import type { PageId } from '../data/nav';
@@ -143,12 +144,7 @@ export function renderPage(
         />
       );
     case 'community':
-      return (
-        <PlaceholderPage
-          title="交流群"
-          description="预留社区入口和外链跳转。"
-        />
-      );
+      return <CommunityPage />;
     case 'console':
       return (
         <ConsolePage
