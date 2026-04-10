@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import base64
+import pathlib
 
 from uiya.cli import (
     _assign_parse_group_dirs,
     _assign_parse_item_dirs,
     _build_qr_data_url,
+    _find_existing_dirs_by_titles,
+    _infer_collection_dir_from_new_dirs,
     _parse_skip_download_lines,
     _resolve_single_download_title,
 )
@@ -147,3 +150,32 @@ def test_assign_parse_group_dirs_uses_group_title_for_shared_dir():
     assert groups[0]["dir"] == "Korewaxnne的收藏夹/不可思议/3分钟学会 视频选集 视频合集 视频列表 分p怎么弄"
     assert groups[0]["items"][0]["dir"] == groups[0]["dir"]
     assert groups[0]["items"][1]["dir"] == groups[0]["dir"]
+
+
+def test_infer_collection_dir_from_group_leaf_dir_nested():
+    new_dirs = {pathlib.Path("收藏夹/列表A")}
+    groups = [{"title": "列表A", "items": []}]
+
+    inferred = _infer_collection_dir_from_new_dirs(new_dirs, total_items=2, groups=groups)
+
+    assert inferred == "收藏夹"
+
+
+def test_infer_collection_dir_from_group_leaf_dir_at_root():
+    new_dirs = {pathlib.Path("列表A")}
+    groups = [{"title": "列表A", "items": []}]
+
+    inferred = _infer_collection_dir_from_new_dirs(new_dirs, total_items=2, groups=groups)
+
+    assert inferred == ""
+
+
+def test_existing_dir_fallback_includes_group_titles(tmp_path):
+    downloads_path = tmp_path / "downloads"
+    (downloads_path / "收藏夹" / "列表A").mkdir(parents=True)
+    items = [{"title": "P01_普通收藏视频"}]
+    groups = [{"title": "列表A", "items": []}]
+
+    matched = _find_existing_dirs_by_titles(downloads_path, items, groups)
+
+    assert pathlib.Path("收藏夹/列表A") in matched

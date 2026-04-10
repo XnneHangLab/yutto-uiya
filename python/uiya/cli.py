@@ -237,6 +237,85 @@ def _assign_parse_group_dirs(groups: list[dict], collection_dir: str) -> None:
             item["dir"] = group_dir
 
 
+def _leaf_dirs_from_new_dirs(new_dirs: set["pathlib.Path"]) -> set["pathlib.Path"]:
+    return {d for d in new_dirs if not any(
+        d2 != d and d2.is_relative_to(d) for d2 in new_dirs
+    )}
+
+
+def _infer_collection_dir_from_new_dirs(
+    new_dirs: set["pathlib.Path"],
+    total_items: int,
+    groups: list[dict],
+    leaf_dirs: set["pathlib.Path"] | None = None,
+) -> str:
+    import pathlib
+
+    if leaf_dirs is None:
+        leaf_dirs = _leaf_dirs_from_new_dirs(new_dirs)
+    dirs_for_common = leaf_dirs or new_dirs
+
+    if total_items > 1 and len(dirs_for_common) == 1:
+        collection_dir = next(iter(dirs_for_common)).as_posix()
+    elif total_items > 1 and len(dirs_for_common) > 1:
+        common = pathlib.Path(os.path.commonpath([str(p) for p in dirs_for_common]))
+        collection_dir = common.as_posix() if str(common) not in (".", "") else ""
+    else:
+        collection_dir = ""
+
+    if collection_dir and groups and new_dirs:
+        try:
+            from yutto.path_templates import repair_filename as _repair_filename
+        except ImportError:
+            def _repair_filename(s: str) -> str:  # type: ignore[misc]
+                return s
+
+        group_titles = {
+            _repair_filename(str(group.get("title", "")))
+            for group in groups
+        }
+        collection_path = pathlib.Path(collection_dir)
+        if collection_path in new_dirs and collection_path.name in group_titles:
+            parent = collection_path.parent
+            collection_dir = parent.as_posix() if str(parent) not in (".", "") else ""
+
+    return collection_dir
+
+
+def _find_existing_dirs_by_titles(
+    downloads_path: "pathlib.Path",
+    items: list[dict],
+    groups: list[dict],
+) -> set["pathlib.Path"]:
+    import pathlib
+
+    try:
+        from yutto.path_templates import repair_filename as _repair_filename
+    except ImportError:
+        def _repair_filename(s: str) -> str:  # type: ignore[misc]
+            return s
+
+    repaired_titles = set()
+    for item in items:
+        raw = str(item.get("title", ""))
+        repaired_titles.add(_repair_filename(raw))
+        repaired_titles.add(_repair_filename(re.sub(r"_p\d+$", "", raw)))
+
+    repaired_group_titles = {
+        _repair_filename(str(group.get("title", "")))
+        for group in groups
+    }
+
+    matched: set[pathlib.Path] = set()
+    for root, dirs, _files in os.walk(downloads_path):
+        root_path = pathlib.Path(root)
+        for d in dirs:
+            if d in repaired_titles or d in repaired_group_titles:
+                matched.add((root_path / d).relative_to(downloads_path))
+
+    return matched
+
+
 def _resolve_runtime_proxy(settings) -> str:
     if getattr(settings, "no_proxy", False):
         return "no"
@@ -621,40 +700,21 @@ def cmd_parse(target: str) -> None:
     # this search will simply return nothing, which is correct — all items in a
     # 合集 share a single output directory detected via collection_dir.
     if not new_dirs and total_items > 1:
-        try:
-            from yutto.path_templates import repair_filename as _repair_fn2
-        except ImportError:
-            def _repair_fn2(s: str) -> str:  # type: ignore[misc]
-                return s
-        import re as _re2
-        repaired_titles = set()
-        for item in all_items:
-            raw = item["title"]
-            repaired_titles.add(_repair_fn2(raw))
-            repaired_titles.add(_repair_fn2(_re2.sub(r'_p\d+$', '', raw)))
-        for root, dirs, _files in os.walk(downloads_path):
-            root_path = pathlib.Path(root)
-            for d in dirs:
-                if d in repaired_titles:
-                    new_dirs.add((root_path / d).relative_to(downloads_path))
+        new_dirs = _find_existing_dirs_by_titles(downloads_path, all_items, groups)
     # Use only leaf dirs (those that are not proper ancestors of other new dirs)
     # so that commonpath gives the deepest shared parent, not the top-level root.
     # E.g. for 收藏夹: new_dirs = {收藏夹, 收藏夹/dataset, 收藏夹/dataset/v1, ...}
     # leaf_dirs = {收藏夹/dataset/v1, ...} → commonpath = 收藏夹/dataset ✓
-    leaf_dirs = {d for d in new_dirs if not any(
-        d2 != d and d2.is_relative_to(d) for d2 in new_dirs
-    )}
-    dirs_for_common = leaf_dirs or new_dirs
+    leaf_dirs = _leaf_dirs_from_new_dirs(new_dirs)
     # Only set collection_dir for multi-video results; for single videos the
     # detected dir would be the video title itself which would cause double-
     # nesting if used as dir_override.
-    if total_items > 1 and len(dirs_for_common) == 1:
-        collection_dir = next(iter(dirs_for_common)).as_posix()
-    elif total_items > 1 and len(dirs_for_common) > 1:
-        common = pathlib.Path(os.path.commonpath([str(p) for p in dirs_for_common]))
-        collection_dir = common.as_posix() if str(common) not in (".", "") else ""
-    else:
-        collection_dir = ""
+    collection_dir = _infer_collection_dir_from_new_dirs(
+        new_dirs,
+        total_items,
+        groups,
+        leaf_dirs=leaf_dirs,
+    )
 
     # Compute per-item dir from path template structure rather than filesystem
     # matching.  For 收藏夹 the template is "{series_title}/{title}/{name}" so each
