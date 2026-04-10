@@ -13,23 +13,22 @@ if ! command -v conda &> /dev/null; then
     exit 1
 fi
 
-echo " [1/2] 创建 conda 环境（首次需要下载依赖，请耐心等待）..."
-if conda env create -f environment.yml; then
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+echo " [1/2] 创建 conda 环境到 ./env（首次需要下载依赖，请耐心等待）..."
+if conda env create -f environment.yml -p "$SCRIPT_DIR/env"; then
     :
 else
     echo ""
-    echo " [提示] 若环境已存在，尝试更新：conda env update -f environment.yml --prune"
+    echo " [提示] 若环境已存在，尝试更新：conda env update -f environment.yml -p ./env --prune"
     echo ""
     exit 1
 fi
 
 echo ""
-echo " [2/2] 查找 python 路径..."
-PYTHON_PATH=$(conda run -n yutto-uiya python -c "import sys; print(sys.executable)")
-echo ""
-echo " Python 路径：$PYTHON_PATH"
-echo ""
 echo " ✓ 初始化完成！"
+echo ""
+echo " Python 路径：$SCRIPT_DIR/env/bin/python"
 echo ""
 echo " 接下来："
 echo "   1. 启动 yutto-uiya"
