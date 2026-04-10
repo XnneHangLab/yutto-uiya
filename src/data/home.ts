@@ -30,10 +30,6 @@ export const heroConfetti: HeroConfettiPiece[] = [
   { top: '178px', left: '76%', color: '#72a7ff', rotate: '-32deg', width: '18px' },
 ];
 
-export const versionMeta = [
-  'yutto-uiya v2.0.0',
-];
-
 export const notices = [
   'yutto-uiya 是 yutto 的图形界面前端，核心下载能力由 yutto 提供，本项目负责配置与交互。',
   '收藏夹解析、下载队列等功能持续迭代中，欢迎试用并反馈。',

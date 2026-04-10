@@ -1,7 +1,7 @@
 import { FolderGrid } from '../../components/home/FolderGrid/FolderGrid';
 import { HeroBanner } from '../../components/home/HeroBanner/HeroBanner';
 import { NoticePanel } from '../../components/home/NoticePanel/NoticePanel';
-import { notices, versionMeta } from '../../data/home';
+import { notices } from '../../data/home';
 import type { ManagedFolderItem } from '../../services/runtime/runtime';
 import '../../styles/home.css';
 
@@ -24,12 +24,6 @@ export function HomePage({
         <div>
           <h2 className="section-title">文件夹</h2>
           <FolderGrid items={folders} onOpen={onOpenPath} />
-
-          <div className="meta">
-            {versionMeta.map((line) => (
-              <div key={line}>{line}</div>
-            ))}
-          </div>
         </div>
 
         <NoticePanel

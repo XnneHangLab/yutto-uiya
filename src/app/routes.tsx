@@ -4,8 +4,8 @@ import { ConsolePage } from '../pages/ConsolePage/ConsolePage';
 import { DownloadPage } from '../pages/DownloadPage/DownloadPage';
 import { CommunityPage } from '../pages/CommunityPage/CommunityPage';
 import { TroubleshootingPage } from '../pages/TroubleshootingPage/TroubleshootingPage';
-import { PlaceholderPage } from '../pages/PlaceholderPage/PlaceholderPage';
 import { SettingsPage } from '../pages/SettingsPage/SettingsPage';
+import { VersionsPage } from '../pages/VersionsPage/VersionsPage';
 import type { PageId } from '../data/nav';
 import type { ConsoleLogEntry } from '../services/launcher/launcher';
 import type {
@@ -112,12 +112,7 @@ export function renderPage(
     case 'troubleshooting':
       return <TroubleshootingPage />;
     case 'versions':
-      return (
-        <PlaceholderPage
-          title="版本管理"
-          description="当前版本：v2.0.0。历史版本：当前你看到的就是最新版本，暂时没有历史版本。"
-        />
-      );
+      return <VersionsPage />;
     case 'models':
       return (
         <DownloadPage

@@ -304,14 +304,6 @@
 .home-page .folder-grid .folder-card:not(.folder-card--skeleton):nth-child(7) { animation-delay: 180ms; }
 .home-page .folder-grid .folder-card:not(.folder-card--skeleton):nth-child(8) { animation-delay: 210ms; }
 
-.home-page .meta {
-  margin-top: 18px;
-  padding: 8px 2px 0;
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.95;
-}
-
 .home-page .notice {
   min-height: 420px;
   display: flex;
