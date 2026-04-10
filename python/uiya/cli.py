@@ -59,6 +59,38 @@ def _audio_quality_code(label: str) -> int | None:
     return None
 
 
+def _build_yutto_command(
+    target: str,
+    *,
+    config_path: str | None = None,
+    ffmpeg_path: str = "",
+    debug: bool = False,
+    no_proxy: bool = False,
+    proxy_pool: str = "",
+    skip_download: bool = False,
+    select_index: int | None = None,
+) -> list[str]:
+    command: list[str] = [sys.executable, "-m", "yutto", target, "--no-color"]
+
+    if skip_download:
+        command += ["--skip-download", "--no-progress", "-b"]
+    elif select_index is not None:
+        command += ["-b", "-p", str(select_index)]
+
+    if config_path:
+        command += ["--config", config_path]
+    if ffmpeg_path and ffmpeg_path != "ffmpeg":
+        command += ["--ffmpeg-path", ffmpeg_path]
+    if debug:
+        command.append("--debug")
+    if no_proxy:
+        command += ["--proxy", "no"]
+    elif proxy_pool:
+        command += ["--proxy", proxy_pool]
+
+    return command
+
+
 def _extract_bilibili_video_identity(url: str) -> tuple[str, str] | None:
     if bvid_match := re.search(r"(BV[1-9A-HJ-NP-Za-km-z]{10})", url):
         return ("bvid", bvid_match.group(1))
@@ -451,25 +483,17 @@ def cmd_download(
         fail(f"配置写入失败: {exc}")
 
     # ── 3. assemble yutto command ─────────────────────────────────────────
-    command: list[str] = ["uv", "run", "--no-sync", "yutto", target, "--no-color"]
-    if select_index is not None:
-        # Batch mode with specific page index.
-        command += ["-b", "-p", str(select_index)]
-    if yutto_toml:
-        command += ["--config", str(yutto_toml)]
-    # UIYA_FFMPEG_PATH env var (set by Rust) takes priority, but only when it
-    # is a real path — the Rust default is literally "ffmpeg" which is no more
-    # specific than the toml default, so fall back to settings in that case.
     _env_ffmpeg = os.environ.get("UIYA_FFMPEG_PATH", "").strip()
     ffmpeg_path = (_env_ffmpeg if _env_ffmpeg and _env_ffmpeg != "ffmpeg" else (settings.ffmpeg_path or "")).strip()
-    if ffmpeg_path and ffmpeg_path != "ffmpeg":
-        command += ["--ffmpeg-path", ffmpeg_path]
-    if settings.debug_mode == "open":
-        command.append("--debug")
-    if settings.no_proxy:
-        command += ["--proxy", "no"]
-    elif settings.custom_proxy_pool and settings.proxy_pool:
-        command += ["--proxy", settings.proxy_pool]
+    command = _build_yutto_command(
+        target,
+        config_path=str(yutto_toml) if yutto_toml else None,
+        ffmpeg_path=ffmpeg_path,
+        debug=settings.debug_mode == "open",
+        no_proxy=settings.no_proxy,
+        proxy_pool=settings.proxy_pool if settings.custom_proxy_pool else "",
+        select_index=select_index,
+    )
 
     # ── 4. spawn and stream ───────────────────────────────────────────────
     emit_event({
@@ -598,22 +622,17 @@ def cmd_parse(target: str) -> None:
     except Exception as exc:
         fail(f"配置写入失败: {exc}")
 
-    command: list[str] = [
-        "uv", "run", "--no-sync", "yutto", target,
-        "--no-color", "--skip-download", "--no-progress", "-b",
-    ]
-    if yutto_toml:
-        command += ["--config", str(yutto_toml)]
     _env_ffmpeg = os.environ.get("UIYA_FFMPEG_PATH", "").strip()
     ffmpeg_path = (_env_ffmpeg if _env_ffmpeg and _env_ffmpeg != "ffmpeg" else (settings.ffmpeg_path or "")).strip()
-    if ffmpeg_path and ffmpeg_path != "ffmpeg":
-        command += ["--ffmpeg-path", ffmpeg_path]
-    if settings.debug_mode == "open":
-        command.append("--debug")
-    if settings.no_proxy:
-        command += ["--proxy", "no"]
-    elif settings.custom_proxy_pool and settings.proxy_pool:
-        command += ["--proxy", settings.proxy_pool]
+    command = _build_yutto_command(
+        target,
+        config_path=str(yutto_toml) if yutto_toml else None,
+        ffmpeg_path=ffmpeg_path,
+        debug=settings.debug_mode == "open",
+        no_proxy=settings.no_proxy,
+        proxy_pool=settings.proxy_pool if settings.custom_proxy_pool else "",
+        skip_download=True,
+    )
 
     print(f"[run] {shlex.join(command)}", flush=True)
 

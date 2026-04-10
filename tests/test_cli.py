@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import base64
 import pathlib
+import sys
 
 from uiya.cli import (
     _assign_parse_group_dirs,
     _assign_parse_item_dirs,
+    _build_yutto_command,
     _build_parse_dir_title_candidates,
     _build_qr_data_url,
     _find_existing_dirs_by_titles,
@@ -65,6 +67,27 @@ def test_build_qr_data_url_uses_tight_png_dimensions():
     height = int.from_bytes(raw[20:24], "big")
 
     assert width == height == 216
+
+
+def test_build_yutto_command_uses_current_python_for_parse():
+    command = _build_yutto_command(
+        "https://example.com/favlist",
+        skip_download=True,
+        config_path="config/yutto.toml",
+    )
+
+    assert command[:4] == [sys.executable, "-m", "yutto", "https://example.com/favlist"]
+    assert "--skip-download" in command
+
+
+def test_build_yutto_command_uses_current_python_for_download():
+    command = _build_yutto_command(
+        "https://example.com/video",
+        select_index=2,
+    )
+
+    assert command[:4] == [sys.executable, "-m", "yutto", "https://example.com/video"]
+    assert ["-b", "-p", "2"] == command[5:8]
 
 
 def test_resolve_single_download_title_keeps_playlist_page_titles():
