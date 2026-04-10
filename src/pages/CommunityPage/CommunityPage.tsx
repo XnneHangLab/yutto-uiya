@@ -20,7 +20,8 @@ const groups: GroupEntry[] = [
 export function CommunityPage() {
   return (
     <div className="community-page">
-      <p className="community-hint">扫码加入，或搜索群号直接添加</p>
+      <h2 className="community-section-title">交流群</h2>
+      <p className="community-hint">扫码加入，或直接搜索群号添加。有问题、建议或想法欢迎在群内反馈。</p>
       <div className="community-groups">
         {groups.map((g) => (
           <div key={g.number} className="community-group-card">
