@@ -19,6 +19,7 @@
 
 ---
 
+> [!NOTE]
 > 核心下载能力由 [yutto](https://github.com/yutto-dev/yutto) 提供，本项目负责配置、解析与交互界面。
 
 ## 截图
@@ -59,18 +60,27 @@
 - [uv](https://docs.astral.sh/uv/getting-started/installation/)
 - [FFmpeg](https://ffmpeg.org/)（系统 PATH 或在设置中指定路径）
 
+> [!TIP]
+> FFmpeg 不在 PATH 里也没关系，启动后在**设置页**手动指定可执行文件路径即可。
+
 ### 开发运行
 
 ```bash
 npm install
+uv sync
 npm run tauri dev
 ```
 
 ### 打包
 
 ```bash
+npm install
+uv sync
 npm run tauri build
 ```
+
+> [!NOTE]
+> `uv sync` 会自动创建虚拟环境并安装 Python 依赖（含 yutto），首次运行耗时稍长属正常现象。
 
 ## 相关链接
 
