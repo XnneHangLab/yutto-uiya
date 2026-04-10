@@ -46,9 +46,10 @@
 .versions-current-card__summary {
   max-width: 520px;
   margin: 14px 0 0;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.75;
   color: var(--muted);
+  opacity: 0.9;
 }
 
 .versions-current-card__meta {
@@ -192,10 +193,11 @@
   letter-spacing: -0.02em;
 }
 
-.versions-timeline__content h3 {
-  margin: 0 0 8px;
-  font-size: 18px;
-  color: var(--text);
+.versions-timeline__title {
+  margin: 0 0 6px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--muted);
 }
 
 .versions-timeline__content p {

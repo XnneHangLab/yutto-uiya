@@ -69,7 +69,7 @@ export function VersionsPage() {
                   <span className="versions-timeline__version">{entry.version}</span>
                   <span className="versions-timeline__badge">{entry.badge}</span>
                 </div>
-                <h3>{entry.title}</h3>
+                <p className="versions-timeline__title">{entry.title}</p>
                 {entry.summary ? <p>{entry.summary}</p> : null}
               </div>
             </article>
