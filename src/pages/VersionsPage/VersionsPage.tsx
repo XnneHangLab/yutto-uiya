@@ -53,7 +53,7 @@ export function VersionsPage() {
       <section className="versions-timeline-card">
         <div className="versions-section-head">
           <h2>版本时间线</h2>
-          <p>将来会存留历史版本，并按时间继续追加在这里。</p>
+          <p>将来会保留历史版本的下载链接，并按时间继续追加在这里。</p>
         </div>
 
         <div className="versions-timeline">

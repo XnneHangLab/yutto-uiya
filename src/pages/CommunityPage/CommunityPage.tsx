@@ -62,7 +62,7 @@ export function CommunityPage() {
       </div>
 
       <h2 className="community-section-title">交流群</h2>
-      <p className="community-hint">扫码加入，或直接搜索群号添加。有问题、建议或想法欢迎在群内反馈。</p>
+      <p className="community-hint">如果无法反馈在 github，有问题、建议或想法欢迎在群内反馈。</p>
       <div className="community-groups">
         {groups.map((g) => (
           <div key={g.number} className="community-group-card">
