@@ -1,5 +1,6 @@
-import type { ResourceStatus } from '../../../services/runtime/runtime';
 import '../../../styles/model-card.css';
+
+export type ModelResourceStatus = 'ready' | 'partial' | 'missing';
 
 export interface ModelSpec {
   key: string;
@@ -12,19 +13,19 @@ export interface ModelSpec {
 
 interface ModelCardProps {
   spec: ModelSpec;
-  status: ResourceStatus | null;
+  status: ModelResourceStatus | null;
   scriptsReady: boolean;
   gpuReady: boolean;
   onDownload: () => void;
 }
 
-const statusLabel: Record<ResourceStatus, string> = {
+const statusLabel: Record<ModelResourceStatus, string> = {
   ready: '已就绪',
   partial: '部分缺失',
   missing: '未下载',
 };
 
-const statusMod: Record<ResourceStatus, string> = {
+const statusMod: Record<ModelResourceStatus, string> = {
   ready: 'ready',
   partial: 'partial',
   missing: 'missing',

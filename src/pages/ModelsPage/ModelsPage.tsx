@@ -1,7 +1,10 @@
-import { ModelCard, type ModelSpec } from '../../components/models/ModelCard/ModelCard';
+import {
+  ModelCard,
+  type ModelResourceStatus,
+  type ModelSpec,
+} from '../../components/models/ModelCard/ModelCard';
 import type {
   EnvironmentProbe,
-  FileProgress,
   RuntimeInspection,
   RuntimeTaskRecord,
 } from '../../services/runtime/runtime';
@@ -64,30 +67,31 @@ interface ModelsPageProps {
   inspection: RuntimeInspection | null;
   environmentProbe: EnvironmentProbe | null;
   tasks: RuntimeTaskRecord[];
-  fileProgress: FileProgress | null;
   onDownloadGenieBase: () => void;
   onDownloadGsvLite: () => void;
   onDownloadQwenTts06b: () => void;
   onDownloadQwenTts17b: () => void;
   onDownloadLumingGenieTts: () => void;
   scriptsReady: boolean;
+  gpuReady?: boolean;
+  resourceStatuses?: Partial<Record<ModelSpec['key'], ModelResourceStatus>>;
 }
 
 export function ModelsPage({
   inspection,
   environmentProbe,
   tasks,
-  fileProgress,
   onDownloadGenieBase,
   onDownloadGsvLite,
   onDownloadQwenTts06b,
   onDownloadQwenTts17b,
   onDownloadLumingGenieTts,
   scriptsReady,
+  gpuReady = false,
+  resourceStatuses,
 }: ModelsPageProps) {
-  const gpuReady =
-    inspection?.environment.mode === 'gpu' ||
-    environmentProbe?.status === 'torch-gpu-ready';
+  void inspection;
+  void environmentProbe;
 
   function handleDownload(key: string) {
     if (key === 'genie-base') {
@@ -120,7 +124,7 @@ export function ModelsPage({
             <ModelCard
               key={spec.key}
               spec={spec}
-              status={inspection?.resources[spec.key]?.status ?? null}
+              status={resourceStatuses?.[spec.key] ?? null}
               scriptsReady={scriptsReady}
               gpuReady={gpuReady}
               onDownload={() => handleDownload(spec.key)}
@@ -136,10 +140,6 @@ export function ModelsPage({
         ) : (
           <div className="models-page__task-list">
             {tasks.map((task) => {
-              const fp =
-                task.status === 'downloading' && fileProgress?.target === task.target
-                  ? fileProgress
-                  : null;
               return (
                 <div key={task.taskId} className="models-page__task">
                   <div className="models-page__task-info">
@@ -156,25 +156,6 @@ export function ModelsPage({
                       {task.progressCurrent} / {task.progressTotal}
                     </span>
                   </div>
-                  {fp && (
-                    <div className="models-page__file-progress">
-                      <div className="models-page__file-progress-bar">
-                        <div
-                          className="models-page__file-progress-fill"
-                          style={{ width: `${fp.percent}%` }}
-                        />
-                      </div>
-                      <div className="models-page__file-progress-meta">
-                        <span className="models-page__file-progress-desc">
-                          {fp.desc.split('/').pop()}
-                        </span>
-                        <span className="models-page__file-progress-info">
-                          {fp.percent}%
-                          {fp.downloaded && fp.total && ` · ${fp.downloaded} / ${fp.total}`}
-                        </span>
-                      </div>
-                    </div>
-                  )}
                 </div>
               );
             })}
