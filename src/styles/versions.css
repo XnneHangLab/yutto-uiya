@@ -7,28 +7,13 @@
 
 .versions-current-card,
 .versions-timeline-card {
-  position: relative;
-  overflow: hidden;
   border-radius: 24px;
-  border: 1px solid var(--elevated-card-border);
-  background: linear-gradient(160deg, var(--elevated-card-bg-start), var(--elevated-card-bg-end));
-  box-shadow: var(--elevated-card-shadow);
-}
-
-.versions-current-card__glow {
-  position: absolute;
-  inset: auto auto -120px -80px;
-  width: 260px;
-  height: 260px;
-  border-radius: 999px;
-  background:
-    radial-gradient(circle, rgba(63, 163, 255, 0.26) 0%, rgba(63, 163, 255, 0.04) 54%, transparent 78%);
-  pointer-events: none;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  box-shadow: var(--shadow);
 }
 
 .versions-current-card__body {
-  position: relative;
-  z-index: 1;
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(240px, 0.9fr);
   gap: 18px;
@@ -39,14 +24,11 @@
   min-width: 0;
 }
 
-.versions-current-card__eyebrow,
-.versions-section-head__eyebrow {
+.versions-current-card__label {
   margin: 0 0 8px;
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--accent);
+  font-weight: 600;
+  color: var(--muted);
 }
 
 .versions-current-card h1,
@@ -76,18 +58,16 @@
   gap: 14px;
 }
 
-.versions-badge,
-.versions-timeline__badge,
-.versions-section-head__count {
+.versions-timeline__badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 30px;
   padding: 0 12px;
   border-radius: 999px;
-  border: 1px solid rgba(63, 163, 255, 0.22);
-  background: rgba(63, 163, 255, 0.09);
-  color: var(--accent);
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
   font-size: 12px;
   font-weight: 600;
 }
@@ -103,8 +83,7 @@
   padding: 16px 16px 18px;
   border-radius: 18px;
   border: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
-  backdrop-filter: blur(6px);
+  background: var(--panel-2);
 }
 
 .versions-stat-card__label {
@@ -127,18 +106,12 @@
 
 .versions-section-head {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
+  align-items: center;
   margin-bottom: 22px;
 }
 
 .versions-section-head h2 {
-  font-size: 24px;
-}
-
-.versions-section-head__count {
-  flex: none;
+  font-size: 22px;
 }
 
 .versions-timeline {
@@ -165,7 +138,7 @@
   top: 0;
   bottom: -16px;
   width: 2px;
-  background: linear-gradient(180deg, rgba(63, 163, 255, 0.48), rgba(63, 163, 255, 0));
+  background: var(--line);
 }
 
 .versions-timeline__item:last-child .versions-timeline__rail::before {
@@ -179,22 +152,28 @@
   height: 12px;
   margin-top: 9px;
   border-radius: 999px;
-  background: linear-gradient(180deg, var(--accent), var(--accent-2));
-  box-shadow: 0 0 0 6px rgba(63, 163, 255, 0.12);
+  background: var(--text);
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.06);
 }
 
 .versions-timeline__content {
   padding: 18px 20px;
   border-radius: 20px;
   border: 1px solid var(--line);
-  background: linear-gradient(180deg, var(--card-bg-start), var(--card-bg-end));
+  background: var(--panel-2);
 }
 
 .versions-timeline__top {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 8px;
+}
+
+.versions-timeline__date {
+  font-size: 13px;
+  color: var(--muted);
 }
 
 .versions-timeline__version {
@@ -227,11 +206,6 @@
   .versions-current-card__body,
   .versions-timeline-card {
     padding: 20px;
-  }
-
-  .versions-section-head {
-    flex-direction: column;
-    align-items: flex-start;
   }
 
   .versions-stat-grid {
