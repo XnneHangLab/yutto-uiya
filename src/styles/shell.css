@@ -221,22 +221,6 @@
   line-height: 1.8;
 }
 
-.community-qr {
-  display: block;
-  width: 180px;
-  height: 180px;
-  margin: 16px auto 12px;
-  border-radius: 12px;
-  object-fit: cover;
-}
-
-.community-group-number {
-  margin: 0;
-  color: var(--muted);
-  font-size: 13px;
-  letter-spacing: 0.04em;
-}
-
 @media (max-width: 900px) {
   .app-shell {
     grid-template-columns: 72px 1fr;
