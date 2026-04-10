@@ -1,0 +1,59 @@
+.troubleshooting-page {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 4px 2px 18px;
+  gap: 0;
+}
+
+.troubleshooting-section-title {
+  margin: 10px 0 6px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.troubleshooting-desc {
+  margin: 0 0 18px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.troubleshooting-channels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+
+.troubleshooting-channel {
+  padding: 5px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--elevated-card-border);
+  background: linear-gradient(160deg, var(--elevated-card-bg-start), var(--elevated-card-bg-end));
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: default;
+}
+
+.troubleshooting-sub-title {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  opacity: 0.7;
+}
+
+.troubleshooting-empty {
+  width: 100%;
+  padding: 28px 20px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: linear-gradient(160deg, var(--card-bg-start), var(--card-bg-end));
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}

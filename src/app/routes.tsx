@@ -3,6 +3,7 @@ import { HomePage } from '../pages/HomePage/HomePage';
 import { ConsolePage } from '../pages/ConsolePage/ConsolePage';
 import { DownloadPage } from '../pages/DownloadPage/DownloadPage';
 import { CommunityPage } from '../pages/CommunityPage/CommunityPage';
+import { TroubleshootingPage } from '../pages/TroubleshootingPage/TroubleshootingPage';
 import { PlaceholderPage } from '../pages/PlaceholderPage/PlaceholderPage';
 import { SettingsPage } from '../pages/SettingsPage/SettingsPage';
 import type { PageId } from '../data/nav';
@@ -109,12 +110,7 @@ export function renderPage(
         />
       );
     case 'troubleshooting':
-      return (
-        <PlaceholderPage
-          title="疑难解答"
-          description="预留更细粒度的运行诊断与修复入口。"
-        />
-      );
+      return <TroubleshootingPage />;
     case 'versions':
       return (
         <PlaceholderPage
