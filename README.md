@@ -4,160 +4,75 @@
   </a>
 </p>
 
-<h1 align="center">绘心 Voice</h1>
+<h1 align="center">绘心 yutto-uiya</h1>
 
 <p align="center">
-  来自 <a href="https://github.com/XnneHangLab/XnneHangLab">XnneHangLab</a> 的语音产品仓库
+  yutto 的图形界面前端，Bilibili 视频下载工具
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/语言-中文优先-blue" />
-  <img src="https://img.shields.io/badge/TTS-GSV--Lite%20%7C%20Genie--TTS%20%7C%20faster--qwen--tts-orange" />
-  <img src="https://img.shields.io/badge/运行方式-uv%20%7C%20docker%20%7C%20conda-6f42c1" />
+  <img src="https://img.shields.io/badge/平台-Windows%20%7C%20macOS%20%7C%20Linux-blue" />
+  <img src="https://img.shields.io/badge/驱动-yutto-orange" />
+  <img src="https://img.shields.io/badge/技术栈-Tauri%20%7C%20React%20%7C%20Python-6f42c1" />
   <img src="https://img.shields.io/badge/状态-WIP-ff69b4" />
 </p>
 
 ---
 
-> [!NOTE]
-> 这个仓库现在不再负责桌面启动器本身。
->
-> 启动器与桌面壳层将放在独立仓库中继续演进；
-> 而当前仓库收敛为语音产品本体，聚焦 TTS 能力、资源组织、后端适配与运行分发。
+> 核心下载能力由 [yutto](https://github.com/yutto-dev/yutto) 提供，本项目负责配置、解析与交互界面。
 
-> [!TIP]
-> 当前方向可以理解为：
->
-> - [HuixinLauncherTemplate](https://github.com/XnneHangLab/HuixinLauncherTemplate) 负责桌面启动器 / Launcher
-> - 绘心 Voice 负责语音产品本体
->
-> 两者分离开发，后续由启动器接入本仓库能力。
+## 截图
 
-## 项目定位
+| | |
+|---|---|
+| ![主页](./assets/imgs/main_page.jpg) | ![下载页](./assets/imgs/download_page.jpg) |
+| ![登录](./assets/imgs/login.jpg) | ![控制台](./assets/imgs/log.jpg) |
 
-绘心 Voice 是一个聚焦语音生成与展示体验的产品仓库。
+## 功能
 
-它当前主要负责：
+- **视频 / 收藏夹 / 合集解析** — 输入 URL 自动识别类型，支持批量解析与分组展示
+- **视频详情预览** — 展示封面、标题、UP 主、时长、播放量
+- **批量选择下载** — 全选 / 按组选 / 单条选，灵活组合
+- **下载选项** — 可选视频、音频、封面；支持指定画质
+- **下载队列** — 实时进度、取消任务、完成后直接打开目录
+- **Bilibili 账号登录** — 扫码登录，支持大会员内容
+- **控制台日志** — 实时输出、自动滚动、一键导出
+- **环境配置** — 检测 Python / FFmpeg / uv 环境状态，支持自定义路径
+- **代理设置** — 一键关闭系统代理
 
-- 多个 TTS 后端的统一接入
-- 角色语音资源组织
-- provider 适配层
-- 运行时依赖与分发方式整理
-- 用更轻的方式展示和验证语音能力
+## 技术栈
 
-启动器、桌面壳层、exe 入口不再作为这个仓库的核心职责。
-
-## 当前目标
-
-当前仓库聚焦三件事：
-
-### 1. TTS 后端统一接入
-
-支持并整理这些后端：
-
-- GSV-Lite
-- Genie-TTS
-- faster-qwen-tts
-
-### 2. 语音资源与推理体验
-
-负责：
-
-- 角色 / 情绪 / 风格资源组织
-- provider 参数收敛
-- 统一调用入口
-- 生成与试听体验
-
-### 3. 运行与分发
-
-支持三种方式：
-
-- `uv`
-- `docker`
-- `conda`
-
-并逐步明确：
-
-- CPU 版本怎么装
-- GPU 版本怎么装
-- 模型如何按需下载
-
-## 为什么这样拆分
-
-> [!IMPORTANT]
-> 语音产品本体和桌面启动器不是一个层级的问题。
->
-> 把它们拆开后会更清楚：
->
-> - 本仓库专心做语音能力
-> - 启动器仓库专心做桌面入口
-> - 后续可以分别迭代，不互相拖累
-
-这意味着当前仓库更像：
-
-- Voice product repository
-- TTS runtime repository
-- provider integration repository
-
-而不是 Launcher 仓库。
-
-## 计划支持的后端
-
-- GSV-Lite
-- Genie-TTS
-- faster-qwen-tts
-
-后续会通过统一的 provider 适配层来组织调用方式，而不是让上层直接耦合到具体实现。
-
-## 第一阶段目标
-
-第一阶段先把这些事情做稳：
-
-- provider 适配层
-- 基础 voices 资源组织
-- `uv / docker / conda` 三种运行方式
-- CPU / GPU 安装策略区分
-- 模型下载职责与运行仓库职责划清
+| 层 | 技术 |
+|---|---|
+| 桌面壳层 | Tauri 2 |
+| 前端 | React 18 + TypeScript + Vite |
+| 后端命令 | Rust |
+| 运行时 | Python ≥ 3.11，通过 `uv` 管理 |
+| 下载核心 | [yutto](https://github.com/yutto-dev/yutto) |
 
 ## 快速开始
 
-需要先安装 [uv](https://docs.astral.sh/uv/getting-started/installation/) 和 [just](https://just.systems/man/en/)。
+### 依赖
 
-### 安装依赖
+- [Node.js](https://nodejs.org/)
+- [Rust](https://www.rust-lang.org/tools/install)
+- [uv](https://docs.astral.sh/uv/getting-started/installation/)
+- [FFmpeg](https://ffmpeg.org/)（系统 PATH 或在设置中指定路径）
+
+### 开发运行
 
 ```bash
-uv sync
+npm install
+npm run tauri dev
 ```
 
-### 选择 PyTorch 版本
+### 打包
 
-默认配置：**Windows → CUDA 12.8（RTX 50 系 / Blackwell）**，**Linux → CPU**。
-
-先运行 `nvidia-smi`，查看右上角的 **CUDA Version**，选对应命令：
-
-| GPU | CUDA Version | 命令 |
-|-----|-------------|------|
-| 无独显 / 纯测试 | — | `just use-cpu` |
-| GTX 10xx ~ RTX 20/30 系旧驱动 | ≤ 11.8 | `just use-cu118` |
-| RTX 20/30/40 系新驱动 | 12.4 | `just use-cu124` |
-| RTX 50 系 (Blackwell) | ≥ 12.8 | `just use-cu128`（默认已配置，首次直接 `uv sync`） |
-
-命令会自动替换配置、清理旧环境并重新安装，无需手动操作。
-
-> [!NOTE]
-> **Windows 文件锁问题**：如果提示无法删除 `.venv`，说明有程序正在占用该目录（常见：VS Code Python 插件、Jupyter、已打开的终端）。
-> 关闭相关程序后重新执行 `just use-*` 即可。
-
-安装完成后验证：
-
-```
-just torch-check
+```bash
+npm run tauri build
 ```
 
-## 与 XnneHangLab 的关系
+## 相关链接
 
-如果你想使用完整项目，请前往主仓库：
-
-- [XnneHangLab](https://github.com/XnneHangLab/XnneHangLab)
-
-如果你想关注语音产品线本身，那当前仓库就是这个方向。
+- [yutto](https://github.com/yutto-dev/yutto) — 本项目使用的下载核心
+- [XnneHangLab](https://github.com/XnneHangLab/XnneHangLab) — 主仓库
