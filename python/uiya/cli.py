@@ -243,10 +243,29 @@ def _leaf_dirs_from_new_dirs(new_dirs: set["pathlib.Path"]) -> set["pathlib.Path
     )}
 
 
-def _infer_collection_dir_from_new_dirs(
+def _build_parse_dir_title_candidates(items: list[dict], groups: list[dict]) -> set[str]:
+    try:
+        from yutto.path_templates import repair_filename as _repair_filename
+    except ImportError:
+        def _repair_filename(s: str) -> str:  # type: ignore[misc]
+            return s
+
+    candidates = set()
+    for item in items:
+        raw = str(item.get("title", ""))
+        candidates.add(_repair_filename(raw))
+        candidates.add(_repair_filename(re.sub(r"_p\d+$", "", raw)))
+
+    for group in groups:
+        candidates.add(_repair_filename(str(group.get("title", ""))))
+
+    return {candidate for candidate in candidates if candidate}
+
+
+def _infer_collection_dir_from_candidate_dirs(
     new_dirs: set["pathlib.Path"],
     total_items: int,
-    groups: list[dict],
+    candidate_dir_names: set[str],
     leaf_dirs: set["pathlib.Path"] | None = None,
 ) -> str:
     import pathlib
@@ -254,6 +273,14 @@ def _infer_collection_dir_from_new_dirs(
     if leaf_dirs is None:
         leaf_dirs = _leaf_dirs_from_new_dirs(new_dirs)
     dirs_for_common = leaf_dirs or new_dirs
+
+    if total_items > 1 and candidate_dir_names:
+        matched_child_dirs = {d for d in dirs_for_common if d.name in candidate_dir_names}
+        if matched_child_dirs:
+            common_parent = pathlib.Path(
+                os.path.commonpath([str(d.parent) for d in matched_child_dirs])
+            )
+            return common_parent.as_posix() if str(common_parent) not in (".", "") else ""
 
     if total_items > 1 and len(dirs_for_common) == 1:
         collection_dir = next(iter(dirs_for_common)).as_posix()
@@ -263,23 +290,21 @@ def _infer_collection_dir_from_new_dirs(
     else:
         collection_dir = ""
 
-    if collection_dir and groups and new_dirs:
-        try:
-            from yutto.path_templates import repair_filename as _repair_filename
-        except ImportError:
-            def _repair_filename(s: str) -> str:  # type: ignore[misc]
-                return s
-
-        group_titles = {
-            _repair_filename(str(group.get("title", "")))
-            for group in groups
-        }
-        collection_path = pathlib.Path(collection_dir)
-        if collection_path in new_dirs and collection_path.name in group_titles:
-            parent = collection_path.parent
-            collection_dir = parent.as_posix() if str(parent) not in (".", "") else ""
-
     return collection_dir
+
+
+def _infer_collection_dir_from_new_dirs(
+    new_dirs: set["pathlib.Path"],
+    total_items: int,
+    groups: list[dict],
+    leaf_dirs: set["pathlib.Path"] | None = None,
+) -> str:
+    return _infer_collection_dir_from_candidate_dirs(
+        new_dirs,
+        total_items,
+        _build_parse_dir_title_candidates([], groups),
+        leaf_dirs=leaf_dirs,
+    )
 
 
 def _find_existing_dirs_by_titles(
@@ -289,28 +314,13 @@ def _find_existing_dirs_by_titles(
 ) -> set["pathlib.Path"]:
     import pathlib
 
-    try:
-        from yutto.path_templates import repair_filename as _repair_filename
-    except ImportError:
-        def _repair_filename(s: str) -> str:  # type: ignore[misc]
-            return s
-
-    repaired_titles = set()
-    for item in items:
-        raw = str(item.get("title", ""))
-        repaired_titles.add(_repair_filename(raw))
-        repaired_titles.add(_repair_filename(re.sub(r"_p\d+$", "", raw)))
-
-    repaired_group_titles = {
-        _repair_filename(str(group.get("title", "")))
-        for group in groups
-    }
+    candidate_dir_names = _build_parse_dir_title_candidates(items, groups)
 
     matched: set[pathlib.Path] = set()
     for root, dirs, _files in os.walk(downloads_path):
         root_path = pathlib.Path(root)
         for d in dirs:
-            if d in repaired_titles or d in repaired_group_titles:
+            if d in candidate_dir_names:
                 matched.add((root_path / d).relative_to(downloads_path))
 
     return matched
@@ -709,10 +719,11 @@ def cmd_parse(target: str) -> None:
     # Only set collection_dir for multi-video results; for single videos the
     # detected dir would be the video title itself which would cause double-
     # nesting if used as dir_override.
-    collection_dir = _infer_collection_dir_from_new_dirs(
+    candidate_dir_names = _build_parse_dir_title_candidates(all_items, groups)
+    collection_dir = _infer_collection_dir_from_candidate_dirs(
         new_dirs,
         total_items,
-        groups,
+        candidate_dir_names,
         leaf_dirs=leaf_dirs,
     )
 
