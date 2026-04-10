@@ -70,14 +70,21 @@
   font-variant-numeric: tabular-nums;
 }
 
+.community-link-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 480px;
+  margin-bottom: 28px;
+}
+
 .community-link-card {
   display: flex;
   align-items: center;
   gap: 14px;
   width: 100%;
-  max-width: 480px;
   padding: 14px 18px;
-  margin-bottom: 28px;
   border-radius: 14px;
   background: linear-gradient(160deg, var(--elevated-card-bg-start), var(--elevated-card-bg-end));
   border: 1px solid var(--elevated-card-border);

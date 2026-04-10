@@ -32,7 +32,7 @@ export const navItems: NavItemData[] = [
   { type: 'page', id: 'troubleshooting', label: '疑难解答', icon: '⌘', section: 'primary' },
   { type: 'page', id: 'versions', label: '版本管理', icon: '🕘', section: 'primary' },
   { type: 'page', id: 'models', label: '下载管理', icon: '⬇', section: 'primary' },
-  { type: 'page', id: 'community', label: '交流群', icon: '💬', section: 'secondary' },
+  { type: 'page', id: 'community', label: '联系我', icon: '💬', section: 'secondary' },
   {
     type: 'action',
     id: 'ideas',
