@@ -19,8 +19,10 @@ import urllib.parse
 import urllib.request
 
 _BILIBILI_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Referer": "https://www.bilibili.com",
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "zh-CN,zh;q=0.9",
 }
 
 TITLE_RE = re.compile(r"\bINFO\b.*开始处理视频\s+(.+)")
@@ -769,11 +771,14 @@ def cmd_fetch_meta(url: str) -> None:
     """
     import base64
     import re
-    import urllib.request
+
+    import httpx
 
     _headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Referer": "https://www.bilibili.com",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "zh-CN,zh;q=0.9",
     }
 
     def emit_payload(payload: dict) -> None:
@@ -786,9 +791,8 @@ def cmd_fetch_meta(url: str) -> None:
     bvid = bvid_m.group(1)
     api_url = f"https://api.bilibili.com/x/web-interface/view?bvid={bvid}"
     try:
-        req = urllib.request.Request(api_url, headers=_headers)
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
+        with httpx.Client(timeout=10, http2=True, headers=_headers) as client:
+            data = client.get(api_url).raise_for_status().json()
     except Exception as exc:
         emit_payload({"error": f"请求失败: {exc}"})
         return
@@ -804,10 +808,10 @@ def cmd_fetch_meta(url: str) -> None:
     pic_url = d.get("pic", "")
     if pic_url:
         try:
-            img_req = urllib.request.Request(pic_url, headers=_headers)
-            with urllib.request.urlopen(img_req, timeout=10) as img_resp:
-                img_bytes = img_resp.read()
-                mime = img_resp.headers.get_content_type() or "image/jpeg"
+            with httpx.Client(timeout=10, http2=True, headers=_headers) as client:
+                img_resp = client.get(pic_url).raise_for_status()
+                img_bytes = img_resp.content
+                mime = img_resp.headers.get("content-type", "image/jpeg").split(";")[0]
             cover_data_url = f"data:{mime};base64,{base64.b64encode(img_bytes).decode()}"
         except Exception:
             pass  # fall back to empty string; frontend will skip the image

@@ -35,9 +35,9 @@ export const versionMeta = [
 ];
 
 export const notices = [
-  '绘心是 XnneHangLab 正在持续迭代的启动器产品，也会沉淀为可复用模板，后续会逐步扩展到语音、模型管理与控制台能力。',
-  '当前仓库以模板能力验证为主，界面、交互和命令执行链路会持续更新，欢迎基于此继续定制自己的启动器。',
-  '问题反馈与功能建议请通过仓库 Issue 或 PR 提交，文档与实现会随版本持续同步。',
+  'yutto-uiya 是 yutto 的图形界面前端，核心下载能力由 yutto 提供，本项目负责配置与交互。',
+  '收藏夹解析、下载队列等功能持续迭代中，欢迎试用并反馈。',
+  '问题反馈与功能建议请通过仓库 Issue 或 PR 提交。',
 ];
 
 export const placeholderFolders: PlaceholderFolderItem[] = [
