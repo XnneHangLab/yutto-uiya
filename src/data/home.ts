@@ -31,7 +31,8 @@ export const heroConfetti: HeroConfettiPiece[] = [
 ];
 
 export const versionMeta = [
-  'yutto-uiya v0.0.3',
+  'yutto-uiya v2.0.0',
+  '历史版本：当前你看到的就是最新版本，暂时没有历史版本。',
 ];
 
 export const notices = [
