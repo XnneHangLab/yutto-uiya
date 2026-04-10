@@ -72,6 +72,14 @@ pub struct ParsedVideoItem {
     pub dir: String,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ParsedVideoGroup {
+    pub title: String,
+    pub dir: String,
+    pub items: Vec<ParsedVideoItem>,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct QualityOption {
@@ -85,6 +93,8 @@ pub struct ParseResult {
     pub url: String,
     pub dir: String,
     pub items: Vec<ParsedVideoItem>,
+    #[serde(default)]
+    pub groups: Vec<ParsedVideoGroup>,
     pub video_qualities: Vec<QualityOption>,
     pub audio_qualities: Vec<QualityOption>,
 }
@@ -112,4 +122,25 @@ pub struct EnvironmentProbePayload {
 
 fn default_auth_state() -> String {
     "unknown".to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ParseResult;
+
+    #[test]
+    fn parse_result_defaults_groups_when_payload_omits_them() {
+        let payload = serde_json::json!({
+            "url": "https://example.com/video",
+            "dir": "downloads",
+            "items": [],
+            "videoQualities": [],
+            "audioQualities": []
+        });
+
+        let result: ParseResult =
+            serde_json::from_value(payload).expect("payload should deserialize");
+
+        assert!(result.groups.is_empty());
+    }
 }

@@ -103,6 +103,12 @@ export interface VideoParseItem {
   dir: string;
 }
 
+export interface VideoParseGroup {
+  title: string;
+  dir: string;
+  items: VideoParseItem[];
+}
+
 export interface VideoMeta {
   title: string;
   cover: string;
@@ -122,6 +128,7 @@ export interface QualityOption {
 export interface VideoParseResult {
   items: VideoParseItem[];
   dir: string;
+  groups: VideoParseGroup[];
   videoQualities: QualityOption[];
   audioQualities: QualityOption[];
 }
@@ -232,6 +239,13 @@ export function applyParseRuntimeEvent(
   }
 
   return next;
+}
+
+export function collectParseItems(
+  items: VideoParseItem[],
+  groups: VideoParseGroup[],
+): VideoParseItem[] {
+  return [...items, ...groups.flatMap((group) => group.items)];
 }
 
 export function createConsoleLogFromRuntimeEvent(

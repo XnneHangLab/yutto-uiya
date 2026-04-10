@@ -3,6 +3,7 @@ import {
   isAuthRuntimeEvent,
   applyParseRuntimeEvent,
   buildFolderItemsFromPaths,
+  collectParseItems,
   createConsoleLogFromRuntimeEvent,
   isParseRuntimeEvent,
   type RuntimeTaskRecord,
@@ -170,6 +171,41 @@ describe('runtime helpers', () => {
         dir: '',
       },
     ]);
+  });
+
+  it('collects standalone parse items and grouped children in order', () => {
+    expect(
+      collectParseItems(
+        [
+          {
+            index: 1,
+            title: '单个视频',
+            url: 'https://example.com/1',
+            dir: '',
+          },
+        ],
+        [
+          {
+            title: '合集',
+            dir: 'group',
+            items: [
+              {
+                index: 2,
+                title: '分组视频 1',
+                url: 'https://example.com/2',
+                dir: 'group/2',
+              },
+              {
+                index: 3,
+                title: '分组视频 2',
+                url: 'https://example.com/3',
+                dir: 'group/3',
+              },
+            ],
+          },
+        ],
+      ).map((item) => item.index),
+    ).toEqual([1, 2, 3]);
   });
 
   it('ignores parse runtime events when updating download tasks', () => {
