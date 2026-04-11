@@ -476,7 +476,8 @@ pub fn build_runtime_state() -> Result<RuntimeState, String> {
     let portable_python = resolve_portable_python_path(&repo_root);
 
     let state = RuntimeState::new(repo_root, workspace_root.clone());
-    if portable_python.is_file() {
+    let has_portable_python = portable_python.is_file();
+    if has_portable_python {
         state.set_portable_python_path(Some(portable_python.clone()));
         if !cfg!(debug_assertions) {
             state.set_driver_config(RuntimeDriverConfig::DirectPython {
@@ -485,7 +486,13 @@ pub fn build_runtime_state() -> Result<RuntimeState, String> {
         }
     }
     if let Some(saved) = read_saved_driver_config(&workspace_root) {
-        state.set_driver_config(saved);
+        // In a portable release build the bundled ./env/python is the only
+        // reliable runtime; a saved "uv" preference must not override it
+        // because uv is not bundled and may not be installed.
+        let portable_release = has_portable_python && !cfg!(debug_assertions);
+        if !(portable_release && matches!(saved, RuntimeDriverConfig::Uv)) {
+            state.set_driver_config(saved);
+        }
     }
     Ok(state)
 }
