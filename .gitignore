@@ -5,6 +5,10 @@ __pycache__/
 *.pyc
 *.pyo
 config/yutto.toml
+config/runtime.json
 downloads/
+dist/
+env/
 ffmpeg/
 node_modules/
+*.exe
