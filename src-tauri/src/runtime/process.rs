@@ -1092,7 +1092,8 @@ where
         .env("UIYA_RUNTIME_CONFIG", runtime_config_path(workspace_root))
         .env("PYTHONUTF8", "1")
         .env("PYTHONIOENCODING", "utf-8")
-        .env("PYTHONUNBUFFERED", "1");
+        .env("PYTHONUNBUFFERED", "1")
+        .env("PYTHONPATH", repo_root.join("python"));
     for arg in python_args {
         command.arg(arg.as_ref());
     }
@@ -1404,6 +1405,9 @@ mod tests {
         }));
         assert!(envs.iter().any(|(key, value)| {
             key == "PYTHONUNBUFFERED" && value.as_deref() == Some("1")
+        }));
+        assert!(envs.iter().any(|(key, value)| {
+            key == "PYTHONPATH" && value.as_deref() == Some("/tmp/repo/python")
         }));
     }
 
