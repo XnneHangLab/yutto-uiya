@@ -14,7 +14,7 @@ export interface PlaceholderFolderItem {
 }
 
 export const heroCopy = {
-  eyebrow: 'yutto-uiya',
+  eyebrow: '绘心',
   title: 'yutto-uiya',
   description: 'Bilibili 视频下载工具，由 yutto 驱动。',
 };
