@@ -1,6 +1,6 @@
 [package]
 name = "yutto-uiya"
-version = "0.0.3"
+version = "2.0.0"
 description = "yutto-uiya desktop launcher"
 authors = ["MrXnneHang"]
 license = "MIT"

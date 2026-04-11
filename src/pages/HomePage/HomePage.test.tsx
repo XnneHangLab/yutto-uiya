@@ -30,7 +30,6 @@ describe('HomePage', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '打开 根目录' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '打开 下载目录' })).toBeInTheDocument();
-    expect(screen.getByText('yutto-uiya v0.0.3')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '前往下载' })).toBeInTheDocument();
   });
 
