@@ -20,10 +20,10 @@ fn runtime_driver_api_value(driver: &RuntimeDriverConfig) -> &'static str {
 }
 
 fn resolve_round_trip_drivers(
-    current_driver: &RuntimeDriverConfig,
+    _current_driver: &RuntimeDriverConfig,
     target_driver: &RuntimeDriverConfig,
 ) -> (RuntimeDriverConfig, RuntimeDriverConfig) {
-    (current_driver.clone(), target_driver.clone())
+    (target_driver.clone(), target_driver.clone())
 }
 
 fn apply_runtime_state_update(
@@ -705,14 +705,14 @@ mod tests {
     }
 
     #[test]
-    fn resolve_round_trip_drivers_saves_with_current_and_probes_with_target() {
+    fn resolve_round_trip_drivers_uses_target_for_both_save_and_probe() {
         let current = RuntimeDriverConfig::DirectPython {
             python_path: PathBuf::from("/app/env/python"),
         };
         let target = RuntimeDriverConfig::Uv;
 
         let (save_driver, probe_driver) = super::resolve_round_trip_drivers(&current, &target);
-        assert_eq!(save_driver, current);
+        assert_eq!(save_driver, target);
         assert_eq!(probe_driver, target);
     }
 }
