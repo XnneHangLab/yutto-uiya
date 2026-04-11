@@ -152,7 +152,7 @@ def _assign_parse_item_dirs(items: list[dict], collection_dir: str, is_per_video
     for item in items:
         if is_per_video:
             raw_title = str(item.get("title", ""))
-            subdir = _repair_filename(raw_title)
+            subdir = _repair_filename(re.sub(r"_p\d+$", "", raw_title))
             item["dir"] = f"{collection_dir}/{subdir}" if collection_dir else subdir
         else:
             item["dir"] = collection_dir
@@ -279,6 +279,7 @@ def _build_parse_dir_title_candidates(items: list[dict], groups: list[dict]) -> 
     for item in items:
         raw = str(item.get("title", ""))
         candidates.add(_repair_filename(raw))
+        candidates.add(_repair_filename(re.sub(r"_p\d+$", "", raw)))
 
     for group in groups:
         candidates.add(_repair_filename(str(group.get("title", ""))))
