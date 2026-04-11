@@ -1598,7 +1598,7 @@ mod tests {
             "progressUnit": "item",
             "parseItem": {
                 "index": 1,
-                "title": "测试视频_p1",
+                "title": "测试视频",
                 "url": "https://www.bilibili.com/video/BV1xx411c7mD?p=1",
                 "dir": ""
             }
@@ -1614,7 +1614,7 @@ mod tests {
         let parse_item = event.parse_item.expect("parse item should be present");
         assert_eq!(event.event, "parse.item");
         assert_eq!(parse_item.index, 1);
-        assert_eq!(parse_item.title, "测试视频_p1");
+        assert_eq!(parse_item.title, "测试视频");
         assert_eq!(
             parse_item.url,
             "https://www.bilibili.com/video/BV1xx411c7mD?p=1"

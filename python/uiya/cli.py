@@ -99,14 +99,6 @@ def _extract_bilibili_video_identity(url: str) -> tuple[str, str] | None:
     return None
 
 
-def _extract_bilibili_page(url: str) -> int:
-    query = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
-    try:
-        return max(1, int(query.get("p", ["1"])[0]))
-    except (TypeError, ValueError):
-        return 1
-
-
 def _fetch_bilibili_view_payload(url: str) -> dict | None:
     identity = _extract_bilibili_video_identity(url)
     if identity is None:
@@ -147,7 +139,7 @@ def _resolve_single_download_title(
     if not title:
         return fallback_title
 
-    return f"{title}_p{_extract_bilibili_page(url)}"
+    return title
 
 
 def _assign_parse_item_dirs(items: list[dict], collection_dir: str, is_per_video: bool) -> None:
@@ -160,8 +152,7 @@ def _assign_parse_item_dirs(items: list[dict], collection_dir: str, is_per_video
     for item in items:
         if is_per_video:
             raw_title = str(item.get("title", ""))
-            raw_no_page = re.sub(r"_p\d+$", "", raw_title)
-            subdir = _repair_filename(raw_no_page)
+            subdir = _repair_filename(raw_title)
             item["dir"] = f"{collection_dir}/{subdir}" if collection_dir else subdir
         else:
             item["dir"] = collection_dir
@@ -288,7 +279,6 @@ def _build_parse_dir_title_candidates(items: list[dict], groups: list[dict]) -> 
     for item in items:
         raw = str(item.get("title", ""))
         candidates.add(_repair_filename(raw))
-        candidates.add(_repair_filename(re.sub(r"_p\d+$", "", raw)))
 
     for group in groups:
         candidates.add(_repair_filename(str(group.get("title", ""))))

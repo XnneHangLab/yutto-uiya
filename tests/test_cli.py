@@ -18,14 +18,14 @@ from uiya.cli import (
 )
 
 
-def test_resolve_single_download_title_uses_video_title_and_page_suffix():
+def test_resolve_single_download_title_uses_video_title():
     resolved = _resolve_single_download_title(
         "https://www.bilibili.com/video/BV1xx411c7mD?p=1",
         "mmexport1768031333059",
         lambda _url: {"title": "Qwen3.5-27B 变身本地 Claude"},
     )
 
-    assert resolved == "Qwen3.5-27B 变身本地 Claude_p1"
+    assert resolved == "Qwen3.5-27B 变身本地 Claude"
 
 
 def test_resolve_single_download_title_falls_back_to_existing_title_when_lookup_fails():
@@ -38,11 +38,11 @@ def test_resolve_single_download_title_falls_back_to_existing_title_when_lookup_
     assert resolved == "mmexport1768031333059"
 
 
-def test_assign_parse_item_dirs_uses_title_without_page_suffix_for_per_video_layout():
+def test_assign_parse_item_dirs_uses_repaired_title_for_per_video_layout():
     items = [
         {
             "index": 1,
-            "title": "Qwen3.5-27B 变身本地 Claude_p1",
+            "title": "Qwen3.5-27B 变身本地 Claude",
             "url": "https://www.bilibili.com/video/BV1xx411c7mD?p=1",
         }
     ]
@@ -179,11 +179,10 @@ def test_assign_parse_group_dirs_uses_group_title_for_shared_dir():
 
 def test_build_parse_dir_title_candidates_includes_repaired_group_titles():
     candidates = _build_parse_dir_title_candidates(
-        [{"title": "普通收藏视频_p1"}],
+        [{"title": "普通收藏视频"}],
         [{"title": "列表/A", "items": []}],
     )
 
-    assert "普通收藏视频_p1" in candidates
     assert "普通收藏视频" in candidates
     assert "列表／A" in candidates
 

@@ -156,7 +156,7 @@ describe('runtime helpers', () => {
       timestamp: '1712300003',
       parseItem: {
         index: 1,
-        title: '测试视频_p1',
+        title: '测试视频',
         url: 'https://www.bilibili.com/video/BV1xx411c7mD?p=1',
         dir: '',
       },
@@ -166,7 +166,7 @@ describe('runtime helpers', () => {
     expect(applyParseRuntimeEvent([], event)).toEqual([
       {
         index: 1,
-        title: '测试视频_p1',
+        title: '测试视频',
         url: 'https://www.bilibili.com/video/BV1xx411c7mD?p=1',
         dir: '',
       },
@@ -237,7 +237,7 @@ describe('runtime helpers', () => {
       timestamp: '1712300003',
       parseItem: {
         index: 1,
-        title: '测试视频_p1',
+        title: '测试视频',
         url: 'https://www.bilibili.com/video/BV1xx411c7mD?p=1',
         dir: '',
       },
