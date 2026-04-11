@@ -301,9 +301,47 @@ pub fn resolve_portable_python_path(app_root: &Path) -> PathBuf {
     return app_root.join("env").join("bin").join("python");
 }
 
+pub fn read_saved_driver_config(workspace_root: &Path) -> Option<RuntimeDriverConfig> {
+    let path = workspace_root.join("config").join("runtime.json");
+    let content = std::fs::read_to_string(&path).ok()?;
+    let value: serde_json::Value = serde_json::from_str(&content).ok()?;
+    match value.get("driver")?.as_str()? {
+        "uv" => Some(RuntimeDriverConfig::Uv),
+        "conda" => {
+            let python_path = value.get("pythonPath")?.as_str()?;
+            let path = PathBuf::from(python_path);
+            if path.is_file() {
+                Some(RuntimeDriverConfig::DirectPython { python_path: path })
+            } else {
+                None
+            }
+        }
+        _ => None,
+    }
+}
+
+pub fn write_driver_config(workspace_root: &Path, driver: &RuntimeDriverConfig) {
+    let config_dir = workspace_root.join("config");
+    let _ = std::fs::create_dir_all(&config_dir);
+    let path = config_dir.join("runtime.json");
+    let value = match driver {
+        RuntimeDriverConfig::Uv => serde_json::json!({"driver": "uv"}),
+        RuntimeDriverConfig::DirectPython { python_path } => serde_json::json!({
+            "driver": "conda",
+            "pythonPath": python_path.display().to_string(),
+        }),
+    };
+    if let Ok(content) = serde_json::to_string_pretty(&value) {
+        let _ = std::fs::write(&path, content);
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{resolve_portable_python_path, QueueState, RuntimeState, TaskStatus};
+    use super::{
+        read_saved_driver_config, resolve_portable_python_path, write_driver_config, QueueState,
+        RuntimeDriverConfig, RuntimeState, TaskStatus,
+    };
     use std::path::PathBuf;
 
     #[test]
@@ -415,5 +453,39 @@ mod tests {
         let expected = root.join("env").join("bin").join("python");
 
         assert_eq!(resolve_portable_python_path(&root), expected);
+    }
+
+    #[test]
+    fn write_and_read_driver_config_round_trips_uv() {
+        let tmp = std::env::temp_dir().join(format!("uiya-test-driver-{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+        std::fs::create_dir_all(&tmp).unwrap();
+
+        write_driver_config(&tmp, &RuntimeDriverConfig::Uv);
+        let restored = read_saved_driver_config(&tmp);
+        assert_eq!(restored, Some(RuntimeDriverConfig::Uv));
+
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn write_and_read_driver_config_round_trips_conda() {
+        let tmp = std::env::temp_dir().join(format!("uiya-test-driver-conda-{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+        std::fs::create_dir_all(tmp.join("config")).unwrap();
+        // create a fake python executable so is_file() passes
+        let fake_python = tmp.join("python");
+        std::fs::write(&fake_python, b"").unwrap();
+
+        write_driver_config(&tmp, &RuntimeDriverConfig::DirectPython { python_path: fake_python.clone() });
+        let restored = read_saved_driver_config(&tmp);
+        assert_eq!(restored, Some(RuntimeDriverConfig::DirectPython { python_path: fake_python }));
+
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn read_saved_driver_config_returns_none_when_file_is_absent() {
+        let tmp = std::env::temp_dir().join("uiya-test-driver-absent");
+        let _ = std::fs::remove_dir_all(&tmp);
+        assert_eq!(read_saved_driver_config(&tmp), None);
     }
 }

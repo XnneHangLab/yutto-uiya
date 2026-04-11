@@ -8,8 +8,8 @@ use super::process::{
     write_console_log,
 };
 use super::state::{
-    resolve_portable_python_path, resolve_repo_root, resolve_workspace_root, RuntimeDriverConfig,
-    RuntimeState,
+    read_saved_driver_config, resolve_portable_python_path, resolve_repo_root,
+    resolve_workspace_root, write_driver_config, RuntimeDriverConfig, RuntimeState,
 };
 
 fn runtime_driver_api_value(driver: &RuntimeDriverConfig) -> &'static str {
@@ -475,7 +475,7 @@ pub fn build_runtime_state() -> Result<RuntimeState, String> {
     let workspace_root = resolve_workspace_root(&repo_root)?;
     let portable_python = resolve_portable_python_path(&repo_root);
 
-    let state = RuntimeState::new(repo_root, workspace_root);
+    let state = RuntimeState::new(repo_root, workspace_root.clone());
     if portable_python.is_file() {
         state.set_portable_python_path(Some(portable_python.clone()));
         if !cfg!(debug_assertions) {
@@ -483,6 +483,9 @@ pub fn build_runtime_state() -> Result<RuntimeState, String> {
                 python_path: portable_python,
             });
         }
+    }
+    if let Some(saved) = read_saved_driver_config(&workspace_root) {
+        state.set_driver_config(saved);
     }
     Ok(state)
 }
@@ -540,7 +543,11 @@ pub async fn set_runtime_driver(
     })
     .await;
 
-    apply_runtime_state_update(state.inner(), driver_config, next_ffmpeg, round_trip_result)
+    let result = apply_runtime_state_update(state.inner(), driver_config, next_ffmpeg, round_trip_result);
+    if result.is_ok() {
+        write_driver_config(&state.current_workspace_root(), &state.current_driver_config());
+    }
+    result
 }
 
 #[tauri::command]
