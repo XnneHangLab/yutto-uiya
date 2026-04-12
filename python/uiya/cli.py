@@ -17,6 +17,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import urllib.parse
 import urllib.request
 
@@ -72,6 +73,7 @@ def _build_yutto_command(
     proxy_pool: str = "",
     skip_download: bool = False,
     select_index: int | None = None,
+    output_dir: str | None = None,
 ) -> list[str]:
     command: list[str] = [sys.executable, "-m", "yutto", target, "--no-color"]
 
@@ -80,6 +82,8 @@ def _build_yutto_command(
     elif select_index is not None:
         command += ["-b", "-p", str(select_index)]
 
+    if output_dir:
+        command += ["--dir", output_dir]
     if config_path:
         command += ["--config", config_path]
     if ffmpeg_path and ffmpeg_path != "ffmpeg":
@@ -670,78 +674,84 @@ def cmd_parse(target: str) -> None:
 
     _env_ffmpeg = os.environ.get("UIYA_FFMPEG_PATH", "").strip()
     ffmpeg_path = (_env_ffmpeg if _env_ffmpeg and _env_ffmpeg != "ffmpeg" else (settings.ffmpeg_path or "")).strip()
-    command = _build_yutto_command(
-        target,
-        config_path=str(yutto_toml) if yutto_toml else None,
-        ffmpeg_path=ffmpeg_path,
-        debug=settings.debug_mode == "open",
-        no_proxy=settings.no_proxy,
-        proxy_pool=settings.proxy_pool if settings.custom_proxy_pool else "",
-        skip_download=True,
-    )
-
-    print(f"[run] {shlex.join(command)}", flush=True)
-
-    # Snapshot all directories under downloads/ BEFORE running yutto.
-    # We diff against the post-parse state to find newly-created dirs.
-    # Unlike mtime, this works even when the collection already exists:
-    # on re-parse the dirs are already present in `before_dirs` so they
-    # won't appear in the diff, and we fall back to title matching instead.
-    import pathlib
-    downloads_path = resolve_download_dir(settings)
-    downloads_path.mkdir(parents=True, exist_ok=True)
-
-    def _all_dirs(base: pathlib.Path) -> set[pathlib.Path]:
-        result: set[pathlib.Path] = set()
-        for root, dirs, _files in os.walk(base):
-            for d in dirs:
-                result.add((pathlib.Path(root) / d).relative_to(base))
-        return result
-
-    before_dirs = _all_dirs(downloads_path)
-
-    emit_event({
-        "event": "parse.started",
-        "target": target,
-        "status": "parsing",
-        "message": "开始解析",
-        "progressCurrent": 0,
-        "progressTotal": 0,
-        "progressUnit": "item",
-    })
-
-    context = _ParseContext()
-
+    _parse_tmpdir = tempfile.TemporaryDirectory(prefix="uiya-parse-")
     try:
-        proc = subprocess.Popen(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            encoding="utf-8",
-            errors="replace",
+        command = _build_yutto_command(
+            target,
+            config_path=str(yutto_toml) if yutto_toml else None,
+            ffmpeg_path=ffmpeg_path,
+            debug=settings.debug_mode == "open",
+            no_proxy=settings.no_proxy,
+            proxy_pool=settings.proxy_pool if settings.custom_proxy_pool else "",
+            skip_download=True,
+            output_dir=_parse_tmpdir.name,
         )
-    except Exception as exc:
-        fail(f"启动解析进程失败: {exc}")
 
-    assert proc.stdout is not None
-    for raw_line in proc.stdout:
-        line = raw_line.rstrip("\r\n")
-        if line.strip():
-            print(line, flush=True)  # forwarded as runtime:raw-log
-        item = context.consume(line)
-        if item is not None:
-            emit_event({
-                "event": "parse.item",
-                "target": target,
-                "status": "parsing",
-                "message": f"解析到视频: {item['title']}",
-                "progressCurrent": item["index"],
-                "progressTotal": 0,
-                "progressUnit": "item",
-                "parseItem": item,
-            })
+        print(f"[run] {shlex.join(command)}", flush=True)
 
-    returncode = proc.wait()
+        # Snapshot all directories under downloads/ BEFORE running yutto.
+        # We diff against the post-parse state to find newly-created dirs.
+        # Unlike mtime, this works even when the collection already exists:
+        # on re-parse the dirs are already present in `before_dirs` so they
+        # won't appear in the diff, and we fall back to title matching instead.
+        import pathlib
+        downloads_path = resolve_download_dir(settings)
+        downloads_path.mkdir(parents=True, exist_ok=True)
+
+        def _all_dirs(base: pathlib.Path) -> set[pathlib.Path]:
+            result: set[pathlib.Path] = set()
+            for root, dirs, _files in os.walk(base):
+                for d in dirs:
+                    result.add((pathlib.Path(root) / d).relative_to(base))
+            return result
+
+        before_dirs = _all_dirs(downloads_path)
+
+        emit_event({
+            "event": "parse.started",
+            "target": target,
+            "status": "parsing",
+            "message": "开始解析",
+            "progressCurrent": 0,
+            "progressTotal": 0,
+            "progressUnit": "item",
+        })
+
+        context = _ParseContext()
+
+        try:
+            proc = subprocess.Popen(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                encoding="utf-8",
+                errors="replace",
+            )
+        except Exception as exc:
+            fail(f"启动解析进程失败: {exc}")
+
+        assert proc.stdout is not None
+        for raw_line in proc.stdout:
+            line = raw_line.rstrip("\r\n")
+            if line.strip():
+                print(line, flush=True)  # forwarded as runtime:raw-log
+            item = context.consume(line)
+            if item is not None:
+                emit_event({
+                    "event": "parse.item",
+                    "target": target,
+                    "status": "parsing",
+                    "message": f"解析到视频: {item['title']}",
+                    "progressCurrent": item["index"],
+                    "progressTotal": 0,
+                    "progressUnit": "item",
+                    "parseItem": item,
+                })
+
+        returncode = proc.wait()
+    finally:
+        _parse_tmpdir.cleanup()
+
     if returncode != 0:
         fail(f"解析失败，退出码 {returncode}")
 
