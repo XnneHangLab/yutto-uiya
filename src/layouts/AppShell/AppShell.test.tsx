@@ -77,6 +77,9 @@ vi.mock('../../services/runtime/bridge', async () => {
     startAuthLogin: vi.fn().mockResolvedValue(undefined),
     cancelAuthLogin: vi.fn().mockResolvedValue(undefined),
     logoutAuth: vi.fn().mockResolvedValue('已退出登录'),
+    getHotkey: vi.fn().mockResolvedValue('Ctrl+Shift+Space'),
+    setHotkey: vi.fn().mockResolvedValue(undefined),
+    pauseHotkey: vi.fn().mockResolvedValue(undefined),
     subscribeRuntimeEvents: vi.fn().mockImplementation(async (onEvent, onRawLog) => {
       runtimeListeners.add(onEvent);
       rawLogListeners.add(onRawLog);
@@ -135,7 +138,7 @@ describe('AppShell', () => {
     await user.click(screen.getByRole('button', { name: '解析' }));
 
     // Parsed item appears; click 下载所选
-    await screen.findByText('测试视频');
+    await screen.findAllByText('测试视频');
     await user.click(screen.getByRole('button', { name: /下载所选/ }));
 
     expect(runtimeBridge.enqueueDownload).toHaveBeenCalledWith(
@@ -249,7 +252,7 @@ describe('AppShell', () => {
       });
     });
 
-    await screen.findByText('测试视频');
+    await screen.findAllByText('测试视频');
 
     act(() => {
       resolveParse?.({

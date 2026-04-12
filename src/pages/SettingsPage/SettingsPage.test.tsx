@@ -49,6 +49,8 @@ describe('SettingsPage', () => {
         onLogoutAuth={onLogoutAuth}
         onCloseAuthDialog={onCloseAuthDialog}
         onSave={onSave}
+        hotkey="Ctrl+Shift+Space"
+        onSetHotkey={async () => {}}
       />,
     );
 
@@ -125,6 +127,8 @@ describe('SettingsPage', () => {
         onLogoutAuth={() => undefined}
         onCloseAuthDialog={() => undefined}
         onSave={vi.fn()}
+        hotkey="Ctrl+Shift+Space"
+        onSetHotkey={async () => {}}
       />,
     );
 
@@ -157,6 +161,8 @@ describe('SettingsPage', () => {
         onLogoutAuth={() => undefined}
         onCloseAuthDialog={() => undefined}
         onSave={vi.fn()}
+        hotkey="Ctrl+Shift+Space"
+        onSetHotkey={async () => {}}
       />,
     );
 
@@ -210,6 +216,8 @@ describe('SettingsPage', () => {
         onLogoutAuth={() => undefined}
         onCloseAuthDialog={() => undefined}
         onSave={vi.fn()}
+        hotkey="Ctrl+Shift+Space"
+        onSetHotkey={async () => {}}
       />,
     );
 
@@ -257,6 +265,8 @@ describe('SettingsPage', () => {
         onLogoutAuth={() => undefined}
         onCloseAuthDialog={onCloseAuthDialog}
         onSave={vi.fn()}
+        hotkey="Ctrl+Shift+Space"
+        onSetHotkey={async () => {}}
       />,
     );
 

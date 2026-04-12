@@ -788,6 +788,7 @@ pub fn drain_download_queue(app: AppHandle, state: RuntimeState) {
                 ffmpeg_path: state.ffmpeg_path.clone(),
                 active_download: state.active_download.clone(),
                 active_auth: state.active_auth.clone(),
+                hotkey: state.hotkey.clone(),
             },
             task.task_id.clone(),
             task.target.clone(),

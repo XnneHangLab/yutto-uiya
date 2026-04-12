@@ -3,6 +3,8 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+pub const DEFAULT_HOTKEY: &str = "Ctrl+Shift+Space";
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RuntimeDriverConfig {
     Uv,
@@ -165,6 +167,7 @@ pub struct RuntimeState {
     /// PID of the currently-running download subprocess (task_id, child_pid).
     pub active_download: Arc<Mutex<Option<(String, u32)>>>,
     pub(crate) active_auth: Arc<Mutex<Option<AuthProcessState>>>,
+    pub hotkey: Arc<Mutex<String>>,
 }
 
 impl RuntimeState {
@@ -178,6 +181,7 @@ impl RuntimeState {
             ffmpeg_path: Arc::new(Mutex::new("ffmpeg".to_string())),
             active_download: Arc::new(Mutex::new(None)),
             active_auth: Arc::new(Mutex::new(None)),
+            hotkey: Arc::new(Mutex::new(DEFAULT_HOTKEY.to_string())),
         }
     }
 
@@ -211,6 +215,14 @@ impl RuntimeState {
 
     pub fn set_ffmpeg_path(&self, next: String) {
         *self.ffmpeg_path.lock().unwrap() = next;
+    }
+
+    pub fn current_hotkey(&self) -> String {
+        self.hotkey.lock().unwrap().clone()
+    }
+
+    pub fn set_hotkey_str(&self, next: String) {
+        *self.hotkey.lock().unwrap() = next;
     }
 
     pub fn auth_in_progress(&self) -> bool {
@@ -331,6 +343,23 @@ pub fn write_driver_config(workspace_root: &Path, driver: &RuntimeDriverConfig) 
             "pythonPath": python_path.display().to_string(),
         }),
     };
+    if let Ok(content) = serde_json::to_string_pretty(&value) {
+        let _ = std::fs::write(&path, content);
+    }
+}
+
+pub fn read_saved_hotkey(workspace_root: &Path) -> Option<String> {
+    let path = workspace_root.join("config").join("hotkey.json");
+    let content = std::fs::read_to_string(&path).ok()?;
+    let value: serde_json::Value = serde_json::from_str(&content).ok()?;
+    value.get("shortcut")?.as_str().map(|s| s.to_string())
+}
+
+pub fn write_hotkey_config(workspace_root: &Path, shortcut: &str) {
+    let config_dir = workspace_root.join("config");
+    let _ = std::fs::create_dir_all(&config_dir);
+    let path = config_dir.join("hotkey.json");
+    let value = serde_json::json!({"shortcut": shortcut});
     if let Ok(content) = serde_json::to_string_pretty(&value) {
         let _ = std::fs::write(&path, content);
     }

@@ -1,11 +1,32 @@
 mod runtime;
 
+use tauri::Manager;
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
+use runtime::state::RuntimeState;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let runtime_state =
         runtime::commands::build_runtime_state().expect("failed to build runtime state");
 
     let app = tauri::Builder::default()
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(|app, _shortcut, event| {
+                    if event.state() == ShortcutState::Pressed {
+                        if let Some(w) = app.get_webview_window("main") {
+                            if w.is_visible().unwrap_or(false) {
+                                let _ = w.hide();
+                            } else {
+                                let _ = w.show();
+                                let _ = w.unminimize();
+                                let _ = w.set_focus();
+                            }
+                        }
+                    }
+                })
+                .build(),
+        )
         .manage(runtime_state)
         .setup(|app| {
             if cfg!(debug_assertions) {
@@ -15,6 +36,9 @@ pub fn run() {
                         .build(),
                 )?;
             }
+            // Register the saved/default global shortcut
+            let hotkey = app.state::<RuntimeState>().current_hotkey();
+            let _ = app.handle().global_shortcut().register(hotkey.as_str());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -40,6 +64,9 @@ pub fn run() {
             runtime::commands::start_auth_login,
             runtime::commands::cancel_auth_login,
             runtime::commands::logout_auth,
+            runtime::commands::get_hotkey,
+            runtime::commands::set_hotkey,
+            runtime::commands::pause_hotkey,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

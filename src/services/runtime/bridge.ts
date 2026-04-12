@@ -109,6 +109,18 @@ export function fetchCoverImage(url: string) {
   return invoke<string>('fetch_cover_image', { url });
 }
 
+export function getHotkey() {
+  return invoke<string>('get_hotkey');
+}
+
+export function setHotkey(shortcut: string) {
+  return invoke<void>('set_hotkey', { shortcut });
+}
+
+export function pauseHotkey() {
+  return invoke<void>('pause_hotkey');
+}
+
 export async function subscribeRuntimeEvents(
   onEvent: (event: RuntimeEvent) => void,
   onRawLog: (line: string) => void,

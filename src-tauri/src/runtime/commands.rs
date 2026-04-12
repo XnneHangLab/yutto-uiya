@@ -1,4 +1,5 @@
 use tauri::{AppHandle, Emitter, State};
+use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
 use super::process::{
     drain_download_queue,
@@ -10,6 +11,7 @@ use super::process::{
 use super::state::{
     read_saved_driver_config, resolve_portable_python_path, resolve_repo_root,
     resolve_workspace_root, write_driver_config, RuntimeDriverConfig, RuntimeState,
+    DEFAULT_HOTKEY, read_saved_hotkey, write_hotkey_config,
 };
 
 fn runtime_driver_api_value(driver: &RuntimeDriverConfig) -> &'static str {
@@ -207,6 +209,7 @@ pub async fn enqueue_download(
             ffmpeg_path: state.ffmpeg_path.clone(),
             active_download: state.active_download.clone(),
             active_auth: state.active_auth.clone(),
+            hotkey: state.hotkey.clone(),
         };
 
         tauri::async_runtime::spawn_blocking(move || {
@@ -485,6 +488,40 @@ pub fn export_console_logs(
     Ok(path.display().to_string())
 }
 
+#[tauri::command]
+pub fn get_hotkey(state: State<'_, RuntimeState>) -> String {
+    state.current_hotkey()
+}
+
+#[tauri::command]
+pub fn set_hotkey(
+    app: AppHandle,
+    state: State<'_, RuntimeState>,
+    shortcut: String,
+) -> Result<(), String> {
+    let old = state.current_hotkey();
+    let _ = app.global_shortcut().unregister(old.as_str());
+    app.global_shortcut()
+        .register(shortcut.as_str())
+        .map_err(|e| e.to_string())?;
+    state.set_hotkey_str(shortcut.clone());
+    let workspace_root = state.current_workspace_root();
+    write_hotkey_config(&workspace_root, &shortcut);
+    Ok(())
+}
+
+/// Temporarily unregisters the current global shortcut so key capture in
+/// the settings UI can intercept the combo without the window hiding itself.
+#[tauri::command]
+pub fn pause_hotkey(
+    app: AppHandle,
+    state: State<'_, RuntimeState>,
+) -> Result<(), String> {
+    let current = state.current_hotkey();
+    let _ = app.global_shortcut().unregister(current.as_str());
+    Ok(())
+}
+
 pub fn build_runtime_state() -> Result<RuntimeState, String> {
     let repo_root = resolve_repo_root()?;
     let workspace_root = resolve_workspace_root(&repo_root)?;
@@ -509,6 +546,9 @@ pub fn build_runtime_state() -> Result<RuntimeState, String> {
             state.set_driver_config(saved);
         }
     }
+    let saved_hotkey = read_saved_hotkey(&workspace_root)
+        .unwrap_or_else(|| DEFAULT_HOTKEY.to_string());
+    state.set_hotkey_str(saved_hotkey);
     Ok(state)
 }
 

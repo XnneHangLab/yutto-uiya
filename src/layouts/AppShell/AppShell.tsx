@@ -28,6 +28,8 @@ import {
   setRuntimeDriver as setRuntimeDriverApi,
   subscribeRuntimeEvents,
   useRepoWorkspaceRoot,
+  getHotkey,
+  setHotkey as setHotkeyApi,
 } from '../../services/runtime/bridge';
 import {
   applyRuntimeEvent,
@@ -81,6 +83,7 @@ export function AppShell() {
   const [logs, setLogs] = useState<ConsoleLogEntry[]>([]);
   const [autoScroll, setAutoScroll] = useState(true);
   const [wrapLines, setWrapLines] = useState(true);
+  const [hotkey, setHotkeyState] = useState('Ctrl+Shift+Space');
   const [runtimeDriver, setRuntimeDriver] = useState<RuntimeDriver>('uv');
   const [pythonExePath, setPythonExePath] = useState('');
   const [ffmpegMode, setFfmpegMode] = useState<'system' | 'local'>('system');
@@ -176,6 +179,11 @@ export function AppShell() {
         // Populate folder cards immediately from Rust state — no Python subprocess needed
         listManagedFolders()
           .then((paths) => { if (!disposed) setFolders(buildFolderItemsFromPaths(paths)); })
+          .catch(() => {});
+
+        // Load saved hotkey config
+        getHotkey()
+          .then((h) => { if (!disposed) setHotkeyState(h); })
           .catch(() => {});
 
         const [nextProbe, nextTasks] = await Promise.all([
@@ -536,6 +544,11 @@ export function AppShell() {
     }
   }
 
+  async function handleSetHotkey(shortcut: string) {
+    await setHotkeyApi(shortcut);
+    setHotkeyState(shortcut);
+  }
+
   async function handleSaveSettings(
     driver: RuntimeDriver,
     exePath: string,
@@ -661,6 +674,8 @@ export function AppShell() {
               onSetWrapLines: setWrapLines,
               onClearLogs: handleClearLogs,
               onExportLogs: handleExportLogs,
+              hotkey,
+              onSetHotkey: handleSetHotkey,
             })}
           </section>
         </main>

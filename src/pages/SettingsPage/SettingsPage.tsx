@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SettingCard } from '../../components/settings/SettingCard/SettingCard';
 import { SettingRow } from '../../components/settings/SettingRow/SettingRow';
 import { SettingsTabs } from '../../components/settings/SettingsTabs/SettingsTabs';
@@ -11,6 +11,7 @@ import type {
   EnvironmentProbe,
   RuntimeDriver,
 } from '../../services/runtime/runtime';
+import { pauseHotkey } from '../../services/runtime/bridge';
 import '../../styles/settings.css';
 
 interface SettingsPageProps {
@@ -34,6 +35,8 @@ interface SettingsPageProps {
   onLogoutAuth: () => void;
   onCloseAuthDialog: () => void;
   onSave: (driver: RuntimeDriver, pythonExePath: string, ffmpegMode: 'system' | 'local', ffmpegExePath: string, noProxy: boolean) => void;
+  hotkey: string;
+  onSetHotkey: (shortcut: string) => Promise<void>;
 }
 
 export function SettingsPage({
@@ -57,6 +60,8 @@ export function SettingsPage({
   onLogoutAuth,
   onCloseAuthDialog,
   onSave,
+  hotkey,
+  onSetHotkey,
 }: SettingsPageProps) {
   const [activeTab, setActiveTab] = useState<SettingsTabId>('general');
   const [localDriver, setLocalDriver] = useState<RuntimeDriver>(runtimeDriver);
@@ -64,6 +69,11 @@ export function SettingsPage({
   const [localFfmpegMode, setLocalFfmpegMode] = useState<'system' | 'local'>(ffmpegMode);
   const [localFfmpegExePath, setLocalFfmpegExePath] = useState(ffmpegExePath);
   const [localNoProxy, setLocalNoProxy] = useState(noProxy);
+
+  // Hotkey recording state
+  const [recording, setRecording] = useState(false);
+  const [captureError, setCaptureError] = useState<string | null>(null);
+  const captureRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setLocalDriver(runtimeDriver);
@@ -100,6 +110,40 @@ export function SettingsPage({
       setLocalFfmpegExePath(picked);
       setLocalFfmpegMode('local');
     }
+  }
+
+  function formatHotkeyDisplay(h: string) {
+    return h.replace(/Key([A-Z])/g, '$1').replace(/Digit(\d)/g, '$1');
+  }
+
+  function handleStartRecording() {
+    setRecording(true);
+    setCaptureError(null);
+    // Pause the active shortcut so the window doesn't hide during capture
+    void pauseHotkey().catch(() => {});
+    setTimeout(() => captureRef.current?.focus(), 0);
+  }
+
+  function handleCaptureKeyDown(e: React.KeyboardEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return;
+    if (e.key === 'Escape') {
+      setRecording(false);
+      // Re-register the old shortcut
+      void onSetHotkey(hotkey).catch(() => {});
+      return;
+    }
+    const parts: string[] = [];
+    if (e.ctrlKey) parts.push('Ctrl');
+    if (e.shiftKey) parts.push('Shift');
+    if (e.altKey) parts.push('Alt');
+    if (e.metaKey) parts.push('Meta');
+    if (parts.length === 0) return; // need at least one modifier key
+    parts.push(e.code);
+    const shortcut = parts.join('+');
+    setRecording(false);
+    void onSetHotkey(shortcut).catch((err) => setCaptureError(String(err)));
   }
 
   return (
@@ -343,6 +387,45 @@ export function SettingsPage({
                   />
                   <span className="toggle-text">{localNoProxy ? '已禁用' : '自动'}</span>
                 </label>
+              </SettingRow>
+            </SettingCard>
+
+            <div className="group-title">快捷键</div>
+
+            <SettingCard>
+              <SettingRow
+                name="全局呼出快捷键"
+                description="按下快捷键切换窗口显隐，默认 Ctrl+Shift+Space"
+                icon="⌨️"
+              >
+                <div className="workspace-actions">
+                  <span className="proxy-input workspace-input" style={{ userSelect: 'none', cursor: 'default' }}>
+                    {formatHotkeyDisplay(hotkey)}
+                  </span>
+                  {recording ? (
+                    <div
+                      ref={captureRef}
+                      tabIndex={0}
+                      className="workspace-button"
+                      style={{ outline: 'none', minWidth: 96, textAlign: 'center' }}
+                      onKeyDown={handleCaptureKeyDown}
+                      onBlur={() => { setRecording(false); }}
+                    >
+                      录制中…
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="workspace-button"
+                      onClick={handleStartRecording}
+                    >
+                      录制快捷键
+                    </button>
+                  )}
+                </div>
+                {captureError ? (
+                  <p style={{ margin: '4px 0 0', fontSize: 12, color: '#ff9b9b' }}>{captureError}</p>
+                ) : null}
               </SettingRow>
             </SettingCard>
 

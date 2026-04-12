@@ -69,6 +69,8 @@ interface RenderPageOptions {
   onSetWrapLines: (next: boolean) => void;
   onClearLogs: () => void;
   onExportLogs: () => void;
+  hotkey: string;
+  onSetHotkey: (shortcut: string) => Promise<void>;
 }
 
 export function renderPage(
@@ -107,6 +109,8 @@ export function renderPage(
           onLogoutAuth={options.onLogoutAuth}
           onCloseAuthDialog={options.onCloseAuthDialog}
           onSave={options.onSave}
+          hotkey={options.hotkey}
+          onSetHotkey={options.onSetHotkey}
         />
       );
     case 'troubleshooting':
