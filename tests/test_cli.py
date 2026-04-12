@@ -130,6 +130,7 @@ def test_parse_skip_download_lines_groups_playlist_pages_under_list_heading():
             "cover": "",
             "view": 0,
             "like": 0,
+            "tags": [],
         }
     ]
     assert parsed["groups"] == [
@@ -149,6 +150,7 @@ def test_parse_skip_download_lines_groups_playlist_pages_under_list_heading():
                     "cover": "",
                     "view": 0,
                     "like": 0,
+                    "tags": [],
                 },
                 {
                     "index": 2,
@@ -162,6 +164,7 @@ def test_parse_skip_download_lines_groups_playlist_pages_under_list_heading():
                     "cover": "",
                     "view": 0,
                     "like": 0,
+                    "tags": [],
                 },
             ],
         }

@@ -108,6 +108,7 @@ export interface VideoParseItem {
   cover?: string;
   view?: number;
   like?: number;
+  tags?: string[];
 }
 
 export interface VideoParseGroup {

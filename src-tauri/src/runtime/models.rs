@@ -84,6 +84,8 @@ pub struct ParsedVideoItem {
     pub view: u64,
     #[serde(default)]
     pub like: u64,
+    #[serde(default)]
+    pub tags: Vec<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]

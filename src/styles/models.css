@@ -532,6 +532,20 @@
   overflow: hidden;
 }
 
+.parse-detail__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.parse-detail__tag {
+  font-size: 11px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
 .parse-item__checkbox {
   flex-shrink: 0;
   width: 16px;

@@ -219,6 +219,7 @@ class _ParseContext:
                 "cover": "",
                 "view": 0,
                 "like": 0,
+                "tags": [],
             }
             self.next_index += 1
             self.current_title = None
@@ -244,6 +245,7 @@ class _ParseContext:
                 self.pending_item["description"] = str(meta.get("plot", ""))
                 premiered = meta.get("premiered", 0)
                 self.pending_item["pubdate"] = int(premiered) if premiered else 0
+                self.pending_item["tags"] = [str(t) for t in meta.get("tag", []) if t]
                 return self._complete_pending_item()
             return None
 

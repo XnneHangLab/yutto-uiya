@@ -183,15 +183,22 @@ export function DownloadPage({
         <div className="parse-detail__info">
           <p className="parse-detail__title">{item.title}</p>
           {item.uploader ? <p className="parse-detail__uploader">{item.uploader}</p> : null}
-          {(item.view !== undefined || item.duration !== undefined) ? (
+          {(item.view || item.duration) ? (
             <p className="parse-detail__stats">
-              {item.view !== undefined ? `${formatView(item.view)} 次播放` : ''}
-              {item.view !== undefined && item.duration ? ' · ' : ''}
+              {item.view ? `${formatView(item.view)} 次播放` : ''}
+              {item.view && item.duration ? ' · ' : ''}
               {item.duration ? formatDuration(item.duration) : ''}
             </p>
           ) : null}
           {item.description ? (
             <p className="parse-detail__desc">{item.description}</p>
+          ) : null}
+          {item.tags && item.tags.length > 0 ? (
+            <div className="parse-detail__tags">
+              {item.tags.map((tag) => (
+                <span key={tag} className="parse-detail__tag">{tag}</span>
+              ))}
+            </div>
           ) : null}
         </div>
       </div>
