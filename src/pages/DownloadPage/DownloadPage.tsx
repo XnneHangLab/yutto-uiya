@@ -184,40 +184,33 @@ export function DownloadPage({
   }
 
   async function handleLoadCover(item: VideoParseItem) {
-    if (!item.cover || covers.has(item.index)) return;
+    if (!item.cover || covers.get(item.index) === 'loading') return;
+    setExpandedIndex(item.index);
     setCovers((prev) => new Map(prev).set(item.index, 'loading'));
-    try {
-      const dataUrl = await fetchCoverImage(item.cover);
-      setCovers((prev) => new Map(prev).set(item.index, dataUrl));
-    } catch {
+    const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+    let dataUrl: string | null = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (attempt > 0) await delay(500);
+      try {
+        dataUrl = await fetchCoverImage(item.cover);
+        break;
+      } catch {
+        // retry
+      }
+    }
+    if (dataUrl) {
+      setCovers((prev) => new Map(prev).set(item.index, dataUrl!));
+    } else {
       setCovers((prev) => { const m = new Map(prev); m.delete(item.index); return m; });
     }
   }
 
   function renderDetailPanel(item: VideoParseItem) {
     const coverState = covers.get(item.index);
-    const isHttpCover = item.cover?.startsWith('http');
+    const coverNode = typeof coverState === 'string' && coverState !== 'loading'
+      ? <img className="parse-detail__cover" src={coverState} alt={item.title} />
+      : null;
 
-    let coverNode: React.ReactNode = null;
-    if (item.cover?.startsWith('data:')) {
-      coverNode = <img className="parse-detail__cover" src={item.cover} alt={item.title} />;
-    } else if (isHttpCover) {
-      if (coverState === 'loading') {
-        coverNode = <div className="parse-detail__cover parse-detail__cover--placeholder">加载中…</div>;
-      } else if (typeof coverState === 'string') {
-        coverNode = <img className="parse-detail__cover" src={coverState} alt={item.title} />;
-      } else {
-        coverNode = (
-          <button
-            type="button"
-            className="parse-detail__cover parse-detail__cover--placeholder"
-            onClick={() => handleLoadCover(item)}
-          >
-            查看封面
-          </button>
-        );
-      }
-    }
     return (
       <div className="parse-detail__content">
         {coverNode}
@@ -261,6 +254,16 @@ export function DownloadPage({
             <span className="parse-item__index">{item.index}</span>
             <span className="parse-item__title">{item.title}</span>
           </label>
+          {item.cover?.startsWith('http') ? (
+            <button
+              type="button"
+              className="parse-item__cover-btn"
+              disabled={covers.get(item.index) === 'loading'}
+              onClick={() => handleLoadCover(item)}
+            >
+              {covers.get(item.index) === 'loading' ? '加载中…' : covers.get(item.index) ? '封面' : '查看封面'}
+            </button>
+          ) : null}
           <button
             type="button"
             className={`parse-item__detail-btn${expandedIndex === item.index ? ' parse-item__detail-btn--active' : ''}`}
