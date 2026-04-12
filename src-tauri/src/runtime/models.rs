@@ -70,6 +70,20 @@ pub struct ParsedVideoItem {
     /// Per-video output directory relative to the downloads root.
     /// Matches the leaf directory yutto creates during --skip-download parse.
     pub dir: String,
+    #[serde(default)]
+    pub uploader: String,
+    #[serde(default)]
+    pub description: String,
+    #[serde(default)]
+    pub pubdate: u64,
+    #[serde(default)]
+    pub duration: u64,
+    #[serde(default)]
+    pub cover: String,
+    #[serde(default)]
+    pub view: u64,
+    #[serde(default)]
+    pub like: u64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
