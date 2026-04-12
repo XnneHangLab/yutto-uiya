@@ -64,7 +64,8 @@ describe('DownloadPage', () => {
     await user.click(screen.getByRole('button', { name: '展开分组 分组合集' }));
 
     expect(screen.getByText('合集视频 1')).toBeInTheDocument();
-    expect(screen.getByText('合集视频 2')).toBeInTheDocument();
+    // 合集视频 2 appears in both the list row and its auto-expanded detail panel
+    expect(screen.getAllByText('合集视频 2')[0]).toBeInTheDocument();
   });
 
   it('selects the whole group from the group checkbox', async () => {
@@ -125,8 +126,6 @@ describe('DownloadPage', () => {
   });
 
   it('shows embedded metadata in detail panel without async fetch', async () => {
-    const user = userEvent.setup();
-
     render(
       <DownloadPage
         tasks={[]}
@@ -159,8 +158,7 @@ describe('DownloadPage', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: '详情' }));
-
+    // Detail auto-expands for the last parsed item — no click needed.
     expect(screen.getByText('影视飓风')).toBeInTheDocument();
     expect(screen.getByText('用相机拍古诗词')).toBeInTheDocument();
   });

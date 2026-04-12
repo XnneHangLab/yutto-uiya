@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type {
   VideoParseGroup,
   DownloadOptions,
@@ -89,6 +89,14 @@ export function DownloadPage({
 
   const allParseItems = collectParseItems(parseItems, parseGroups);
   const hasParseResults = allParseItems.length > 0;
+
+  // Auto-expand the latest item as it arrives during parsing.
+  useEffect(() => {
+    if (allParseItems.length > 0) {
+      setExpandedIndex(allParseItems[allParseItems.length - 1].index);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allParseItems.length]);
 
   function handleUrlChange(next: string) {
     onDownloadUrlChange(next);
