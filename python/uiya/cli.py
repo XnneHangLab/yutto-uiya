@@ -233,9 +233,7 @@ class _ParseContext:
                     meta = {}
                 pic = str(meta.get("thumb", "")).strip()
                 if pic:
-                    self.pending_item["cover"] = (
-                        "https://image.baidu.com/search/down?url=" + urllib.parse.quote(pic, safe="")
-                    )
+                    self.pending_item["cover"] = pic
                 uploader = ""
                 for actor in meta.get("actor", []):
                     if isinstance(actor, dict) and actor.get("role") == "UP主":
