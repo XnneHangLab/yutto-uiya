@@ -127,19 +127,19 @@ def _resolve_single_download_title(
     url: str,
     fallback_title: str,
     view_fetcher: callable = _fetch_bilibili_view_payload,
-) -> str:
+) -> tuple[str, dict | None]:
     if _is_playlist_page_title(fallback_title):
-        return fallback_title
+        return fallback_title, None
 
     payload = view_fetcher(url)
     if not payload:
-        return fallback_title
+        return fallback_title, None
 
     title = str(payload.get("title", "")).strip()
     if not title:
-        return fallback_title
+        return fallback_title, None
 
-    return title
+    return title, payload
 
 
 def _assign_parse_item_dirs(items: list[dict], collection_dir: str, is_per_video: bool) -> None:
@@ -187,15 +187,28 @@ class _ParseContext:
             if self.current_title is None:
                 return None
 
-            item = {
-                "index": self.next_index,
-                "title": _resolve_single_download_title(
+            title, meta = _resolve_single_download_title(
                     m_link.group(1),
                     self.current_title,
                     view_fetcher,
-                ),
+                )
+            cover_url = ""
+            if meta:
+                pic = str(meta.get("pic", "")).strip()
+                if pic:
+                    cover_url = "https://image.baidu.com/search/down?url=" + pic
+            item = {
+                "index": self.next_index,
+                "title": title,
                 "url": m_link.group(1),
                 "dir": "",
+                "uploader": meta.get("owner", {}).get("name", "") if meta else "",
+                "description": meta.get("desc", "") if meta else "",
+                "pubdate": meta.get("pubdate", 0) if meta else 0,
+                "duration": meta.get("duration", 0) if meta else 0,
+                "cover": cover_url,
+                "view": meta.get("stat", {}).get("view", 0) if meta else 0,
+                "like": meta.get("stat", {}).get("like", 0) if meta else 0,
             }
             self.next_index += 1
 

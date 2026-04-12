@@ -1,22 +1,9 @@
 import { useState } from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import { DownloadPage } from './DownloadPage';
 import { DEFAULT_DOWNLOAD_OPTIONS } from '../../services/runtime/runtime';
-
-vi.mock('../../services/runtime/bridge', () => ({
-  fetchVideoMeta: vi.fn().mockResolvedValue({
-    title: '不是AI，我用相机实拍了40首古诗词里的中国',
-    cover: '',
-    description: 'desc',
-    uploader: 'up',
-    pubdate: 0,
-    duration: 12,
-    view: 34,
-    like: 5,
-  }),
-}));
 
 describe('DownloadPage', () => {
   it('renders grouped parse results collapsed by default and expands on demand', async () => {
@@ -137,7 +124,7 @@ describe('DownloadPage', () => {
     expect(screen.getByRole('button', { name: '下载所选 (2)' })).toBeEnabled();
   });
 
-  it('keeps parse title after opening details', async () => {
+  it('shows embedded metadata in detail panel without async fetch', async () => {
     const user = userEvent.setup();
 
     render(
@@ -149,9 +136,13 @@ describe('DownloadPage', () => {
         parseItems={[
           {
             index: 1,
-            title: 'mmexport1768031333059',
+            title: '不是AI，我用相机实拍了40首古诗词里的中国',
             url: 'https://www.bilibili.com/video/BV1xx411c7mD?p=1',
             dir: '',
+            uploader: '影视飓风',
+            description: '用相机拍古诗词',
+            duration: 754,
+            view: 1200000,
           },
         ]}
         parseGroups={[]}
@@ -168,15 +159,9 @@ describe('DownloadPage', () => {
       />,
     );
 
-    expect(screen.getByText('mmexport1768031333059')).toBeInTheDocument();
-
     await user.click(screen.getByRole('button', { name: '详情' }));
 
-    await waitFor(() =>
-      expect(
-        screen.getByText('不是AI，我用相机实拍了40首古诗词里的中国'),
-      ).toBeInTheDocument(),
-    );
-    expect(screen.getByText('mmexport1768031333059')).toBeInTheDocument();
+    expect(screen.getByText('影视飓风')).toBeInTheDocument();
+    expect(screen.getByText('用相机拍古诗词')).toBeInTheDocument();
   });
 });

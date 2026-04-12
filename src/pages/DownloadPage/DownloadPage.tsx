@@ -1,11 +1,9 @@
 import { useState } from 'react';
-import { fetchVideoMeta } from '../../services/runtime/bridge';
 import type {
   VideoParseGroup,
   DownloadOptions,
   QualityOption,
   RuntimeTaskRecord,
-  VideoMeta,
   VideoParseItem,
 } from '../../services/runtime/runtime';
 import { collectParseItems } from '../../services/runtime/runtime';
@@ -47,11 +45,6 @@ function formatView(n: number): string {
   return String(n);
 }
 
-type DetailState =
-  | { phase: 'idle' }
-  | { phase: 'loading' }
-  | { phase: 'loaded'; meta: VideoMeta }
-  | { phase: 'error'; message: string };
 
 interface DownloadPageProps {
   tasks: RuntimeTaskRecord[];
@@ -91,7 +84,6 @@ export function DownloadPage({
   onOpenDownloadsFolder,
 }: DownloadPageProps) {
   const [parsing, setParsing] = useState(false);
-  const [details, setDetails] = useState<Map<number, DetailState>>(new Map());
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
@@ -102,7 +94,6 @@ export function DownloadPage({
     onDownloadUrlChange(next);
     if (next.trim() !== downloadUrl.trim()) {
       onClearParseItems();
-      setDetails(new Map());
       setExpandedIndex(null);
       setExpandedGroups(new Set());
     }
@@ -114,7 +105,6 @@ export function DownloadPage({
     if (!trimmed) return;
     setParsing(true);
     onClearParseItems();
-    setDetails(new Map());
     setExpandedIndex(null);
     setExpandedGroups(new Set());
     try {
@@ -176,61 +166,36 @@ export function DownloadPage({
     });
   }
 
-  async function handleToggleDetail(item: VideoParseItem) {
-    if (expandedIndex === item.index) {
-      setExpandedIndex(null);
-      return;
-    }
-    setExpandedIndex(item.index);
-    const current = details.get(item.index);
-    if (current?.phase === 'loaded' || current?.phase === 'loading') return;
-    setDetails((prev) => new Map(prev).set(item.index, { phase: 'loading' }));
-    try {
-      const meta = await fetchVideoMeta(item.url);
-      setDetails((prev) => new Map(prev).set(item.index, { phase: 'loaded', meta }));
-    } catch (err) {
-      setDetails((prev) =>
-        new Map(prev).set(item.index, {
-          phase: 'error',
-          message: err instanceof Error ? err.message : String(err),
-        }),
-      );
-    }
+  function handleToggleDetail(item: VideoParseItem) {
+    setExpandedIndex(expandedIndex === item.index ? null : item.index);
   }
 
-  function renderDetailPanel(index: number) {
-    const state = details.get(index) ?? { phase: 'loading' };
-    if (state.phase === 'loading') {
-      return <div className="parse-detail__loading">加载中…</div>;
-    }
-    if (state.phase === 'error') {
-      return <div className="parse-detail__error">{state.message}</div>;
-    }
-    if (state.phase === 'loaded') {
-      const { meta } = state;
-      return (
-        <div className="parse-detail__content">
-          {meta.cover ? (
-            <img
-              className="parse-detail__cover"
-              src={meta.cover}
-              alt={meta.title}
-            />
-          ) : null}
-          <div className="parse-detail__info">
-            <p className="parse-detail__title">{meta.title}</p>
-            <p className="parse-detail__uploader">{meta.uploader}</p>
+  function renderDetailPanel(item: VideoParseItem) {
+    return (
+      <div className="parse-detail__content">
+        {item.cover ? (
+          <img
+            className="parse-detail__cover"
+            src={item.cover}
+            alt={item.title}
+          />
+        ) : null}
+        <div className="parse-detail__info">
+          <p className="parse-detail__title">{item.title}</p>
+          {item.uploader ? <p className="parse-detail__uploader">{item.uploader}</p> : null}
+          {(item.view !== undefined || item.duration !== undefined) ? (
             <p className="parse-detail__stats">
-              {formatView(meta.view)} 次播放 · {formatDuration(meta.duration)}
+              {item.view !== undefined ? `${formatView(item.view)} 次播放` : ''}
+              {item.view !== undefined && item.duration ? ' · ' : ''}
+              {item.duration ? formatDuration(item.duration) : ''}
             </p>
-            {meta.description ? (
-              <p className="parse-detail__desc">{meta.description}</p>
-            ) : null}
-          </div>
+          ) : null}
+          {item.description ? (
+            <p className="parse-detail__desc">{item.description}</p>
+          ) : null}
         </div>
-      );
-    }
-    return null;
+      </div>
+    );
   }
 
   function renderParseItem(item: VideoParseItem, nested = false) {
@@ -258,7 +223,7 @@ export function DownloadPage({
         </div>
         {expandedIndex === item.index ? (
           <div className="parse-item__detail">
-            {renderDetailPanel(item.index)}
+            {renderDetailPanel(item)}
           </div>
         ) : null}
       </li>

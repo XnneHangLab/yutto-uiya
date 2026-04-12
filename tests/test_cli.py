@@ -19,23 +19,23 @@ from uiya.cli import (
 
 
 def test_resolve_single_download_title_uses_video_title():
-    resolved = _resolve_single_download_title(
+    title, _ = _resolve_single_download_title(
         "https://www.bilibili.com/video/BV1xx411c7mD?p=1",
         "mmexport1768031333059",
         lambda _url: {"title": "Qwen3.5-27B 变身本地 Claude"},
     )
 
-    assert resolved == "Qwen3.5-27B 变身本地 Claude"
+    assert title == "Qwen3.5-27B 变身本地 Claude"
 
 
 def test_resolve_single_download_title_falls_back_to_existing_title_when_lookup_fails():
-    resolved = _resolve_single_download_title(
+    title, _ = _resolve_single_download_title(
         "https://www.bilibili.com/video/BV1xx411c7mD?p=2",
         "mmexport1768031333059",
         lambda _url: None,
     )
 
-    assert resolved == "mmexport1768031333059"
+    assert title == "mmexport1768031333059"
 
 
 def test_assign_parse_item_dirs_uses_repaired_title_for_per_video_layout():
@@ -91,13 +91,14 @@ def test_build_yutto_command_uses_current_python_for_download():
 
 
 def test_resolve_single_download_title_keeps_playlist_page_titles():
-    resolved = _resolve_single_download_title(
+    title, meta = _resolve_single_download_title(
         "https://www.bilibili.com/video/BV1XY411o7Cv?p=1",
         "P01_3分钟学会 视频选集 视频合集 视频列表 分p怎么弄",
         lambda _url: {"title": "3分钟学会 视频选集 视频合集 视频列表 分p怎么弄"},
     )
 
-    assert resolved == "P01_3分钟学会 视频选集 视频合集 视频列表 分p怎么弄"
+    assert title == "P01_3分钟学会 视频选集 视频合集 视频列表 分p怎么弄"
+    assert meta is None
 
 
 def test_parse_skip_download_lines_groups_playlist_pages_under_list_heading():
@@ -122,6 +123,13 @@ def test_parse_skip_download_lines_groups_playlist_pages_under_list_heading():
             "title": "普通收藏视频",
             "url": "https://www.bilibili.com/video/BV1v7QUBdE9U?p=1",
             "dir": "",
+            "uploader": "",
+            "description": "",
+            "pubdate": 0,
+            "duration": 0,
+            "cover": "",
+            "view": 0,
+            "like": 0,
         }
     ]
     assert parsed["groups"] == [
@@ -134,12 +142,26 @@ def test_parse_skip_download_lines_groups_playlist_pages_under_list_heading():
                     "title": "P01_3分钟学会 视频选集 视频合集 视频列表 分p怎么弄",
                     "url": "https://www.bilibili.com/video/BV1XY411o7Cv?p=1",
                     "dir": "",
+                    "uploader": "",
+                    "description": "",
+                    "pubdate": 0,
+                    "duration": 0,
+                    "cover": "",
+                    "view": 0,
+                    "like": 0,
                 },
                 {
                     "index": 2,
                     "title": "P02_手机端添加分p",
                     "url": "https://www.bilibili.com/video/BV1XY411o7Cv?p=2",
                     "dir": "",
+                    "uploader": "",
+                    "description": "",
+                    "pubdate": 0,
+                    "duration": 0,
+                    "cover": "",
+                    "view": 0,
+                    "like": 0,
                 },
             ],
         }

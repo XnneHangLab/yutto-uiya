@@ -101,6 +101,13 @@ export interface VideoParseItem {
   url: string;
   /** Per-video output directory relative to downloads root. Empty for single videos. */
   dir: string;
+  uploader?: string;
+  description?: string;
+  pubdate?: number;
+  duration?: number;
+  cover?: string;
+  view?: number;
+  like?: number;
 }
 
 export interface VideoParseGroup {
