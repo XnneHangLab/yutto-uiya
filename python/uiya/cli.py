@@ -99,7 +99,7 @@ def _extract_bilibili_video_identity(url: str) -> tuple[str, str] | None:
     return None
 
 
-def _fetch_bilibili_view_payload(url: str) -> dict | None:
+def _fetch_bilibili_view_payload(url: str, sessdata: str = "") -> dict | None:
     identity = _extract_bilibili_video_identity(url)
     if identity is None:
         return None
@@ -107,7 +107,10 @@ def _fetch_bilibili_view_payload(url: str) -> dict | None:
     key, value = identity
     api_url = f"https://api.bilibili.com/x/web-interface/view?{key}={value}"
     try:
-        request = urllib.request.Request(api_url, headers=_BILIBILI_HEADERS)
+        headers = {**_BILIBILI_HEADERS}
+        if sessdata:
+            headers["Cookie"] = f"SESSDATA={sessdata}"
+        request = urllib.request.Request(api_url, headers=headers)
         with urllib.request.urlopen(request, timeout=10) as response:
             payload = json.loads(response.read().decode("utf-8"))
     except Exception:
@@ -664,7 +667,7 @@ def cmd_parse(target: str) -> None:
         if identity is None:
             return None
         if identity not in view_payload_cache:
-            view_payload_cache[identity] = _fetch_bilibili_view_payload(url)
+            view_payload_cache[identity] = _fetch_bilibili_view_payload(url, settings.SESS_DATA)
         return view_payload_cache[identity]
 
     emit_event({
