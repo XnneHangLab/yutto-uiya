@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type {
   VideoParseGroup,
   DownloadOptions,
@@ -90,16 +90,37 @@ export function DownloadPage({
   // item.index → 'loading' | data-URL string
   const [covers, setCovers] = useState<Map<number, 'loading' | string>>(new Map());
 
+  const listRef = useRef<HTMLUListElement>(null);
+  // Tracks previous parsing state to detect false→true→false transition.
+  const prevParsingRef = useRef(false);
+
   const allParseItems = collectParseItems(parseItems, parseGroups);
   const hasParseResults = allParseItems.length > 0;
 
-  // Auto-expand the latest item as it arrives during parsing.
+  // Auto-expand the latest item and scroll it into view as it arrives during parsing.
   useEffect(() => {
     if (allParseItems.length > 0) {
       setExpandedIndex(allParseItems[allParseItems.length - 1].index);
+      if (listRef.current) {
+        listRef.current.scrollTop = listRef.current.scrollHeight;
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allParseItems.length]);
+
+  // When parsing finishes, auto-fetch the cover for the last item (single fetch, looks great for
+  // single-video parses and gives a nice preview for the end of a playlist).
+  useEffect(() => {
+    const wasParsing = prevParsingRef.current;
+    prevParsingRef.current = parsing;
+    if (wasParsing && !parsing && allParseItems.length > 0) {
+      const lastItem = allParseItems[allParseItems.length - 1];
+      if (lastItem.cover?.startsWith('http') && !covers.has(lastItem.index)) {
+        void handleLoadCover(lastItem);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parsing]);
 
   function handleUrlChange(next: string) {
     onDownloadUrlChange(next);
@@ -327,7 +348,7 @@ export function DownloadPage({
                 {allSelected ? '取消全选' : '全选'}
               </button>
             </div>
-            <ul className="parse-results__list">
+            <ul className="parse-results__list" ref={listRef}>
               {parseItems.map((item) => renderParseItem(item))}
               {parseGroups.map((group, groupIndex) => {
                 const groupKey = `${group.dir || group.title}-${groupIndex}`;
