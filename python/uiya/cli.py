@@ -10,6 +10,7 @@ Commands:
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import os
 import re
@@ -28,6 +29,7 @@ _BILIBILI_HEADERS = {
 TITLE_RE = re.compile(r"\bINFO\b.*开始处理视频\s+(.+)")
 LINK_RE = re.compile(r"\bLINK\b\s+(https?://\S+)")
 GROUP_RE = re.compile(r"^\s*列表\s+(.+?)\s*$")
+METADATA_RE = re.compile(r"^\s*描述文件\s+(\{.+\})\s*$")
 VIDEO_QUALITY_RE = re.compile(r"视频质量.*?<(.+?)>")
 AUDIO_QUALITY_RE = re.compile(r"音频质量.*?<(.+?)>")
 
@@ -73,7 +75,7 @@ def _build_yutto_command(
     command: list[str] = [sys.executable, "-m", "yutto", target, "--no-color"]
 
     if skip_download:
-        command += ["--skip-download", "--no-progress", "-b"]
+        command += ["--skip-download", "--no-progress", "-b", "--with-metadata"]
     elif select_index is not None:
         command += ["-b", "-p", str(select_index)]
 
@@ -166,6 +168,7 @@ class _ParseContext:
         self.next_index = 1
         self.current_title: str | None = None
         self.current_group: dict | None = None
+        self.pending_item: dict | None = None
         self.items: list[dict] = []
         self.groups: list[dict] = []
         self.seen_video_qualities: dict[int, str] = {}
@@ -176,53 +179,73 @@ class _ParseContext:
             self.groups.append(self.current_group)
         self.current_group = None
 
-    def consume(self, line: str, view_fetcher: callable) -> dict | None:
+    def _complete_pending_item(self) -> dict | None:
+        """Finalise pending_item and commit it to items/current_group. Returns it."""
+        item = self.pending_item
+        if item is None:
+            return None
+        self.pending_item = None
+        if self.current_group is not None and _is_playlist_page_title(item["title"]):
+            self.current_group["items"].append(item)
+        else:
+            self._flush_group()
+            self.items.append(item)
+        return item
+
+    def consume(self, line: str, view_fetcher: "callable | None" = None) -> dict | None:  # noqa: ARG002
         if m_group := GROUP_RE.search(line):
+            self._complete_pending_item()
             self._flush_group()
             self.current_group = {"title": m_group.group(1).strip(), "dir": "", "items": []}
             return None
 
         if m_title := TITLE_RE.search(line):
+            self._complete_pending_item()
             self.current_title = m_title.group(1).strip()
             return None
 
         if m_link := LINK_RE.search(line):
             if self.current_title is None:
                 return None
-
-            title, meta = _resolve_single_download_title(
-                    m_link.group(1),
-                    self.current_title,
-                    view_fetcher,
-                )
-            cover_url = ""
-            if meta:
-                pic = str(meta.get("pic", "")).strip()
-                if pic:
-                    cover_url = "https://image.baidu.com/search/down?url=" + urllib.parse.quote(pic, safe="")
-            item = {
+            self.pending_item = {
                 "index": self.next_index,
-                "title": title,
+                "title": self.current_title,
                 "url": m_link.group(1),
                 "dir": "",
-                "uploader": meta.get("owner", {}).get("name", "") if meta else "",
-                "description": meta.get("desc", "") if meta else "",
-                "pubdate": meta.get("pubdate", 0) if meta else 0,
-                "duration": meta.get("duration", 0) if meta else 0,
-                "cover": cover_url,
-                "view": meta.get("stat", {}).get("view", 0) if meta else 0,
-                "like": meta.get("stat", {}).get("like", 0) if meta else 0,
+                "uploader": "",
+                "description": "",
+                "pubdate": 0,
+                "duration": 0,
+                "cover": "",
+                "view": 0,
+                "like": 0,
             }
             self.next_index += 1
-
-            if self.current_group is not None and _is_playlist_page_title(item["title"]):
-                self.current_group["items"].append(item)
-            else:
-                self._flush_group()
-                self.items.append(item)
-
             self.current_title = None
-            return item
+            return None  # deferred until 描述文件
+
+        if m_meta := METADATA_RE.search(line):
+            if self.pending_item is not None:
+                try:
+                    meta = ast.literal_eval(m_meta.group(1))
+                except Exception:
+                    meta = {}
+                pic = str(meta.get("thumb", "")).strip()
+                if pic:
+                    self.pending_item["cover"] = (
+                        "https://image.baidu.com/search/down?url=" + urllib.parse.quote(pic, safe="")
+                    )
+                uploader = ""
+                for actor in meta.get("actor", []):
+                    if isinstance(actor, dict) and actor.get("role") == "UP主":
+                        uploader = str(actor.get("name", ""))
+                        break
+                self.pending_item["uploader"] = uploader
+                self.pending_item["description"] = str(meta.get("plot", ""))
+                premiered = meta.get("premiered", 0)
+                self.pending_item["pubdate"] = int(premiered) if premiered else 0
+                return self._complete_pending_item()
+            return None
 
         if m_vq := VIDEO_QUALITY_RE.search(line):
             label = m_vq.group(1).strip()
@@ -241,6 +264,7 @@ class _ParseContext:
         return None
 
     def finish(self) -> dict:
+        self._complete_pending_item()
         self._flush_group()
         return {
             "items": self.items,
@@ -256,7 +280,7 @@ class _ParseContext:
         }
 
 
-def _parse_skip_download_lines(lines: list[str], view_fetcher: callable) -> dict:
+def _parse_skip_download_lines(lines: list[str], view_fetcher: "callable | None" = None) -> dict:
     context = _ParseContext()
     for line in lines:
         context.consume(line, view_fetcher)
@@ -660,16 +684,6 @@ def cmd_parse(target: str) -> None:
 
     before_dirs = _all_dirs(downloads_path)
 
-    view_payload_cache: dict[tuple[str, str], dict | None] = {}
-
-    def cached_view_fetcher(url: str) -> dict | None:
-        identity = _extract_bilibili_video_identity(url)
-        if identity is None:
-            return None
-        if identity not in view_payload_cache:
-            view_payload_cache[identity] = _fetch_bilibili_view_payload(url, settings.SESS_DATA)
-        return view_payload_cache[identity]
-
     emit_event({
         "event": "parse.started",
         "target": target,
@@ -698,7 +712,7 @@ def cmd_parse(target: str) -> None:
         line = raw_line.rstrip("\r\n")
         if line.strip():
             print(line, flush=True)  # forwarded as runtime:raw-log
-        item = context.consume(line, cached_view_fetcher)
+        item = context.consume(line)
         if item is not None:
             emit_event({
                 "event": "parse.item",
