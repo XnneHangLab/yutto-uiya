@@ -199,7 +199,7 @@ class _ParseContext:
             if meta:
                 pic = str(meta.get("pic", "")).strip()
                 if pic:
-                    cover_url = "https://image.baidu.com/search/down?url=" + pic
+                    cover_url = "https://image.baidu.com/search/down?url=" + urllib.parse.quote(pic, safe="")
             item = {
                 "index": self.next_index,
                 "title": title,
