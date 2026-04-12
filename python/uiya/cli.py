@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import base64
 import json
 import os
 import re
@@ -91,6 +92,21 @@ def _build_yutto_command(
         command += ["--proxy", proxy_pool]
 
     return command
+
+
+def _fetch_image_as_data_url(url: str) -> str:
+    """Download an image with Bilibili referer and return a base64 data URL."""
+    try:
+        req = urllib.request.Request(url, headers={
+            **_BILIBILI_HEADERS,
+            "Referer": "https://www.bilibili.com",
+        })
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            img_bytes = resp.read()
+            mime = resp.headers.get_content_type() or "image/jpeg"
+        return f"data:{mime};base64,{base64.b64encode(img_bytes).decode()}"
+    except Exception:
+        return ""
 
 
 def _extract_bilibili_video_identity(url: str) -> tuple[str, str] | None:
@@ -233,7 +249,7 @@ class _ParseContext:
                     meta = {}
                 pic = str(meta.get("thumb", "")).strip()
                 if pic:
-                    self.pending_item["cover"] = pic
+                    self.pending_item["cover"] = _fetch_image_as_data_url(pic)
                 uploader = ""
                 for actor in meta.get("actor", []):
                     if isinstance(actor, dict) and actor.get("role") == "UP主":
