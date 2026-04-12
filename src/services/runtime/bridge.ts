@@ -105,6 +105,10 @@ export function fetchVideoMeta(url: string) {
   return invoke<VideoMeta>('fetch_video_meta', { url });
 }
 
+export function fetchCoverImage(url: string) {
+  return invoke<string>('fetch_cover_image', { url });
+}
+
 export async function subscribeRuntimeEvents(
   onEvent: (event: RuntimeEvent) => void,
   onRawLog: (line: string) => void,

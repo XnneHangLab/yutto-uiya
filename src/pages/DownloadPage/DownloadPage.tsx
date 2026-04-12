@@ -7,6 +7,7 @@ import type {
   VideoParseItem,
 } from '../../services/runtime/runtime';
 import { collectParseItems } from '../../services/runtime/runtime';
+import { fetchCoverImage } from '../../services/runtime/bridge';
 import '../../styles/models.css';
 
 const taskStatusLabel: Record<string, string> = {
@@ -86,6 +87,8 @@ export function DownloadPage({
   const [parsing, setParsing] = useState(false);
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  // item.index → 'loading' | data-URL string
+  const [covers, setCovers] = useState<Map<number, 'loading' | string>>(new Map());
 
   const allParseItems = collectParseItems(parseItems, parseGroups);
   const hasParseResults = allParseItems.length > 0;
@@ -104,6 +107,7 @@ export function DownloadPage({
       onClearParseItems();
       setExpandedIndex(null);
       setExpandedGroups(new Set());
+      setCovers(new Map());
     }
   }
 
@@ -115,6 +119,7 @@ export function DownloadPage({
     onClearParseItems();
     setExpandedIndex(null);
     setExpandedGroups(new Set());
+    setCovers(new Map());
     try {
       await onParse(trimmed);
     } finally {
@@ -178,16 +183,44 @@ export function DownloadPage({
     setExpandedIndex(expandedIndex === item.index ? null : item.index);
   }
 
+  async function handleLoadCover(item: VideoParseItem) {
+    if (!item.cover || covers.has(item.index)) return;
+    setCovers((prev) => new Map(prev).set(item.index, 'loading'));
+    try {
+      const dataUrl = await fetchCoverImage(item.cover);
+      setCovers((prev) => new Map(prev).set(item.index, dataUrl));
+    } catch {
+      setCovers((prev) => { const m = new Map(prev); m.delete(item.index); return m; });
+    }
+  }
+
   function renderDetailPanel(item: VideoParseItem) {
+    const coverState = covers.get(item.index);
+    const isHttpCover = item.cover?.startsWith('http');
+
+    let coverNode: React.ReactNode = null;
+    if (item.cover?.startsWith('data:')) {
+      coverNode = <img className="parse-detail__cover" src={item.cover} alt={item.title} />;
+    } else if (isHttpCover) {
+      if (coverState === 'loading') {
+        coverNode = <div className="parse-detail__cover parse-detail__cover--placeholder">加载中…</div>;
+      } else if (typeof coverState === 'string') {
+        coverNode = <img className="parse-detail__cover" src={coverState} alt={item.title} />;
+      } else {
+        coverNode = (
+          <button
+            type="button"
+            className="parse-detail__cover parse-detail__cover--placeholder"
+            onClick={() => handleLoadCover(item)}
+          >
+            查看封面
+          </button>
+        );
+      }
+    }
     return (
       <div className="parse-detail__content">
-        {item.cover ? (
-          <img
-            className="parse-detail__cover"
-            src={item.cover}
-            alt={item.title}
-          />
-        ) : null}
+        {coverNode}
         <div className="parse-detail__info">
           <p className="parse-detail__title">{item.title}</p>
           {item.uploader ? <p className="parse-detail__uploader">{item.uploader}</p> : null}

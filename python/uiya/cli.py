@@ -253,7 +253,7 @@ class _ParseContext:
                     meta = {}
                 pic = str(meta.get("thumb", "")).strip()
                 if pic:
-                    self.pending_item["cover"] = _fetch_image_as_data_url(pic)
+                    self.pending_item["cover"] = pic  # raw URL; frontend fetches on demand
                 uploader = ""
                 for actor in meta.get("actor", []):
                     if isinstance(actor, dict) and actor.get("role") == "UP主":
@@ -893,6 +893,21 @@ def cmd_fetch_meta(url: str) -> None:
     })
 
 
+def cmd_fetch_cover(url: str) -> None:
+    """
+    Download a single cover image and emit it as a base64 data URL.
+    Called on demand when the user opens a detail panel.
+    """
+    def emit_payload(payload: dict) -> None:
+        print(json.dumps({"kind": "payload", "payload": payload}, ensure_ascii=False), flush=True)
+
+    data_url = _fetch_image_as_data_url(url)
+    if data_url:
+        emit_payload({"dataUrl": data_url})
+    else:
+        emit_payload({"error": "封面图片加载失败"})
+
+
 def cmd_save_settings(ffmpeg_path: str, no_proxy: bool) -> None:
     """
     Persist updated settings (currently ffmpeg_path and no_proxy) to uiya.toml.
@@ -1108,6 +1123,9 @@ def main() -> None:
     fetch_meta_parser = subparsers.add_parser("fetch-meta")
     fetch_meta_parser.add_argument("url")
 
+    fetch_cover_parser = subparsers.add_parser("fetch-cover")
+    fetch_cover_parser.add_argument("url")
+
     save_parser = subparsers.add_parser("save-settings")
     save_parser.add_argument("--ffmpeg-path", default="ffmpeg")
     save_parser.add_argument("--no-proxy", default="false")
@@ -1134,6 +1152,8 @@ def main() -> None:
         cmd_parse(args.target)
     elif args.command == "fetch-meta":
         cmd_fetch_meta(args.url)
+    elif args.command == "fetch-cover":
+        cmd_fetch_cover(args.url)
     elif args.command == "save-settings":
         cmd_save_settings(args.ffmpeg_path, args.no_proxy.lower() == "true")
     elif args.command == "auth-login":

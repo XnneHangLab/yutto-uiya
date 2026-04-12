@@ -3,9 +3,9 @@ use tauri::{AppHandle, Emitter, State};
 use super::process::{
     drain_download_queue,
     ensure_environment_ready, kill_process, open_path, open_url, pick_ffmpeg_path, pick_python_path, pick_workspace_root,
-    resolve_managed_path, run_auth_login_command, run_auth_logout_command, run_fetch_meta_command,
-    run_inspect_command, run_parse_command, run_probe_command, run_save_settings_command,
-    write_console_log,
+    resolve_managed_path, run_auth_login_command, run_auth_logout_command, run_fetch_cover_command,
+    run_fetch_meta_command, run_inspect_command, run_parse_command, run_probe_command,
+    run_save_settings_command, write_console_log,
 };
 use super::state::{
     read_saved_driver_config, resolve_portable_python_path, resolve_repo_root,
@@ -125,6 +125,21 @@ pub async fn fetch_video_meta(
     let driver = state.current_driver_config();
     run_blocking_runtime_action(move || {
         run_fetch_meta_command(&repo_root, &workspace_root, &driver, &url, &app)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn fetch_cover_image(
+    app: AppHandle,
+    state: State<'_, RuntimeState>,
+    url: String,
+) -> Result<String, String> {
+    let repo_root = state.repo_root.clone();
+    let workspace_root = state.current_workspace_root();
+    let driver = state.current_driver_config();
+    run_blocking_runtime_action(move || {
+        run_fetch_cover_command(&repo_root, &workspace_root, &driver, &url, &app)
     })
     .await
 }
