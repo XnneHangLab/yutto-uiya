@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import type { ConsoleLogEntry } from '../../services/launcher/launcher';
 import {
   getQueueSummary,
@@ -36,6 +37,22 @@ export function ConsolePage({
     : '当前没有活动任务';
   const lastLog = logs[logs.length - 1];
 
+  const panelRef = useRef<HTMLElement>(null);
+
+  // On mount (= switching to this tab), scroll to bottom once without competing with the mouse.
+  useEffect(() => {
+    const el = panelRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, []);
+
+  // When "追踪最新日志" is on, force-scroll to bottom on every new log entry.
+  useEffect(() => {
+    if (!autoScroll) return;
+    const el = panelRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [logs.length, autoScroll]);
+
   function handleCopyAll() {
     const text = logs.map((e) => e.text).join('\n');
     void navigator.clipboard?.writeText(text);
@@ -58,18 +75,18 @@ export function ConsolePage({
           <button type="button" onClick={onClearLogs}>
             清空日志
           </button>
-          <button type="button" onClick={handleCopyAll} disabled={logs.length === 0}>
-            全部复制
-          </button>
-          <button type="button" onClick={onExportLogs} disabled={logs.length === 0}>
-            导出日志
-          </button>
           <button
             type="button"
             aria-pressed={autoScroll}
             onClick={() => onSetAutoScroll(!autoScroll)}
           >
-            自动滚动
+            追踪最新日志
+          </button>
+          <button type="button" onClick={handleCopyAll} disabled={logs.length === 0}>
+            全部复制
+          </button>
+          <button type="button" onClick={onExportLogs} disabled={logs.length === 0}>
+            导出日志
           </button>
           <button
             type="button"
@@ -81,7 +98,7 @@ export function ConsolePage({
         </div>
       </header>
 
-      <section className={`console-log-panel${wrapLines ? ' is-wrap' : ''}`}>
+      <section ref={panelRef} className={`console-log-panel${wrapLines ? ' is-wrap' : ''}`}>
         {logs.length === 0 ? (
           <div className="console-empty">
             <h2>尚无运行日志</h2>
@@ -103,7 +120,7 @@ export function ConsolePage({
         <span>日志条数 {logs.length}</span>
         <span>队列任务 {queueSummary.queueLength}</span>
         <span>最后更新时间 {lastLog ? lastLog.time : '暂无'}</span>
-        <span>{autoScroll ? '自动滚动开启' : '自动滚动关闭'}</span>
+        <span>{autoScroll ? '追踪最新日志开启' : '追踪最新日志关闭'}</span>
       </footer>
     </div>
   );
