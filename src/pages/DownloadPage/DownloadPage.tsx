@@ -184,7 +184,7 @@ export function DownloadPage({
   }
 
   async function handleLoadCover(item: VideoParseItem) {
-    if (!item.cover || covers.get(item.index) === 'loading') return;
+    if (!item.cover || covers.has(item.index)) return;
     setExpandedIndex(item.index);
     setCovers((prev) => new Map(prev).set(item.index, 'loading'));
     const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
