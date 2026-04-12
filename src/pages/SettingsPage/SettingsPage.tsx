@@ -202,7 +202,7 @@ export function SettingsPage({
                 description={
                   workspaceLocked
                     ? '有任务进行中，暂时锁定'
-                    : '模型等资源路径均相对此目录'
+                    : '下载的视频等文件均保存至此目录'
                 }
                 icon="📂"
               >
