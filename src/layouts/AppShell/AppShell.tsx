@@ -96,6 +96,7 @@ export function AppShell() {
   const [downloadUrl, setDownloadUrl] = useState('');
   const [parseDirOverride, setParseDirOverride] = useState('');
   const [parseVideoQualities, setParseVideoQualities] = useState<QualityOption[]>([]);
+  const [parseAudioQualities, setParseAudioQualities] = useState<QualityOption[]>([]);
   const [downloadOptions, setDownloadOptions] = useState<DownloadOptions>(DEFAULT_DOWNLOAD_OPTIONS);
   const [authBusy, setAuthBusy] = useState(false);
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
@@ -372,6 +373,10 @@ export function AppShell() {
       setParseVideoQualities(result.videoQualities);
       if (result.videoQualities.length > 0) {
         setDownloadOptions((prev) => ({ ...prev, videoQuality: result.videoQualities[0].code }));
+      }
+      setParseAudioQualities(result.audioQualities);
+      if (result.audioQualities.length > 0) {
+        setDownloadOptions((prev) => ({ ...prev, audioQuality: result.audioQualities[0].code }));
       }
       return result.items;
     } catch (error) {
@@ -656,6 +661,7 @@ export function AppShell() {
               downloadUrl,
               onDownloadUrlChange: setDownloadUrl,
               parseVideoQualities,
+              parseAudioQualities,
               downloadOptions,
               onDownloadOptionsChange: setDownloadOptions,
               onCancelTask: handleCancelTask,

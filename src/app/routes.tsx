@@ -39,6 +39,7 @@ interface RenderPageOptions {
   downloadUrl: string;
   onDownloadUrlChange: (next: string) => void;
   parseVideoQualities: QualityOption[];
+  parseAudioQualities: QualityOption[];
   downloadOptions: DownloadOptions;
   onDownloadOptionsChange: (next: DownloadOptions) => void;
   onCancelTask: (taskId: string) => void;
@@ -134,6 +135,7 @@ export function renderPage(
           downloadUrl={options.downloadUrl}
           onDownloadUrlChange={options.onDownloadUrlChange}
           parseVideoQualities={options.parseVideoQualities}
+          parseAudioQualities={options.parseAudioQualities}
           downloadOptions={options.downloadOptions}
           onDownloadOptionsChange={options.onDownloadOptionsChange}
           onCancelTask={options.onCancelTask}

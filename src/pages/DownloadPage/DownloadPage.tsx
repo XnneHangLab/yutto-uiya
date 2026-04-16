@@ -64,6 +64,7 @@ interface DownloadPageProps {
   downloadUrl: string;
   onDownloadUrlChange: (next: string) => void;
   parseVideoQualities: QualityOption[];
+  parseAudioQualities: QualityOption[];
   downloadOptions: DownloadOptions;
   onDownloadOptionsChange: (next: DownloadOptions) => void;
   onCancelTask: (taskId: string) => void;
@@ -83,7 +84,7 @@ export function DownloadPage({
   downloadUrl,
   onDownloadUrlChange,
   parseVideoQualities,
-  downloadOptions,
+  parseAudioQualities,
   onDownloadOptionsChange,
   onCancelTask,
   onOpenDownloadsFolder,
@@ -478,6 +479,26 @@ export function DownloadPage({
                   }
                 >
                   {parseVideoQualities.map((q) => (
+                    <option key={q.code} value={q.code}>{q.label}</option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+
+            {downloadOptions.requireAudio && parseAudioQualities.length > 0 ? (
+              <div className="dl-opts-row">
+                <div className="dl-opts-text">
+                  <span className="dl-opts-name">音质</span>
+                  <span className="dl-opts-desc">批量下载时尽量满足该音质，不足时自动降级</span>
+                </div>
+                <select
+                  className="dl-opts-select"
+                  value={downloadOptions.audioQuality}
+                  onChange={(e) =>
+                    onDownloadOptionsChange({ ...downloadOptions, audioQuality: Number(e.target.value) })
+                  }
+                >
+                  {parseAudioQualities.map((q) => (
                     <option key={q.code} value={q.code}>{q.label}</option>
                   ))}
                 </select>
