@@ -85,6 +85,7 @@ export function DownloadPage({
   onDownloadUrlChange,
   parseVideoQualities,
   parseAudioQualities,
+  downloadOptions,
   onDownloadOptionsChange,
   onCancelTask,
   onOpenDownloadsFolder,
