@@ -177,6 +177,8 @@ pub async fn enqueue_download(
     require_video: Option<bool>,
     require_audio: Option<bool>,
     require_cover: Option<bool>,
+    require_subtitle: Option<bool>,
+    require_danmaku: Option<bool>,
     video_quality: Option<u32>,
     audio_quality: Option<u32>,
     dir_override: Option<String>,
@@ -190,12 +192,14 @@ pub async fn enqueue_download(
     let rv = require_video.unwrap_or(true);
     let ra = require_audio.unwrap_or(true);
     let rc = require_cover.unwrap_or(false);
+    let rs = require_subtitle.unwrap_or(false);
+    let rd = require_danmaku.unwrap_or(false);
     let vq = video_quality.unwrap_or(127);
     let aq = audio_quality.unwrap_or(30280);
     let dir = dir_override.filter(|s| !s.is_empty());
     let (task, should_spawn_worker) = {
         let mut queue = state.queue.lock().unwrap();
-        queue.enqueue_with_worker_control(target.to_string(), display_label, rv, ra, rc, vq, aq, select_index, dir)
+        queue.enqueue_with_worker_control(target.to_string(), display_label, rv, ra, rc, rs, rd, vq, aq, select_index, dir)
     };
 
     if should_spawn_worker {

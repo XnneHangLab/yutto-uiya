@@ -21,15 +21,19 @@ const taskStatusLabel: Record<string, string> = {
 };
 
 function downloadHint(opts: DownloadOptions): string {
-  const { requireVideo, requireAudio, requireCover } = opts;
-  if (requireVideo && requireAudio && requireCover) return '视频 + 音频 + 封面（封面另存同目录）';
-  if (requireVideo && requireAudio) return '视频 + 音频，自动混流';
-  if (requireVideo && requireCover) return '仅视频流 + 封面';
-  if (requireAudio && requireCover) return '仅音频流 + 封面';
-  if (requireVideo) return '仅视频流（无音频）';
-  if (requireAudio) return '仅音频流';
-  if (requireCover) return '仅封面图片';
-  return '请至少选择一种资源类型';
+  const { requireVideo, requireAudio, requireCover, requireSubtitle, requireDanmaku } = opts;
+  let hint = '';
+  if (requireVideo && requireAudio && requireCover) hint = '视频 + 音频 + 封面（封面另存同目录）';
+  else if (requireVideo && requireAudio) hint = '视频 + 音频，自动混流';
+  else if (requireVideo && requireCover) hint = '仅视频流 + 封面';
+  else if (requireAudio && requireCover) hint = '仅音频流 + 封面';
+  else if (requireVideo) hint = '仅视频流（无音频）';
+  else if (requireAudio) hint = '仅音频流';
+  else if (requireCover) hint = '仅封面图片';
+  else hint = '请至少选择一种资源类型';
+  if (requireSubtitle) hint += '；含字幕';
+  if (requireDanmaku) hint += '；含弹幕';
+  return hint;
 }
 
 function formatDuration(seconds: number): string {
@@ -60,6 +64,7 @@ interface DownloadPageProps {
   downloadUrl: string;
   onDownloadUrlChange: (next: string) => void;
   parseVideoQualities: QualityOption[];
+  parseAudioQualities: QualityOption[];
   downloadOptions: DownloadOptions;
   onDownloadOptionsChange: (next: DownloadOptions) => void;
   onCancelTask: (taskId: string) => void;
@@ -79,6 +84,7 @@ export function DownloadPage({
   downloadUrl,
   onDownloadUrlChange,
   parseVideoQualities,
+  parseAudioQualities,
   downloadOptions,
   onDownloadOptionsChange,
   onCancelTask,
@@ -434,6 +440,32 @@ export function DownloadPage({
               />
             </div>
 
+            <div className="dl-opts-row">
+              <div className="dl-opts-text">
+                <span className="dl-opts-name">字幕</span>
+                <span className="dl-opts-desc">下载 ass / srt 字幕文件</span>
+              </div>
+              <button
+                type="button"
+                className={`dl-switch${downloadOptions.requireSubtitle ? ' dl-switch--on' : ''}`}
+                aria-pressed={downloadOptions.requireSubtitle}
+                onClick={() => onDownloadOptionsChange({ ...downloadOptions, requireSubtitle: !downloadOptions.requireSubtitle })}
+              />
+            </div>
+
+            <div className="dl-opts-row">
+              <div className="dl-opts-text">
+                <span className="dl-opts-name">弹幕</span>
+                <span className="dl-opts-desc">下载弹幕文件</span>
+              </div>
+              <button
+                type="button"
+                className={`dl-switch${downloadOptions.requireDanmaku ? ' dl-switch--on' : ''}`}
+                aria-pressed={downloadOptions.requireDanmaku}
+                onClick={() => onDownloadOptionsChange({ ...downloadOptions, requireDanmaku: !downloadOptions.requireDanmaku })}
+              />
+            </div>
+
             {downloadOptions.requireVideo && parseVideoQualities.length > 0 ? (
               <div className="dl-opts-row">
                 <div className="dl-opts-text">
@@ -448,6 +480,26 @@ export function DownloadPage({
                   }
                 >
                   {parseVideoQualities.map((q) => (
+                    <option key={q.code} value={q.code}>{q.label}</option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+
+            {downloadOptions.requireAudio && parseAudioQualities.length > 0 ? (
+              <div className="dl-opts-row">
+                <div className="dl-opts-text">
+                  <span className="dl-opts-name">音质</span>
+                  <span className="dl-opts-desc">批量下载时尽量满足该音质，不足时自动降级</span>
+                </div>
+                <select
+                  className="dl-opts-select"
+                  value={downloadOptions.audioQuality}
+                  onChange={(e) =>
+                    onDownloadOptionsChange({ ...downloadOptions, audioQuality: Number(e.target.value) })
+                  }
+                >
+                  {parseAudioQualities.map((q) => (
                     <option key={q.code} value={q.code}>{q.label}</option>
                   ))}
                 </select>

@@ -146,6 +146,8 @@ export interface DownloadOptions {
   requireVideo: boolean;
   requireAudio: boolean;
   requireCover: boolean;
+  requireSubtitle: boolean;
+  requireDanmaku: boolean;
   videoQuality: number;
   audioQuality: number;
 }
@@ -154,6 +156,8 @@ export const DEFAULT_DOWNLOAD_OPTIONS: DownloadOptions = {
   requireVideo: true,
   requireAudio: true,
   requireCover: false,
+  requireSubtitle: false,
+  requireDanmaku: false,
   videoQuality: 127,
   audioQuality: 30280,
 };
