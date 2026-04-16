@@ -9,7 +9,7 @@ use super::process::{
     run_save_settings_command, run_uv_sync_command, write_console_log,
 };
 use super::state::{
-    read_saved_driver_config, resolve_portable_python_path, resolve_repo_root,
+    read_saved_driver_config, resolve_portable_ffmpeg_path, resolve_portable_python_path, resolve_repo_root,
     resolve_workspace_root, write_driver_config, RuntimeDriverConfig, RuntimeState,
     DEFAULT_HOTKEY, read_saved_hotkey, write_hotkey_config,
 };
@@ -539,6 +539,7 @@ pub fn build_runtime_state() -> Result<RuntimeState, String> {
     let repo_root = resolve_repo_root()?;
     let workspace_root = resolve_workspace_root(&repo_root)?;
     let portable_python = resolve_portable_python_path(&repo_root);
+    let portable_ffmpeg = resolve_portable_ffmpeg_path(&repo_root);
 
     let state = RuntimeState::new(repo_root, workspace_root.clone());
     let has_portable_python = portable_python.is_file();
@@ -549,6 +550,11 @@ pub fn build_runtime_state() -> Result<RuntimeState, String> {
                 python_path: portable_python,
             });
         }
+    }
+    // Auto-use bundled ffmpeg when it sits next to the executable.
+    // Only applies in release mode so dev builds still fall through to PATH.
+    if !cfg!(debug_assertions) && portable_ffmpeg.is_file() {
+        state.set_ffmpeg_path(portable_ffmpeg.to_string_lossy().into_owned());
     }
     if let Some(saved) = read_saved_driver_config(&workspace_root) {
         // In a portable release build the bundled ./env/python is the only

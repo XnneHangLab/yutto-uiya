@@ -319,6 +319,13 @@ pub fn resolve_portable_python_path(app_root: &Path) -> PathBuf {
     return app_root.join("env").join("bin").join("python");
 }
 
+pub fn resolve_portable_ffmpeg_path(app_root: &Path) -> PathBuf {
+    #[cfg(target_os = "windows")]
+    return app_root.join("ffmpeg.exe");
+    #[cfg(not(target_os = "windows"))]
+    return app_root.join("ffmpeg");
+}
+
 pub fn read_saved_driver_config(workspace_root: &Path) -> Option<RuntimeDriverConfig> {
     let path = workspace_root.join("config").join("runtime.json");
     let content = std::fs::read_to_string(&path).ok()?;

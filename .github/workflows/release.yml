@@ -115,6 +115,77 @@ jobs:
           name: macos-arm-uv
           path: "*.zip"
 
+  # ─────────────────────────── macOS Apple Silicon (Portable) ───────────────────────────
+  build-macos-portable:
+    name: Build · macOS Apple Silicon (Portable)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - run: npm install
+
+      - name: Build
+        env:
+          APPLE_SIGNING_IDENTITY: '-'
+        run: npm run tauri build -- --bundles app
+
+      # Python env goes inside the .app so exe.parent() finds env/bin/python
+      - name: Create portable Python env
+        run: |
+          curl -fsSL \
+            "https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.sh" \
+            -o miniconda.sh
+          bash miniconda.sh -b -p /tmp/miniconda3
+          /tmp/miniconda3/bin/conda create -y -p ./env python=3.11
+          ./env/bin/python -m pip install --no-cache-dir \
+            "pydantic>=2.10.6" \
+            "tomli_w>=1.2.0" \
+            "uiya-yutto==0.0.5" \
+            "httpx[http2,socks]>=0.28.1" \
+            "natsort>=8.4.0"
+
+      - name: Download ffmpeg
+        run: |
+          curl -fsSL "https://evermeet.cx/ffmpeg/getrelease/zip" -o ffmpeg.zip
+          unzip -q ffmpeg.zip -d ffmpeg_tmp
+          cp ffmpeg_tmp/ffmpeg ./ffmpeg
+          chmod +x ./ffmpeg
+
+      - name: Package
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          CONTENTS="src-tauri/target/release/bundle/macos/yutto-uiya.app/Contents/MacOS"
+          # Bundle Python env, source, and ffmpeg inside the .app
+          cp -r env "$CONTENTS/env"
+          cp -r python "$CONTENTS/python"
+          find "$CONTENTS/python" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
+          cp ffmpeg "$CONTENTS/ffmpeg"
+          # Zip the whole .app
+          DIST="yutto-uiya-${VERSION}-macos-aarch64-portable"
+          mkdir "$DIST"
+          cp -r "src-tauri/target/release/bundle/macos/yutto-uiya.app" "$DIST/"
+          zip -r "${DIST}.zip" "$DIST"
+          rm -rf "$DIST"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-portable
+          path: "yutto-uiya-*.zip"
+
   # ─────────────────────────── Windows x86_64 (UV) ───────────────────────────
   build-windows-uv:
     name: Build · Windows x86_64 (UV)
@@ -241,7 +312,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: windows-portable
-          path: "*.zip"
+          path: "yutto-uiya-*.zip"
 
   # ─────────────────────────── Publish GitHub Release ───────────────────────────
   release:
@@ -250,6 +321,7 @@ jobs:
     needs:
       - build-linux
       - build-macos-arm
+      - build-macos-portable
       - build-windows-uv
       - build-windows-portable
     runs-on: ubuntu-latest
@@ -267,5 +339,6 @@ jobs:
           files: |
             linux-uv/*.tar.gz
             macos-arm-uv/*.zip
+            macos-portable/*.zip
             windows-uv/*.zip
             windows-portable/*.zip
