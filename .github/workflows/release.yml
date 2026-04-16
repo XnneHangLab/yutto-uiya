@@ -184,7 +184,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: macos-portable
-          path: "*.zip"
+          path: "yutto-uiya-*.zip"
 
   # ─────────────────────────── Windows x86_64 (UV) ───────────────────────────
   build-windows-uv:
@@ -312,7 +312,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: windows-portable
-          path: "*.zip"
+          path: "yutto-uiya-*.zip"
 
   # ─────────────────────────── Publish GitHub Release ───────────────────────────
   release:
