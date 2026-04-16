@@ -58,57 +58,17 @@ jobs:
           mkdir "$DIST"
           cp src-tauri/target/release/bundle/appimage/yutto-uiya_*.AppImage "$DIST/yutto-uiya.AppImage"
           chmod +x "$DIST/yutto-uiya.AppImage"
+          # Copy Python source, strip bytecode cache
           cp -r python "$DIST/"
+          find "$DIST/python" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
           cp pyproject.toml uv.lock "$DIST/"
           tar czf "${DIST}.tar.gz" "$DIST"
+          rm -rf "$DIST"
 
       - uses: actions/upload-artifact@v4
         with:
           name: linux-uv
           path: "*.tar.gz"
-
-  # ─────────────────────────── macOS Intel (UV) ───────────────────────────
-  build-macos-intel:
-    name: Build · macOS Intel (UV)
-    runs-on: macos-13
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: npm
-
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri -> target
-
-      - run: npm install
-
-      - name: Build
-        env:
-          APPLE_SIGNING_IDENTITY: '-'
-        run: npm run tauri build -- --bundles app
-
-      - name: Package
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="${{ inputs.version }}"
-          else
-            VERSION="${GITHUB_REF_NAME#v}"
-          fi
-          DIST="yutto-uiya-${VERSION}-macos-x86_64-uv"
-          mkdir "$DIST"
-          cp -r "src-tauri/target/release/bundle/macos/yutto-uiya.app" "$DIST/"
-          cp -r python "$DIST/"
-          cp pyproject.toml uv.lock "$DIST/"
-          zip -r "${DIST}.zip" "$DIST"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: macos-intel-uv
-          path: "*.zip"
 
   # ─────────────────────────── macOS Apple Silicon (UV) ───────────────────────────
   build-macos-arm:
@@ -145,8 +105,10 @@ jobs:
           mkdir "$DIST"
           cp -r "src-tauri/target/release/bundle/macos/yutto-uiya.app" "$DIST/"
           cp -r python "$DIST/"
+          find "$DIST/python" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
           cp pyproject.toml uv.lock "$DIST/"
           zip -r "${DIST}.zip" "$DIST"
+          rm -rf "$DIST"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -185,8 +147,11 @@ jobs:
           New-Item -ItemType Directory $dist
           Copy-Item "src-tauri\target\release\yutto-uiya.exe" "$dist\"
           Copy-Item -Recurse "python" "$dist\"
+          Get-ChildItem -Recurse "$dist\python" -Filter '__pycache__' -Directory |
+            Remove-Item -Recurse -Force
           Copy-Item "pyproject.toml", "uv.lock" "$dist\"
           Compress-Archive -Path $dist -DestinationPath "${dist}.zip"
+          Remove-Item -Recurse -Force $dist
 
       - uses: actions/upload-artifact@v4
         with:
@@ -262,11 +227,14 @@ jobs:
           New-Item -ItemType Directory $dist
           Copy-Item "src-tauri\target\release\yutto-uiya.exe" "$dist\"
           Copy-Item -Recurse "python" "$dist\"
+          Get-ChildItem -Recurse "$dist\python" -Filter '__pycache__' -Directory |
+            Remove-Item -Recurse -Force
           # Bundled Python env — app detects env\python.exe automatically
           Copy-Item -Recurse "env" "$dist\"
           Copy-Item "ffmpeg.exe" "$dist\"
           Write-Host "Compressing..."
           Compress-Archive -Path $dist -DestinationPath "${dist}.zip"
+          Remove-Item -Recurse -Force $dist
 
       - uses: actions/upload-artifact@v4
         with:
@@ -279,7 +247,6 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     needs:
       - build-linux
-      - build-macos-intel
       - build-macos-arm
       - build-windows-uv
       - build-windows-portable
@@ -297,7 +264,6 @@ jobs:
           generate_release_notes: true
           files: |
             linux-uv/*.tar.gz
-            macos-intel-uv/*.zip
             macos-arm-uv/*.zip
             windows-uv/*.zip
             windows-portable/*.zip
