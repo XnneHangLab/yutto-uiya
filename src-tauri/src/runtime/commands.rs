@@ -6,7 +6,7 @@ use super::process::{
     ensure_environment_ready, kill_process, open_path, open_url, pick_ffmpeg_path, pick_python_path, pick_workspace_root,
     resolve_managed_path, run_auth_login_command, run_auth_logout_command, run_fetch_cover_command,
     run_fetch_meta_command, run_inspect_command, run_parse_command, run_probe_command,
-    run_save_settings_command, write_console_log,
+    run_save_settings_command, run_uv_sync_command, write_console_log,
 };
 use super::state::{
     read_saved_driver_config, resolve_portable_python_path, resolve_repo_root,
@@ -341,6 +341,15 @@ pub async fn logout_auth(
     });
 
     Ok(message)
+}
+
+#[tauri::command]
+pub async fn uv_sync(
+    app: AppHandle,
+    state: State<'_, RuntimeState>,
+) -> Result<(), String> {
+    let repo_root = state.repo_root.clone();
+    run_blocking_runtime_action(move || run_uv_sync_command(&repo_root, &app)).await
 }
 
 #[tauri::command]

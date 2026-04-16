@@ -65,6 +65,7 @@ interface RenderPageOptions {
   onLogoutAuth: () => void;
   onCloseAuthDialog: () => void;
   onSave: (driver: RuntimeDriver, pythonExePath: string, ffmpegMode: 'system' | 'local', ffmpegExePath: string, noProxy: boolean) => void;
+  onUvSync: () => Promise<void>;
   onSetAutoScroll: (next: boolean) => void;
   onSetWrapLines: (next: boolean) => void;
   onClearLogs: () => void;
@@ -109,6 +110,7 @@ export function renderPage(
           onLogoutAuth={options.onLogoutAuth}
           onCloseAuthDialog={options.onCloseAuthDialog}
           onSave={options.onSave}
+          onUvSync={options.onUvSync}
           hotkey={options.hotkey}
           onSetHotkey={options.onSetHotkey}
         />
