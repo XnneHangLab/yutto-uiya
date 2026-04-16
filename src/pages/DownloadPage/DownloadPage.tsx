@@ -21,7 +21,7 @@ const taskStatusLabel: Record<string, string> = {
 };
 
 function downloadHint(opts: DownloadOptions): string {
-  const { requireVideo, requireAudio, requireCover, requireSubtitle } = opts;
+  const { requireVideo, requireAudio, requireCover, requireSubtitle, requireDanmaku } = opts;
   let hint = '';
   if (requireVideo && requireAudio && requireCover) hint = '视频 + 音频 + 封面（封面另存同目录）';
   else if (requireVideo && requireAudio) hint = '视频 + 音频，自动混流';
@@ -32,6 +32,7 @@ function downloadHint(opts: DownloadOptions): string {
   else if (requireCover) hint = '仅封面图片';
   else hint = '请至少选择一种资源类型';
   if (requireSubtitle) hint += '；含字幕';
+  if (requireDanmaku) hint += '；含弹幕';
   return hint;
 }
 
@@ -447,6 +448,19 @@ export function DownloadPage({
                 className={`dl-switch${downloadOptions.requireSubtitle ? ' dl-switch--on' : ''}`}
                 aria-pressed={downloadOptions.requireSubtitle}
                 onClick={() => onDownloadOptionsChange({ ...downloadOptions, requireSubtitle: !downloadOptions.requireSubtitle })}
+              />
+            </div>
+
+            <div className="dl-opts-row">
+              <div className="dl-opts-text">
+                <span className="dl-opts-name">弹幕</span>
+                <span className="dl-opts-desc">下载弹幕文件</span>
+              </div>
+              <button
+                type="button"
+                className={`dl-switch${downloadOptions.requireDanmaku ? ' dl-switch--on' : ''}`}
+                aria-pressed={downloadOptions.requireDanmaku}
+                onClick={() => onDownloadOptionsChange({ ...downloadOptions, requireDanmaku: !downloadOptions.requireDanmaku })}
               />
             </div>
 

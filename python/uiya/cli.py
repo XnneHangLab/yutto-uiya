@@ -462,6 +462,7 @@ def cmd_download(
     require_audio: bool = True,
     require_cover: bool = False,
     require_subtitle: bool = False,
+    require_danmaku: bool = False,
     video_quality: int = 127,
     audio_quality: int = 30280,
     select_index: int | None = None,
@@ -521,7 +522,7 @@ def cmd_download(
         resource = YuttoResourceSettings(
             require_video=require_video,
             require_audio=require_audio,
-            require_danmaku=True,
+            require_danmaku=require_danmaku,
             require_subtitle=require_subtitle,
             require_metadata=False,
             require_cover=require_cover,
@@ -1114,6 +1115,7 @@ def main() -> None:
     dl_parser.add_argument("--require-audio", default="true")
     dl_parser.add_argument("--require-cover", default="false")
     dl_parser.add_argument("--require-subtitle", default="false")
+    dl_parser.add_argument("--require-danmaku", default="false")
     dl_parser.add_argument("--video-quality", type=int, default=127)
     dl_parser.add_argument("--audio-quality", type=int, default=30280)
     dl_parser.add_argument("--select-index", type=int, default=None)
@@ -1146,6 +1148,7 @@ def main() -> None:
             require_audio=args.require_audio.lower() == "true",
             require_cover=args.require_cover.lower() == "true",
             require_subtitle=args.require_subtitle.lower() == "true",
+            require_danmaku=args.require_danmaku.lower() == "true",
             video_quality=args.video_quality,
             audio_quality=args.audio_quality,
             select_index=args.select_index,
