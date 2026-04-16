@@ -51,6 +51,7 @@ export interface EnvironmentProbe {
   authSource: string;
   issues: string[];
   message: string;
+  platform: string;
 }
 
 export interface RuntimeInspection {

@@ -170,6 +170,12 @@ export function SettingsPage({
                   {environmentLabel}
                 </span>
               </div>
+              {environmentProbe?.platform ? (
+                <div className="env-info-row">
+                  <span className="env-info-label">平台</span>
+                  <span className="env-info-badge">{environmentProbe.platform}</span>
+                </div>
+              ) : null}
               {environmentProbe?.message ? (
                 <div className="env-info-row">
                   <span className="env-info-label">详情</span>

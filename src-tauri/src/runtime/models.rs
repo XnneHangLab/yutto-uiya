@@ -134,6 +134,8 @@ pub struct EnvironmentProbePayload {
     pub auth_message: String,
     #[serde(default)]
     pub auth_source: String,
+    #[serde(default)]
+    pub platform: String,
 }
 
 fn default_auth_state() -> String {

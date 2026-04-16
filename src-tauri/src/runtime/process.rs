@@ -540,6 +540,7 @@ pub fn run_probe_command(repo_root: &Path, workspace_root: &Path, driver: &Runti
         serde_json::from_str(last_line).map_err(|error| error.to_string())?;
     payload.workspace_root = workspace_root.display().to_string();
     payload.repo_root = repo_root.display().to_string();
+    payload.platform = detect_platform();
 
     for issue in &payload.issues {
         if !issue.trim().is_empty() {
@@ -1353,6 +1354,32 @@ pub fn pick_ffmpeg_path() -> Result<Option<PathBuf>, String> {
     }
 }
 
+fn detect_platform() -> String {
+    #[cfg(target_os = "windows")]
+    return "Windows".to_string();
+
+    #[cfg(target_os = "macos")]
+    return "macOS".to_string();
+
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(content) = std::fs::read_to_string("/etc/os-release") {
+            for line in content.lines() {
+                if let Some(rest) = line.strip_prefix("PRETTY_NAME=") {
+                    let name = rest.trim_matches('"');
+                    if !name.is_empty() {
+                        return name.to_string();
+                    }
+                }
+            }
+        }
+        return "Linux".to_string();
+    }
+
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    return std::env::consts::OS.to_string();
+}
+
 fn build_probe_payload(
     repo_root: &Path,
     workspace_root: &Path,
@@ -1372,6 +1399,7 @@ fn build_probe_payload(
         auth_state: "unknown".to_string(),
         auth_message: String::new(),
         auth_source: String::new(),
+        platform: detect_platform(),
     }
 }
 
