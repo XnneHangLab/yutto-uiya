@@ -35,6 +35,7 @@ interface SettingsPageProps {
   onLogoutAuth: () => void;
   onCloseAuthDialog: () => void;
   onSave: (driver: RuntimeDriver, pythonExePath: string, ffmpegMode: 'system' | 'local', ffmpegExePath: string, noProxy: boolean) => void;
+  onUvSync: () => Promise<void>;
   hotkey: string;
   onSetHotkey: (shortcut: string) => Promise<void>;
 }
@@ -60,6 +61,7 @@ export function SettingsPage({
   onLogoutAuth,
   onCloseAuthDialog,
   onSave,
+  onUvSync,
   hotkey,
   onSetHotkey,
 }: SettingsPageProps) {
@@ -69,6 +71,7 @@ export function SettingsPage({
   const [localFfmpegMode, setLocalFfmpegMode] = useState<'system' | 'local'>(ffmpegMode);
   const [localFfmpegExePath, setLocalFfmpegExePath] = useState(ffmpegExePath);
   const [localNoProxy, setLocalNoProxy] = useState(noProxy);
+  const [syncing, setSyncing] = useState(false);
 
   // Hotkey recording state
   const [recording, setRecording] = useState(false);
@@ -101,6 +104,15 @@ export function SettingsPage({
     const picked = await onChoosePythonExe();
     if (picked) {
       setLocalPythonExePath(picked);
+    }
+  }
+
+  async function handleUvSync() {
+    setSyncing(true);
+    try {
+      await onUvSync();
+    } finally {
+      setSyncing(false);
     }
   }
 
@@ -239,6 +251,22 @@ export function SettingsPage({
                         退出登录
                       </button>
                     )}
+                  </div>
+                </div>
+              ) : null}
+              {localDriver === 'uv' ? (
+                <div className="env-info-row">
+                  <span className="env-info-label">依赖同步</span>
+                  <div className="workspace-actions">
+                    <button
+                      type="button"
+                      className="workspace-button"
+                      onClick={() => { void handleUvSync(); }}
+                      disabled={syncing || environmentProbe?.status === 'uv-unavailable'}
+                      title={environmentProbe?.status === 'uv-unavailable' ? '请先安装 uv' : undefined}
+                    >
+                      {syncing ? '同步中…' : 'uv sync'}
+                    </button>
                   </div>
                 </div>
               ) : null}

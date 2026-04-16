@@ -65,6 +65,10 @@ export function setRuntimeDriver(driver: string, pythonPath: string | null, ffmp
   return invoke<EnvironmentProbe>('set_runtime_driver', { driver, pythonPath, ffmpegPath, noProxy });
 }
 
+export function uvSync() {
+  return invoke<void>('uv_sync');
+}
+
 export function pickPythonPath() {
   return invoke<string | null>('pick_python_path_command');
 }

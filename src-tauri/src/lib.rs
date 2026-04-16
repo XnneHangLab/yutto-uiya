@@ -67,6 +67,7 @@ pub fn run() {
             runtime::commands::get_hotkey,
             runtime::commands::set_hotkey,
             runtime::commands::pause_hotkey,
+            runtime::commands::uv_sync,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

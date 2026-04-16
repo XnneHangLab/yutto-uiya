@@ -412,6 +412,54 @@ pub fn run_auth_logout_command(
         .to_string())
 }
 
+pub fn run_uv_sync_command(repo_root: &Path, app: &AppHandle) -> Result<(), String> {
+    emit_raw_log(app, "[sync] 开始执行 uv sync …");
+
+    let mut child = new_background_command("uv")
+        .arg("sync")
+        .current_dir(repo_root)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|error| format!("无法启动 uv: {error}"))?;
+
+    let stderr = child.stderr.take().ok_or("无法获取 stderr")?;
+    let stdout = child.stdout.take().ok_or("无法获取 stdout")?;
+
+    // uv writes progress/status to stderr; stream it in a thread
+    let app_for_stderr = app.clone();
+    let stderr_handle = thread::spawn(move || {
+        let reader = BufReader::new(stderr);
+        for line in reader.lines().map_while(Result::ok) {
+            // preserve \r so the frontend can do in-place progress overwrite
+            let line = line.trim_end_matches('\n');
+            if !line.trim_matches('\r').trim().is_empty() {
+                let _ = app_for_stderr.emit("runtime:raw-log", line);
+            }
+        }
+    });
+
+    // stdout is usually empty for uv sync but capture it anyway
+    let reader = BufReader::new(stdout);
+    for line in reader.lines().map_while(Result::ok) {
+        let line = line.trim_end_matches('\n');
+        if !line.trim().is_empty() {
+            let _ = app.emit("runtime:raw-log", line);
+        }
+    }
+
+    let _ = stderr_handle.join();
+    let status = child.wait().map_err(|error| format!("等待进程结束失败: {error}"))?;
+
+    if status.success() {
+        emit_raw_log(app, "[sync] uv sync 完成");
+        Ok(())
+    } else {
+        let code = status.code().unwrap_or(-1);
+        Err(format!("uv sync 失败，退出码: {code}"))
+    }
+}
+
 pub fn run_probe_command(repo_root: &Path, workspace_root: &Path, driver: &RuntimeDriverConfig, ffmpeg_path: &str, app: &AppHandle) -> Result<EnvironmentProbePayload, String> {
     emit_raw_log(app, "[probe] 开始检测运行环境 …");
 

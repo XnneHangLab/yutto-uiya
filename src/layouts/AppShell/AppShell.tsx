@@ -30,6 +30,7 @@ import {
   useRepoWorkspaceRoot,
   getHotkey,
   setHotkey as setHotkeyApi,
+  uvSync,
 } from '../../services/runtime/bridge';
 import {
   applyRuntimeEvent,
@@ -595,6 +596,18 @@ export function AppShell() {
     setLogs([]);
   }
 
+  async function handleUvSync() {
+    try {
+      await uvSync();
+    } catch (error) {
+      setLogs((current) => [
+        ...current,
+        createConsoleLog('stderr', `uv sync 失败: ${toErrorMessage(error)}`),
+      ]);
+    }
+    await refreshEnvironmentStatus();
+  }
+
   async function handleCancelTask(taskId: string) {
     try {
       await cancelTask(taskId);
@@ -670,6 +683,7 @@ export function AppShell() {
               onLogoutAuth: handleLogoutAuth,
               onCloseAuthDialog: handleCloseAuthDialog,
               onSave: handleSaveSettings,
+              onUvSync: handleUvSync,
               onSetAutoScroll: setAutoScroll,
               onSetWrapLines: setWrapLines,
               onClearLogs: handleClearLogs,
