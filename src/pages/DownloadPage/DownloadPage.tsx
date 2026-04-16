@@ -21,15 +21,18 @@ const taskStatusLabel: Record<string, string> = {
 };
 
 function downloadHint(opts: DownloadOptions): string {
-  const { requireVideo, requireAudio, requireCover } = opts;
-  if (requireVideo && requireAudio && requireCover) return '视频 + 音频 + 封面（封面另存同目录）';
-  if (requireVideo && requireAudio) return '视频 + 音频，自动混流';
-  if (requireVideo && requireCover) return '仅视频流 + 封面';
-  if (requireAudio && requireCover) return '仅音频流 + 封面';
-  if (requireVideo) return '仅视频流（无音频）';
-  if (requireAudio) return '仅音频流';
-  if (requireCover) return '仅封面图片';
-  return '请至少选择一种资源类型';
+  const { requireVideo, requireAudio, requireCover, requireSubtitle } = opts;
+  let hint = '';
+  if (requireVideo && requireAudio && requireCover) hint = '视频 + 音频 + 封面（封面另存同目录）';
+  else if (requireVideo && requireAudio) hint = '视频 + 音频，自动混流';
+  else if (requireVideo && requireCover) hint = '仅视频流 + 封面';
+  else if (requireAudio && requireCover) hint = '仅音频流 + 封面';
+  else if (requireVideo) hint = '仅视频流（无音频）';
+  else if (requireAudio) hint = '仅音频流';
+  else if (requireCover) hint = '仅封面图片';
+  else hint = '请至少选择一种资源类型';
+  if (requireSubtitle) hint += '；含字幕';
+  return hint;
 }
 
 function formatDuration(seconds: number): string {
@@ -431,6 +434,19 @@ export function DownloadPage({
                 className={`dl-switch${downloadOptions.requireCover ? ' dl-switch--on' : ''}`}
                 aria-pressed={downloadOptions.requireCover}
                 onClick={() => onDownloadOptionsChange({ ...downloadOptions, requireCover: !downloadOptions.requireCover })}
+              />
+            </div>
+
+            <div className="dl-opts-row">
+              <div className="dl-opts-text">
+                <span className="dl-opts-name">字幕</span>
+                <span className="dl-opts-desc">下载 ass / srt 字幕文件</span>
+              </div>
+              <button
+                type="button"
+                className={`dl-switch${downloadOptions.requireSubtitle ? ' dl-switch--on' : ''}`}
+                aria-pressed={downloadOptions.requireSubtitle}
+                onClick={() => onDownloadOptionsChange({ ...downloadOptions, requireSubtitle: !downloadOptions.requireSubtitle })}
               />
             </div>
 

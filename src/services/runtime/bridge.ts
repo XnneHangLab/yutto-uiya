@@ -34,6 +34,7 @@ export function enqueueDownload(target: string, options: DownloadOptions, label?
     requireVideo: options.requireVideo,
     requireAudio: options.requireAudio,
     requireCover: options.requireCover,
+    requireSubtitle: options.requireSubtitle,
     videoQuality: options.videoQuality,
     audioQuality: options.audioQuality,
     dirOverride: dirOverride ?? null,

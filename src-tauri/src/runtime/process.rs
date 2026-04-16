@@ -623,6 +623,7 @@ pub fn run_download_command(
     require_video: bool,
     require_audio: bool,
     require_cover: bool,
+    require_subtitle: bool,
     video_quality: u32,
     audio_quality: u32,
     dir_override: Option<String>,
@@ -640,6 +641,7 @@ pub fn run_download_command(
         .arg("--require-video").arg(if require_video { "true" } else { "false" })
         .arg("--require-audio").arg(if require_audio { "true" } else { "false" })
         .arg("--require-cover").arg(if require_cover { "true" } else { "false" })
+        .arg("--require-subtitle").arg(if require_subtitle { "true" } else { "false" })
         .arg("--video-quality").arg(video_quality.to_string())
         .arg("--audio-quality").arg(audio_quality.to_string())
         .env("UIYA_FFMPEG_PATH", &ffmpeg_path)
@@ -844,6 +846,7 @@ pub fn drain_download_queue(app: AppHandle, state: RuntimeState) {
             task.require_video,
             task.require_audio,
             task.require_cover,
+            task.require_subtitle,
             task.video_quality,
             task.audio_quality,
             task.dir_override.clone(),
