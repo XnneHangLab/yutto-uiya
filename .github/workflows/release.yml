@@ -4,6 +4,14 @@ on:
   push:
     tags:
       - 'v*'
+  # Allows manual runs from the Actions UI for packaging verification.
+  # Build artifacts are uploaded and downloadable without creating a Release.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version string used for artifact naming (e.g. 0.0.0-test)'
+        default: '0.0.0-test'
+        required: false
 
 env:
   CARGO_TERM_COLOR: always
@@ -41,7 +49,11 @@ jobs:
 
       - name: Package
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
           DIST="yutto-uiya-${VERSION}-linux-x86_64-uv"
           mkdir "$DIST"
           cp src-tauri/target/release/bundle/appimage/yutto-uiya_*.AppImage "$DIST/yutto-uiya.AppImage"
@@ -81,7 +93,11 @@ jobs:
 
       - name: Package
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
           DIST="yutto-uiya-${VERSION}-macos-x86_64-uv"
           mkdir "$DIST"
           cp -r "src-tauri/target/release/bundle/macos/yutto-uiya.app" "$DIST/"
@@ -120,7 +136,11 @@ jobs:
 
       - name: Package
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
           DIST="yutto-uiya-${VERSION}-macos-aarch64-uv"
           mkdir "$DIST"
           cp -r "src-tauri/target/release/bundle/macos/yutto-uiya.app" "$DIST/"
@@ -156,7 +176,11 @@ jobs:
       - name: Package
         shell: pwsh
         run: |
-          $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $version = "${{ inputs.version }}"
+          } else {
+            $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          }
           $dist = "yutto-uiya-${version}-windows-x86_64-uv"
           New-Item -ItemType Directory $dist
           Copy-Item "src-tauri\target\release\yutto-uiya.exe" "$dist\"
@@ -229,7 +253,11 @@ jobs:
       - name: Package
         shell: pwsh
         run: |
-          $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $version = "${{ inputs.version }}"
+          } else {
+            $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          }
           $dist = "yutto-uiya-${version}-windows-x86_64-portable"
           New-Item -ItemType Directory $dist
           Copy-Item "src-tauri\target\release\yutto-uiya.exe" "$dist\"
@@ -248,6 +276,7 @@ jobs:
   # ─────────────────────────── Publish GitHub Release ───────────────────────────
   release:
     name: Publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/')
     needs:
       - build-linux
       - build-macos-intel
