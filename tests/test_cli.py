@@ -47,9 +47,9 @@ def test_assign_parse_item_dirs_uses_repaired_title_for_per_video_layout():
         }
     ]
 
-    _assign_parse_item_dirs(items, "一目生的收藏夹/不可思议", is_per_video=True)
+    _assign_parse_item_dirs(items, "Korewaxnne的收藏夹/不可思议", is_per_video=True)
 
-    assert items[0]["dir"] == "一目生的收藏夹/不可思议/Qwen3.5-27B 变身本地 Claude"
+    assert items[0]["dir"] == "Korewaxnne的收藏夹/不可思议/Qwen3.5-27B 变身本地 Claude"
 
 
 def test_build_qr_data_url_generates_png_with_alpha_channel():
@@ -195,9 +195,9 @@ def test_assign_parse_group_dirs_uses_group_title_for_shared_dir():
         }
     ]
 
-    _assign_parse_group_dirs(groups, "一目生的收藏夹/不可思议")
+    _assign_parse_group_dirs(groups, "Korewaxnne的收藏夹/不可思议")
 
-    assert groups[0]["dir"] == "一目生的收藏夹/不可思议/3分钟学会 视频选集 视频合集 视频列表 分p怎么弄"
+    assert groups[0]["dir"] == "Korewaxnne的收藏夹/不可思议/3分钟学会 视频选集 视频合集 视频列表 分p怎么弄"
     assert groups[0]["items"][0]["dir"] == groups[0]["dir"]
     assert groups[0]["items"][1]["dir"] == groups[0]["dir"]
 
