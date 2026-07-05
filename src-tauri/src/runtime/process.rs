@@ -690,6 +690,7 @@ pub fn run_download_command(
     video_quality: u32,
     audio_quality: u32,
     dir_override: Option<String>,
+    audio_format: Option<String>,
 ) -> Result<(), String> {
     let driver = state.current_driver_config();
     let ffmpeg_path = state.current_ffmpeg_path();
@@ -720,6 +721,9 @@ pub fn run_download_command(
         .stderr(Stdio::piped());
     if let Some(dir) = &dir_override {
         command.arg("--dir-override").arg(dir);
+    }
+    if let Some(fmt) = &audio_format {
+        command.arg("--audio-format").arg(fmt);
     }
 
     let mut child = command
@@ -922,6 +926,7 @@ pub fn drain_download_queue(app: AppHandle, state: RuntimeState) {
             task.video_quality,
             task.audio_quality,
             task.dir_override.clone(),
+            task.audio_format.clone(),
         ) {
             // If the task was already marked cancelled (by cancel_task), don't overwrite.
             let already_cancelled = {

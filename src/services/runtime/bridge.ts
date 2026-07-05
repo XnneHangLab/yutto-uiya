@@ -46,6 +46,7 @@ export function enqueueDownload(
     audioQuality: options.audioQuality,
     dirOverride: dirOverride ?? null,
     selectIndex: selectIndex ?? null,
+    audioFormat: options.audioFormat,
   });
 }
 

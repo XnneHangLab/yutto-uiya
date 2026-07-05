@@ -29,6 +29,8 @@ pub struct QueuedTask {
     pub select_index: Option<u32>,
     /// When set, pass `--dir-override <dir>` so the file lands in the correct collection subdirectory.
     pub dir_override: Option<String>,
+    /// When set, pass `--audio-format <format>` to select the output format for audio-only downloads.
+    pub audio_format: Option<String>,
 }
 
 #[derive(Default)]
@@ -54,6 +56,7 @@ impl QueueState {
         audio_quality: u32,
         select_index: Option<u32>,
         dir_override: Option<String>,
+        audio_format: Option<String>,
     ) -> RuntimeTaskRecord {
         self.next_id += 1;
         let task_id = format!("task-{}", self.next_id);
@@ -81,6 +84,7 @@ impl QueueState {
             audio_quality,
             select_index,
             dir_override,
+            audio_format,
         });
         self.tasks.push(task.clone());
         task
@@ -99,6 +103,7 @@ impl QueueState {
         audio_quality: u32,
         select_index: Option<u32>,
         dir_override: Option<String>,
+        audio_format: Option<String>,
     ) -> (RuntimeTaskRecord, bool) {
         let task = self.enqueue(
             target,
@@ -112,6 +117,7 @@ impl QueueState {
             audio_quality,
             select_index,
             dir_override,
+            audio_format,
         );
         if self.worker_running {
             (task, false)
@@ -454,6 +460,7 @@ mod tests {
             30280,
             None,
             None,
+            None,
         );
 
         assert_eq!(task.status, TaskStatus::Queued);
@@ -474,6 +481,7 @@ mod tests {
             false,
             127,
             30280,
+            None,
             None,
             None,
         );
@@ -517,6 +525,7 @@ mod tests {
             30280,
             None,
             None,
+            None,
         );
 
         assert!(should_start_worker);
@@ -536,6 +545,7 @@ mod tests {
             false,
             127,
             30280,
+            None,
             None,
             None,
         );
@@ -561,6 +571,7 @@ mod tests {
             false,
             127,
             30280,
+            None,
             None,
             None,
         );
