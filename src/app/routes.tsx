@@ -1,12 +1,38 @@
-import type { ReactElement } from 'react';
+import { lazy, type ReactElement, Suspense } from 'react';
 import type { PageId } from '../data/nav';
-import { CommunityPage } from '../pages/CommunityPage/CommunityPage';
-import { ConsolePage } from '../pages/ConsolePage/ConsolePage';
-import { DownloadPage } from '../pages/DownloadPage/DownloadPage';
 import { HomePage } from '../pages/HomePage/HomePage';
-import { SettingsPage } from '../pages/SettingsPage/SettingsPage';
-import { TroubleshootingPage } from '../pages/TroubleshootingPage/TroubleshootingPage';
-import { VersionsPage } from '../pages/VersionsPage/VersionsPage';
+
+const CommunityPage = lazy(() =>
+  import('../pages/CommunityPage/CommunityPage').then((m) => ({
+    default: m.CommunityPage,
+  })),
+);
+const ConsolePage = lazy(() =>
+  import('../pages/ConsolePage/ConsolePage').then((m) => ({
+    default: m.ConsolePage,
+  })),
+);
+const DownloadPage = lazy(() =>
+  import('../pages/DownloadPage/DownloadPage').then((m) => ({
+    default: m.DownloadPage,
+  })),
+);
+const SettingsPage = lazy(() =>
+  import('../pages/SettingsPage/SettingsPage').then((m) => ({
+    default: m.SettingsPage,
+  })),
+);
+const TroubleshootingPage = lazy(() =>
+  import('../pages/TroubleshootingPage/TroubleshootingPage').then((m) => ({
+    default: m.TroubleshootingPage,
+  })),
+);
+const VersionsPage = lazy(() =>
+  import('../pages/VersionsPage/VersionsPage').then((m) => ({
+    default: m.VersionsPage,
+  })),
+);
+
 import type { ConsoleLogEntry } from '../services/launcher/launcher';
 import type {
   DownloadOptions,
@@ -88,15 +114,24 @@ export function renderPage(
   pageId: PageId,
   options: RenderPageOptions,
 ): ReactElement {
+  if (pageId === 'home') {
+    return (
+      <HomePage
+        folders={options.folders}
+        onOpenPath={options.onOpenPath}
+        onOpenModels={options.onOpenModels}
+      />
+    );
+  }
+
+  return <Suspense fallback={null}>{renderLazyPage(pageId, options)}</Suspense>;
+}
+
+function renderLazyPage(
+  pageId: Exclude<PageId, 'home'>,
+  options: RenderPageOptions,
+): ReactElement {
   switch (pageId) {
-    case 'home':
-      return (
-        <HomePage
-          folders={options.folders}
-          onOpenPath={options.onOpenPath}
-          onOpenModels={options.onOpenModels}
-        />
-      );
     case 'settings':
       return (
         <SettingsPage
