@@ -6,6 +6,7 @@ export type EnvironmentProbeStatus =
   | 'uv-unavailable'
   | 'python-unavailable'
   | 'yutto-unavailable'
+  | 'ffmpeg-unavailable'
   | 'ready';
 export type DownloadTaskStatus =
   | 'queued'
@@ -286,7 +287,9 @@ export function getQueueSummary(tasks: RuntimeTaskRecord[]) {
 }
 
 export function isEnvironmentReady(probe: EnvironmentProbe | null) {
-  return probe?.status === 'ready';
+  return (
+    probe?.status === 'ready' || probe?.status === 'ffmpeg-unavailable'
+  );
 }
 
 function buildRuntimeTaskLabel(target: string) {

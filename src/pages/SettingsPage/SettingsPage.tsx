@@ -654,6 +654,8 @@ function formatEnvironmentStatus(status: EnvironmentProbe['status']) {
       return 'Python 不可用';
     case 'yutto-unavailable':
       return 'uiya 不可用';
+    case 'ffmpeg-unavailable':
+      return 'FFmpeg 不可用';
     case 'ready':
       return '就绪';
     default:

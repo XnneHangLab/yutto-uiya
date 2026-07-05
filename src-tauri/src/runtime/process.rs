@@ -100,9 +100,13 @@ try:
     if proc.returncode == 0:
         result["ffmpegAvailable"] = True
     else:
+        result["status"] = "ffmpeg-unavailable"
+        result["message"] = "ffmpeg 不可用"
         result["issues"].append("ffmpeg 返回非零退出码")
 except Exception as error:
     traceback.print_exc()
+    result["status"] = "ffmpeg-unavailable"
+    result["message"] = "ffmpeg 不可用"
     result["issues"].append(f"ffmpeg 不可用: {error}")
 
 print(json.dumps(result, ensure_ascii=False), flush=True)
