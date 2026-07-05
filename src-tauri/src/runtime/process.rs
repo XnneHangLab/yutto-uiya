@@ -75,7 +75,8 @@ if result["status"] == "ready":
         result["authMessage"] = "认证信息无效，只能下载低画质"
         result["issues"].append(f"认证信息无效，将只能下载低画质: {error}")
 
-ffmpeg_cmd = os.environ.get("UIYA_FFMPEG_PATH") or "ffmpeg"
+_env_ffmpeg = os.environ.get("UIYA_FFMPEG_PATH")
+ffmpeg_cmd = _env_ffmpeg if _env_ffmpeg is not None else "ffmpeg"
 if ffmpeg_cmd == "ffmpeg":
     try:
         import tomllib
@@ -99,9 +100,13 @@ try:
     if proc.returncode == 0:
         result["ffmpegAvailable"] = True
     else:
+        result["status"] = "ffmpeg-unavailable"
+        result["message"] = "ffmpeg 不可用"
         result["issues"].append("ffmpeg 返回非零退出码")
 except Exception as error:
     traceback.print_exc()
+    result["status"] = "ffmpeg-unavailable"
+    result["message"] = "ffmpeg 不可用"
     result["issues"].append(f"ffmpeg 不可用: {error}")
 
 print(json.dumps(result, ensure_ascii=False), flush=True)

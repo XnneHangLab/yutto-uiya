@@ -26,6 +26,7 @@ interface SettingsPageProps {
   ffmpegMode: 'system' | 'local';
   ffmpegExePath: string;
   onChooseFfmpegExe: () => Promise<string | null>;
+  onDetectFfmpeg: () => Promise<string[]>;
   noProxy: boolean;
   downloadDir: string;
   onChooseDownloadDir: () => Promise<string | null>;
@@ -61,6 +62,7 @@ export function SettingsPage({
   ffmpegMode,
   ffmpegExePath,
   onChooseFfmpegExe,
+  onDetectFfmpeg,
   noProxy,
   downloadDir,
   onChooseDownloadDir,
@@ -146,6 +148,20 @@ export function SettingsPage({
     }
   }
 
+  const [detectStatus, setDetectStatus] = useState<string | null>(null);
+
+  async function handleDetectFfmpeg() {
+    setDetectStatus(null);
+    const results = await onDetectFfmpeg();
+    if (results.length > 0) {
+      setLocalFfmpegExePath(results[0]);
+      setLocalFfmpegMode('local');
+      setDetectStatus('已找到');
+    } else {
+      setDetectStatus('未找到，请手动浏览选择');
+    }
+  }
+
   async function handleBrowseDownloadDir() {
     const picked = await onChooseDownloadDir();
     if (picked) {
@@ -218,14 +234,6 @@ export function SettingsPage({
                   <span className="env-info-label">平台</span>
                   <span className="env-info-badge">
                     {environmentProbe.platform}
-                  </span>
-                </div>
-              ) : null}
-              {environmentProbe?.message ? (
-                <div className="env-info-row">
-                  <span className="env-info-label">详情</span>
-                  <span className="env-info-value">
-                    {environmentProbe.message}
                   </span>
                 </div>
               ) : null}
@@ -482,11 +490,31 @@ export function SettingsPage({
                     <button
                       type="button"
                       className="workspace-button"
+                      onClick={handleDetectFfmpeg}
+                    >
+                      自动检测
+                    </button>
+                    <button
+                      type="button"
+                      className="workspace-button"
                       onClick={handleBrowseFfmpegExe}
                     >
                       浏览
                     </button>
                   </div>
+                  {detectStatus ? (
+                    <p
+                      style={{
+                        margin: '4px 0 0',
+                        fontSize: 12,
+                        color: detectStatus.startsWith('未')
+                          ? '#ff9b9b'
+                          : 'var(--accent)',
+                      }}
+                    >
+                      {detectStatus}
+                    </p>
+                  ) : null}
                 </SettingRow>
               ) : null}
 
@@ -654,6 +682,8 @@ function formatEnvironmentStatus(status: EnvironmentProbe['status']) {
       return 'Python 不可用';
     case 'yutto-unavailable':
       return 'uiya 不可用';
+    case 'ffmpeg-unavailable':
+      return 'FFmpeg 不可用';
     case 'ready':
       return '就绪';
     default:

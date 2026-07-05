@@ -12,6 +12,7 @@ import {
   cancelAuthLogin,
   cancelTask,
   chooseWorkspaceRoot,
+  detectFfmpegPath,
   enqueueDownload,
   exportConsoleLogs,
   getHotkey,
@@ -131,12 +132,12 @@ export function AppShell() {
       setRuntimeDriver(nextInspection.runtimeDriver);
       setPythonExePath(nextInspection.pythonPath ?? '');
       setFolders(buildFolderItemsFromPaths(paths));
-      if (nextInspection.ffmpegPath && nextInspection.ffmpegPath !== 'ffmpeg') {
-        setFfmpegMode('local');
-        setFfmpegExePath(nextInspection.ffmpegPath);
-      } else {
+      if (nextInspection.ffmpegPath === 'ffmpeg') {
         setFfmpegMode('system');
         setFfmpegExePath('');
+      } else {
+        setFfmpegMode('local');
+        setFfmpegExePath(nextInspection.ffmpegPath ?? '');
       }
       setNoProxy(nextInspection.noProxy ?? false);
       setDownloadDirSetting(nextInspection.downloadDirSetting ?? './downloads');
@@ -172,15 +173,12 @@ export function AppShell() {
         setRuntimeDriver(nextInspection.runtimeDriver);
         setPythonExePath(nextInspection.pythonPath ?? '');
         setFolders(buildFolderItemsFromPaths(paths));
-        if (
-          nextInspection.ffmpegPath &&
-          nextInspection.ffmpegPath !== 'ffmpeg'
-        ) {
-          setFfmpegMode('local');
-          setFfmpegExePath(nextInspection.ffmpegPath);
-        } else {
+        if (nextInspection.ffmpegPath === 'ffmpeg') {
           setFfmpegMode('system');
           setFfmpegExePath('');
+        } else {
+          setFfmpegMode('local');
+          setFfmpegExePath(nextInspection.ffmpegPath ?? '');
         }
         setNoProxy(nextInspection.noProxy ?? false);
         setDownloadDirSetting(
@@ -493,12 +491,12 @@ export function AppShell() {
     setRuntimeDriver(nextInspection.runtimeDriver);
     setPythonExePath(nextInspection.pythonPath ?? '');
     setFolders(buildFolderItemsFromPaths(paths));
-    if (nextInspection.ffmpegPath && nextInspection.ffmpegPath !== 'ffmpeg') {
-      setFfmpegMode('local');
-      setFfmpegExePath(nextInspection.ffmpegPath);
-    } else {
+    if (nextInspection.ffmpegPath === 'ffmpeg') {
       setFfmpegMode('system');
       setFfmpegExePath('');
+    } else {
+      setFfmpegMode('local');
+      setFfmpegExePath(nextInspection.ffmpegPath ?? '');
     }
     setNoProxy(nextInspection.noProxy ?? false);
   }
@@ -651,6 +649,14 @@ export function AppShell() {
     }
   }
 
+  async function handleDetectFfmpeg(): Promise<string[]> {
+    try {
+      return await detectFfmpegPath();
+    } catch {
+      return [];
+    }
+  }
+
   async function handleSetHotkey(shortcut: string) {
     await setHotkeyApi(shortcut);
     setHotkeyState(shortcut);
@@ -680,7 +686,15 @@ export function AppShell() {
       setNoProxy(nextNoProxy);
       setDownloadDirSetting(nextDownloadDir || './downloads');
       if (nextProbe) {
-        await handleWorkspaceProbe(nextProbe);
+        setEnvironmentProbe(nextProbe);
+        if (isEnvironmentReady(nextProbe)) {
+          const [nextInspection, paths] = await Promise.all([
+            inspectRuntime(),
+            listManagedFolders(),
+          ]);
+          setInspection(nextInspection);
+          setFolders(buildFolderItemsFromPaths(paths));
+        }
       }
     } catch (error) {
       setLogs((current) => [
@@ -788,6 +802,7 @@ export function AppShell() {
               ffmpegMode,
               ffmpegExePath,
               onChooseFfmpegExe: handleChooseFfmpegExe,
+              onDetectFfmpeg: handleDetectFfmpeg,
               noProxy,
               downloadDir: downloadDirSetting,
               onChooseDownloadDir: handleChooseDownloadDir,

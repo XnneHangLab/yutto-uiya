@@ -665,10 +665,10 @@ pub async fn set_runtime_driver(
         other => return Err(format!("unsupported runtime driver: {other}")),
     };
 
-    let next_ffmpeg = ffmpeg_path
-        .map(|p| p.trim().to_string())
-        .filter(|p| !p.is_empty())
-        .unwrap_or_else(|| "ffmpeg".to_string());
+    let next_ffmpeg = match ffmpeg_path {
+        Some(p) => p.trim().to_string(),
+        None => "ffmpeg".to_string(),
+    };
 
     let resolved_no_proxy = no_proxy.unwrap_or(false);
 
@@ -745,6 +745,43 @@ pub async fn pick_ffmpeg_path_command() -> Result<Option<String>, String> {
         Ok(path.map(|p| p.display().to_string()))
     })
     .await
+}
+
+#[tauri::command]
+pub fn detect_ffmpeg_path(state: State<'_, RuntimeState>) -> Vec<String> {
+    let repo_root = &state.repo_root;
+    let mut found: Vec<String> = Vec::new();
+    let candidates = [
+        resolve_portable_ffmpeg_path(repo_root),
+        repo_root.join("ffmpeg").join("bin").join("ffmpeg.exe"),
+        repo_root.join("ffmpeg").join("bin").join("ffmpeg"),
+    ];
+    for path in &candidates {
+        if path.is_file() {
+            found.push(path.display().to_string());
+        }
+    }
+    #[cfg(target_os = "windows")]
+    if let Ok(output) = std::process::Command::new("where").arg("ffmpeg").output() {
+        if output.status.success() {
+            for line in String::from_utf8_lossy(&output.stdout).lines() {
+                let p = line.trim().to_string();
+                if !p.is_empty() && !found.contains(&p) {
+                    found.push(p);
+                }
+            }
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    if let Ok(output) = std::process::Command::new("which").arg("ffmpeg").output() {
+        if output.status.success() {
+            let p = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !p.is_empty() && !found.contains(&p) {
+                found.push(p);
+            }
+        }
+    }
+    found
 }
 
 fn validate_download_target(target: &str) -> Result<(String, String), String> {

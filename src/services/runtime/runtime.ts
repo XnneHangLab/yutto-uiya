@@ -6,6 +6,7 @@ export type EnvironmentProbeStatus =
   | 'uv-unavailable'
   | 'python-unavailable'
   | 'yutto-unavailable'
+  | 'ffmpeg-unavailable'
   | 'ready';
 export type DownloadTaskStatus =
   | 'queued'
