@@ -57,6 +57,7 @@ pub fn run() {
             runtime::commands::set_runtime_driver,
             runtime::commands::pick_python_path_command,
             runtime::commands::pick_ffmpeg_path_command,
+            runtime::commands::detect_ffmpeg_path,
             runtime::commands::pick_download_dir_command,
             runtime::commands::parse_target,
             runtime::commands::fetch_video_meta,

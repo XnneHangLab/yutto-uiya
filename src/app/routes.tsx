@@ -83,6 +83,7 @@ interface RenderPageOptions {
   ffmpegMode: 'system' | 'local';
   ffmpegExePath: string;
   onChooseFfmpegExe: () => Promise<string | null>;
+  onDetectFfmpeg: () => Promise<string | null>;
   noProxy: boolean;
   downloadDir: string;
   onChooseDownloadDir: () => Promise<string | null>;
@@ -146,6 +147,7 @@ function renderLazyPage(
           ffmpegMode={options.ffmpegMode}
           ffmpegExePath={options.ffmpegExePath}
           onChooseFfmpegExe={options.onChooseFfmpegExe}
+          onDetectFfmpeg={options.onDetectFfmpeg}
           noProxy={options.noProxy}
           downloadDir={options.downloadDir}
           onChooseDownloadDir={options.onChooseDownloadDir}

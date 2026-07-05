@@ -747,6 +747,22 @@ pub async fn pick_ffmpeg_path_command() -> Result<Option<String>, String> {
     .await
 }
 
+#[tauri::command]
+pub fn detect_ffmpeg_path(state: State<'_, RuntimeState>) -> Option<String> {
+    let repo_root = &state.repo_root;
+    let candidates = [
+        resolve_portable_ffmpeg_path(repo_root),
+        repo_root.join("ffmpeg").join("bin").join("ffmpeg.exe"),
+        repo_root.join("ffmpeg").join("bin").join("ffmpeg"),
+    ];
+    for path in &candidates {
+        if path.is_file() {
+            return Some(path.display().to_string());
+        }
+    }
+    None
+}
+
 fn validate_download_target(target: &str) -> Result<(String, String), String> {
     let target = target.trim();
     if target.is_empty() {

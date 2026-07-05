@@ -23,6 +23,7 @@ import {
   openTaskSaveDir,
   parseTarget,
   pickDownloadDir,
+  detectFfmpegPath,
   pickFfmpegPath,
   pickPythonPath,
   probeEnvironment,
@@ -648,6 +649,14 @@ export function AppShell() {
     }
   }
 
+  async function handleDetectFfmpeg(): Promise<string | null> {
+    try {
+      return await detectFfmpegPath();
+    } catch {
+      return null;
+    }
+  }
+
   async function handleSetHotkey(shortcut: string) {
     await setHotkeyApi(shortcut);
     setHotkeyState(shortcut);
@@ -793,6 +802,7 @@ export function AppShell() {
               ffmpegMode,
               ffmpegExePath,
               onChooseFfmpegExe: handleChooseFfmpegExe,
+              onDetectFfmpeg: handleDetectFfmpeg,
               noProxy,
               downloadDir: downloadDirSetting,
               onChooseDownloadDir: handleChooseDownloadDir,

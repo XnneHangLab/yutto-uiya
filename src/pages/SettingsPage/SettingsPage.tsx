@@ -26,6 +26,7 @@ interface SettingsPageProps {
   ffmpegMode: 'system' | 'local';
   ffmpegExePath: string;
   onChooseFfmpegExe: () => Promise<string | null>;
+  onDetectFfmpeg: () => Promise<string | null>;
   noProxy: boolean;
   downloadDir: string;
   onChooseDownloadDir: () => Promise<string | null>;
@@ -61,6 +62,7 @@ export function SettingsPage({
   ffmpegMode,
   ffmpegExePath,
   onChooseFfmpegExe,
+  onDetectFfmpeg,
   noProxy,
   downloadDir,
   onChooseDownloadDir,
@@ -142,6 +144,14 @@ export function SettingsPage({
     const picked = await onChooseFfmpegExe();
     if (picked) {
       setLocalFfmpegExePath(picked);
+      setLocalFfmpegMode('local');
+    }
+  }
+
+  async function handleDetectFfmpeg() {
+    const detected = await onDetectFfmpeg();
+    if (detected) {
+      setLocalFfmpegExePath(detected);
       setLocalFfmpegMode('local');
     }
   }
@@ -471,6 +481,13 @@ export function SettingsPage({
                       }
                       placeholder="例：C:\tools\ffmpeg\bin\ffmpeg.exe"
                     />
+                    <button
+                      type="button"
+                      className="workspace-button"
+                      onClick={handleDetectFfmpeg}
+                    >
+                      自动检测
+                    </button>
                     <button
                       type="button"
                       className="workspace-button"
