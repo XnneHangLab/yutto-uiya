@@ -44,4 +44,4 @@ url = "https://pypi.tuna.tsinghua.edu.cn/simple"
 default = true
 ```
 
-然后重新点击「一键同步」。
+然后重新点击`「设置-依赖同步-uv sync」`。

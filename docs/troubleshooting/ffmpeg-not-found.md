@@ -26,6 +26,8 @@ yutto 需要 FFmpeg 来合并下载的音视频流。系统 PATH 中没有 ffmpe
 
 **方式一：下载便携版 FFmpeg（推荐）**
 
+> 如果你使用的是我的一键包。可以重新看一下 [视频](https://www.bilibili.com/video/BV1yRdBBsEGZ/) 的 1:54~2:20。
+
 1. 从 [FFmpeg 官网](https://ffmpeg.org/download.html) 下载对应系统的构建版本
 2. 解压到任意目录，如 `D:\tools\ffmpeg\bin\ffmpeg.exe`
 3. 打开 yutto-uiya → 设置 → FFmpeg 来源 → 选择「本地 ffmpeg」

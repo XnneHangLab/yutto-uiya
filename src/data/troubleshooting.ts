@@ -25,9 +25,10 @@ export const faqCategories: FaqCategory[] = [
         symptom: '控制台显示 ffmpeg 不可用，设置页环境检测也提示异常。',
         cause: '系统 PATH 中没有 ffmpeg，或者没有在设置中指定本地路径。',
         steps: [
+          '一键包用户可参考视频 BV1yRdBBsEGZ 的 1:54~2:20',
           '下载 FFmpeg：https://ffmpeg.org/download.html',
-          '设置 → FFmpeg 来源 → 选择「本地 ffmpeg」',
-          '点击「浏览」选择 ffmpeg.exe 路径',
+          '解压到任意目录，如 D:\\tools\\ffmpeg\\bin\\ffmpeg.exe',
+          '设置 → FFmpeg 来源 → 选择「本地 ffmpeg」→ 浏览选择路径',
           '点击「保存并重新检测」',
         ],
       },
@@ -39,7 +40,7 @@ export const faqCategories: FaqCategory[] = [
         steps: [
           '检查网络连接和代理设置',
           '或在 pyproject.toml 中将 PyPI 源替换为国内镜像',
-          '然后重新点击「一键同步」',
+          '然后重新点击「设置 → 依赖同步 → uv sync」',
         ],
       },
       {
