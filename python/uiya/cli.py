@@ -7,6 +7,7 @@ Commands:
   parse <target>    Run yutto --skip-download to enumerate playlist items + available quality tiers.
   save-settings     Persist settings to uiya.toml.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -14,12 +15,16 @@ import ast
 import base64
 import json
 import os
+import pathlib
 import re
 import subprocess
 import sys
 import tempfile
-import urllib.parse
 import urllib.request
+from typing import TYPE_CHECKING, Any, NoReturn, cast
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 _BILIBILI_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -36,30 +41,43 @@ VIDEO_QUALITY_RE = re.compile(r"视频质量.*?<(.+?)>")
 AUDIO_QUALITY_RE = re.compile(r"音频质量.*?<(.+?)>")
 
 
+_VIDEO_QUALITY_MAP: list[tuple[str, int]] = [
+    ("8K", 127),
+    ("杜比视界", 126),
+    ("HDR", 125),
+    ("4K", 120),
+    ("1080P 60", 116),
+    ("1080P 高码率", 112),
+    ("1080P", 80),
+    ("720P 60", 74),
+    ("720P", 64),
+    ("480P", 32),
+    ("360P", 16),
+]
+
+_AUDIO_QUALITY_MAP: list[tuple[str, int]] = [
+    ("Hi-Res", 30251),
+    ("杜比音效", 30255),
+    ("杜比全景声", 30250),
+    ("320", 30280),
+    ("128", 30232),
+    ("64", 30216),
+]
+
+
 def _video_quality_code(label: str) -> int | None:
     s = label.strip()
-    if "8K" in s: return 127
-    if "杜比视界" in s: return 126
-    if "HDR" in s: return 125
-    if "4K" in s: return 120
-    if "1080P 60" in s: return 116
-    if "1080P 高码率" in s: return 112
-    if "1080P" in s: return 80
-    if "720P 60" in s: return 74
-    if "720P" in s: return 64
-    if "480P" in s: return 32
-    if "360P" in s: return 16
+    for keyword, code in _VIDEO_QUALITY_MAP:
+        if keyword in s:
+            return code
     return None
 
 
 def _audio_quality_code(label: str) -> int | None:
     s = label.strip()
-    if "Hi-Res" in s: return 30251
-    if "杜比音效" in s: return 30255
-    if "杜比全景声" in s: return 30250
-    if "320" in s: return 30280
-    if "128" in s: return 30232
-    if "64" in s: return 30216
+    for keyword, code in _AUDIO_QUALITY_MAP:
+        if keyword in s:
+            return code
     return None
 
 
@@ -101,10 +119,13 @@ def _build_yutto_command(
 def _fetch_image_as_data_url(url: str) -> str:
     """Download an image with Bilibili referer and return a base64 data URL."""
     try:
-        req = urllib.request.Request(url, headers={
-            **_BILIBILI_HEADERS,
-            "Referer": "https://www.bilibili.com",
-        })
+        req = urllib.request.Request(
+            url,
+            headers={
+                **_BILIBILI_HEADERS,
+                "Referer": "https://www.bilibili.com",
+            },
+        )
         with urllib.request.urlopen(req, timeout=10) as resp:
             img_bytes = resp.read()
             mime = resp.headers.get_content_type() or "image/jpeg"
@@ -121,7 +142,7 @@ def _extract_bilibili_video_identity(url: str) -> tuple[str, str] | None:
     return None
 
 
-def _fetch_bilibili_view_payload(url: str, sessdata: str = "") -> dict | None:
+def _fetch_bilibili_view_payload(url: str, sessdata: str = "") -> dict[str, Any] | None:
     identity = _extract_bilibili_video_identity(url)
     if identity is None:
         return None
@@ -140,23 +161,28 @@ def _fetch_bilibili_view_payload(url: str, sessdata: str = "") -> dict | None:
 
     if payload.get("code") != 0:
         return None
-    data = payload.get("data")
-    return data if isinstance(data, dict) else None
+    data: Any = payload.get("data")
+    if isinstance(data, dict):
+        return cast("dict[str, Any]", data)
+    return None
 
 
 def _is_playlist_page_title(title: str) -> bool:
     return bool(re.match(r"^P\d+[_\s].+", title.strip()))
 
 
-def _resolve_single_download_title(
+def _resolve_single_download_title(  # pyright: ignore[reportUnusedFunction]
     url: str,
     fallback_title: str,
-    view_fetcher: callable = _fetch_bilibili_view_payload,
-) -> tuple[str, dict | None]:
+    view_fetcher: Callable[..., Any] | None = _fetch_bilibili_view_payload,
+) -> tuple[str, dict[str, Any] | None]:
     if _is_playlist_page_title(fallback_title):
         return fallback_title, None
 
-    payload = view_fetcher(url)
+    if view_fetcher is None:
+        return fallback_title, None
+
+    payload: dict[str, Any] | None = view_fetcher(url)
     if not payload:
         return fallback_title, None
 
@@ -167,12 +193,13 @@ def _resolve_single_download_title(
     return title, payload
 
 
-def _assign_parse_item_dirs(items: list[dict], collection_dir: str, is_per_video: bool) -> None:
+def _assign_parse_item_dirs(items: list[dict[str, Any]], collection_dir: str, is_per_video: bool) -> None:
     try:
         from yutto.path_templates import repair_filename as _repair_filename
     except ImportError:
-        def _repair_filename(s: str) -> str:  # type: ignore[misc]
-            return s
+
+        def _repair_filename(filename: str) -> str:
+            return filename
 
     for item in items:
         if is_per_video:
@@ -187,10 +214,10 @@ class _ParseContext:
     def __init__(self) -> None:
         self.next_index = 1
         self.current_title: str | None = None
-        self.current_group: dict | None = None
-        self.pending_item: dict | None = None
-        self.items: list[dict] = []
-        self.groups: list[dict] = []
+        self.current_group: dict[str, Any] | None = None
+        self.pending_item: dict[str, Any] | None = None
+        self.items: list[dict[str, Any]] = []
+        self.groups: list[dict[str, Any]] = []
         self.seen_video_qualities: dict[int, str] = {}
         self.seen_audio_qualities: dict[int, str] = {}
 
@@ -199,7 +226,7 @@ class _ParseContext:
             self.groups.append(self.current_group)
         self.current_group = None
 
-    def _complete_pending_item(self) -> dict | None:
+    def _complete_pending_item(self) -> dict[str, Any] | None:
         """Finalise pending_item and commit it to items/current_group. Returns it."""
         item = self.pending_item
         if item is None:
@@ -212,7 +239,7 @@ class _ParseContext:
             self.items.append(item)
         return item
 
-    def consume(self, line: str, view_fetcher: "callable | None" = None) -> dict | None:  # noqa: ARG002
+    def consume(self, line: str, view_fetcher: Callable[..., Any] | None = None) -> dict[str, Any] | None:
         if m_group := GROUP_RE.search(line):
             self._complete_pending_item()
             self._flush_group()
@@ -248,20 +275,23 @@ class _ParseContext:
         if m_meta := METADATA_RE.search(line):
             if self.pending_item is not None:
                 try:
-                    meta = ast.literal_eval(m_meta.group(1))
+                    meta: dict[str, Any] = ast.literal_eval(m_meta.group(1))
                 except Exception:
                     meta = {}
                 pic = str(meta.get("thumb", "")).strip()
                 if pic:
                     self.pending_item["cover"] = pic  # raw URL; frontend fetches on demand
                 uploader = ""
-                for actor in meta.get("actor", []):
-                    if isinstance(actor, dict) and actor.get("role") == "UP主":
-                        uploader = str(actor.get("name", ""))
-                        break
+                actor_entry: Any
+                for actor_entry in meta.get("actor", []):
+                    if isinstance(actor_entry, dict):
+                        actor_dict = cast("dict[str, Any]", actor_entry)
+                        if actor_dict.get("role") == "UP主":
+                            uploader = str(actor_dict.get("name", ""))
+                            break
                 self.pending_item["uploader"] = uploader
                 self.pending_item["description"] = str(meta.get("plot", ""))
-                premiered = meta.get("premiered", 0)
+                premiered: Any = meta.get("premiered", 0)
                 self.pending_item["pubdate"] = int(premiered) if premiered else 0
                 self.pending_item["tags"] = [str(t) for t in meta.get("tag", []) if t]
                 return self._complete_pending_item()
@@ -283,7 +313,7 @@ class _ParseContext:
 
         return None
 
-    def finish(self) -> dict:
+    def finish(self) -> dict[str, Any]:
         self._complete_pending_item()
         self._flush_group()
         return {
@@ -300,19 +330,22 @@ class _ParseContext:
         }
 
 
-def _parse_skip_download_lines(lines: list[str], view_fetcher: "callable | None" = None) -> dict:
+def _parse_skip_download_lines(  # pyright: ignore[reportUnusedFunction]
+    lines: list[str], view_fetcher: Callable[..., Any] | None = None
+) -> dict[str, Any]:
     context = _ParseContext()
     for line in lines:
         context.consume(line, view_fetcher)
     return context.finish()
 
 
-def _assign_parse_group_dirs(groups: list[dict], collection_dir: str) -> None:
+def _assign_parse_group_dirs(groups: list[dict[str, Any]], collection_dir: str) -> None:
     try:
         from yutto.path_templates import repair_filename as _repair_filename
     except ImportError:
-        def _repair_filename(s: str) -> str:  # type: ignore[misc]
-            return s
+
+        def _repair_filename(filename: str) -> str:
+            return filename
 
     for group in groups:
         repaired_title = _repair_filename(str(group.get("title", "")))
@@ -322,20 +355,19 @@ def _assign_parse_group_dirs(groups: list[dict], collection_dir: str) -> None:
             item["dir"] = group_dir
 
 
-def _leaf_dirs_from_new_dirs(new_dirs: set["pathlib.Path"]) -> set["pathlib.Path"]:
-    return {d for d in new_dirs if not any(
-        d2 != d and d2.is_relative_to(d) for d2 in new_dirs
-    )}
+def _leaf_dirs_from_new_dirs(new_dirs: set[pathlib.Path]) -> set[pathlib.Path]:
+    return {d for d in new_dirs if not any(d2 != d and d2.is_relative_to(d) for d2 in new_dirs)}
 
 
-def _build_parse_dir_title_candidates(items: list[dict], groups: list[dict]) -> set[str]:
+def _build_parse_dir_title_candidates(items: list[dict[str, Any]], groups: list[dict[str, Any]]) -> set[str]:
     try:
         from yutto.path_templates import repair_filename as _repair_filename
     except ImportError:
-        def _repair_filename(s: str) -> str:  # type: ignore[misc]
-            return s
 
-    candidates = set()
+        def _repair_filename(filename: str) -> str:
+            return filename
+
+    candidates: set[str] = set()
     for item in items:
         raw = str(item.get("title", ""))
         candidates.add(_repair_filename(raw))
@@ -347,13 +379,11 @@ def _build_parse_dir_title_candidates(items: list[dict], groups: list[dict]) -> 
 
 
 def _infer_collection_dir_from_candidate_dirs(
-    new_dirs: set["pathlib.Path"],
+    new_dirs: set[pathlib.Path],
     total_items: int,
     candidate_dir_names: set[str],
-    leaf_dirs: set["pathlib.Path"] | None = None,
+    leaf_dirs: set[pathlib.Path] | None = None,
 ) -> str:
-    import pathlib
-
     if leaf_dirs is None:
         leaf_dirs = _leaf_dirs_from_new_dirs(new_dirs)
     dirs_for_common = leaf_dirs or new_dirs
@@ -361,9 +391,7 @@ def _infer_collection_dir_from_candidate_dirs(
     if total_items > 1 and candidate_dir_names:
         matched_child_dirs = {d for d in dirs_for_common if d.name in candidate_dir_names}
         if matched_child_dirs:
-            common_parent = pathlib.Path(
-                os.path.commonpath([str(d.parent) for d in matched_child_dirs])
-            )
+            common_parent = pathlib.Path(os.path.commonpath([str(d.parent) for d in matched_child_dirs]))
             return common_parent.as_posix() if str(common_parent) not in (".", "") else ""
 
     if total_items > 1 and len(dirs_for_common) == 1:
@@ -377,11 +405,11 @@ def _infer_collection_dir_from_candidate_dirs(
     return collection_dir
 
 
-def _infer_collection_dir_from_new_dirs(
-    new_dirs: set["pathlib.Path"],
+def _infer_collection_dir_from_new_dirs(  # pyright: ignore[reportUnusedFunction]
+    new_dirs: set[pathlib.Path],
     total_items: int,
-    groups: list[dict],
-    leaf_dirs: set["pathlib.Path"] | None = None,
+    groups: list[dict[str, Any]],
+    leaf_dirs: set[pathlib.Path] | None = None,
 ) -> str:
     return _infer_collection_dir_from_candidate_dirs(
         new_dirs,
@@ -392,12 +420,10 @@ def _infer_collection_dir_from_new_dirs(
 
 
 def _find_existing_dirs_by_titles(
-    downloads_path: "pathlib.Path",
-    items: list[dict],
-    groups: list[dict],
-) -> set["pathlib.Path"]:
-    import pathlib
-
+    downloads_path: pathlib.Path,
+    items: list[dict[str, Any]],
+    groups: list[dict[str, Any]],
+) -> set[pathlib.Path]:
     candidate_dir_names = _build_parse_dir_title_candidates(items, groups)
 
     matched: set[pathlib.Path] = set()
@@ -410,11 +436,12 @@ def _find_existing_dirs_by_titles(
     return matched
 
 
-def _resolve_runtime_proxy(settings) -> str:
+def _resolve_runtime_proxy(settings: Any) -> str:
     if getattr(settings, "no_proxy", False):
         return "no"
     if getattr(settings, "custom_proxy_pool", False) and getattr(settings, "proxy_pool", ""):
-        return settings.proxy_pool
+        proxy: str = settings.proxy_pool
+        return proxy
     return "auto"
 
 
@@ -485,19 +512,21 @@ def cmd_download(
         write_settings_file,
     )
 
-    def emit_event(payload: dict) -> None:
+    def emit_event(payload: dict[str, Any]) -> None:
         print(json.dumps({"kind": "event", "payload": payload}, ensure_ascii=False), flush=True)
 
-    def fail(message: str, current: int = 0) -> None:
-        emit_event({
-            "event": "download.failed",
-            "target": target,
-            "status": "failed",
-            "message": message,
-            "progressCurrent": current,
-            "progressTotal": 3,
-            "progressUnit": "stage",
-        })
+    def fail(message: str, current: int = 0) -> NoReturn:
+        emit_event(
+            {
+                "event": "download.failed",
+                "target": target,
+                "status": "failed",
+                "message": message,
+                "progressCurrent": current,
+                "progressTotal": 3,
+                "progressUnit": "stage",
+            }
+        )
         sys.exit(1)
 
     # ── 1. load uiya.toml ────────────────────────────────────────────────
@@ -549,15 +578,17 @@ def cmd_download(
     )
 
     # ── 4. spawn and stream ───────────────────────────────────────────────
-    emit_event({
-        "event": "download.started",
-        "target": target,
-        "status": "downloading",
-        "message": "开始下载",
-        "progressCurrent": 1,
-        "progressTotal": 3,
-        "progressUnit": "stage",
-    })
+    emit_event(
+        {
+            "event": "download.started",
+            "target": target,
+            "status": "downloading",
+            "message": "开始下载",
+            "progressCurrent": 1,
+            "progressTotal": 3,
+            "progressUnit": "stage",
+        }
+    )
 
     try:
         proc = subprocess.Popen(
@@ -581,8 +612,8 @@ def cmd_download(
         _buf += _chunk
         # Emit every \r- or \n-terminated segment immediately.
         while True:
-            _r = _buf.find(b'\r')
-            _n = _buf.find(b'\n')
+            _r = _buf.find(b"\r")
+            _n = _buf.find(b"\n")
             if _r == -1 and _n == -1:
                 break
             if _r == -1 or (_n != -1 and _n < _r):
@@ -590,7 +621,7 @@ def cmd_download(
             else:
                 _idx, _is_cr = _r, True
             _seg = _buf[:_idx]
-            _buf = _buf[_idx + 1:]
+            _buf = _buf[_idx + 1 :]
             _visible = _seg.decode("utf-8", errors="replace")
             if _visible.strip():
                 _term = b"\r\n" if _is_cr else b"\n"
@@ -603,15 +634,17 @@ def cmd_download(
     returncode = proc.wait()
 
     if returncode == 0:
-        emit_event({
-            "event": "download.completed",
-            "target": target,
-            "status": "completed",
-            "message": "下载完成",
-            "progressCurrent": 3,
-            "progressTotal": 3,
-            "progressUnit": "stage",
-        })
+        emit_event(
+            {
+                "event": "download.completed",
+                "target": target,
+                "status": "completed",
+                "message": "下载完成",
+                "progressCurrent": 3,
+                "progressTotal": 3,
+                "progressUnit": "stage",
+            }
+        )
     else:
         fail(f"下载失败，退出码 {returncode}", current=3)
 
@@ -634,22 +667,24 @@ def cmd_parse(target: str) -> None:
         write_settings_file,
     )
 
-    def emit_payload(payload: dict) -> None:
+    def emit_payload(payload: dict[str, Any]) -> None:
         print(json.dumps({"kind": "payload", "payload": payload}, ensure_ascii=False), flush=True)
 
-    def emit_event(payload: dict) -> None:
+    def emit_event(payload: dict[str, Any]) -> None:
         print(json.dumps({"kind": "event", "payload": payload}, ensure_ascii=False), flush=True)
 
-    def fail(message: str) -> None:
-        emit_event({
-            "event": "parse.failed",
-            "target": target,
-            "status": "failed",
-            "message": message,
-            "progressCurrent": 0,
-            "progressTotal": 0,
-            "progressUnit": "item",
-        })
+    def fail(message: str) -> NoReturn:
+        emit_event(
+            {
+                "event": "parse.failed",
+                "target": target,
+                "status": "failed",
+                "message": message,
+                "progressCurrent": 0,
+                "progressTotal": 0,
+                "progressUnit": "item",
+            }
+        )
         emit_payload({"items": [], "groups": [], "videoQualities": [], "audioQualities": [], "error": message})
         sys.exit(1)
 
@@ -668,7 +703,15 @@ def cmd_parse(target: str) -> None:
             login_strict=settings.login_strict == "open",
             dir=str(resolve_download_dir(settings)),
         )
-        resource = YuttoResourceSettings(require_cover=True)
+        resource = YuttoResourceSettings(
+            require_video=True,
+            require_audio=True,
+            require_danmaku=True,
+            require_subtitle=True,
+            require_metadata=False,
+            require_cover=True,
+            save_cover=False,
+        )
         yutto_cfg = YuttoSettings(basic=basic, resource=resource)
         write_settings_file("yutto.toml", yutto_cfg)
         yutto_toml = search_for_settings_file("yutto.toml")
@@ -697,7 +740,6 @@ def cmd_parse(target: str) -> None:
         # Unlike mtime, this works even when the collection already exists:
         # on re-parse the dirs are already present in `before_dirs` so they
         # won't appear in the diff, and we fall back to title matching instead.
-        import pathlib
         downloads_path = resolve_download_dir(settings)
         downloads_path.mkdir(parents=True, exist_ok=True)
 
@@ -710,15 +752,17 @@ def cmd_parse(target: str) -> None:
 
         before_dirs = _all_dirs(downloads_path)
 
-        emit_event({
-            "event": "parse.started",
-            "target": target,
-            "status": "parsing",
-            "message": "开始解析",
-            "progressCurrent": 0,
-            "progressTotal": 0,
-            "progressUnit": "item",
-        })
+        emit_event(
+            {
+                "event": "parse.started",
+                "target": target,
+                "status": "parsing",
+                "message": "开始解析",
+                "progressCurrent": 0,
+                "progressTotal": 0,
+                "progressUnit": "item",
+            }
+        )
 
         context = _ParseContext()
 
@@ -740,16 +784,18 @@ def cmd_parse(target: str) -> None:
                 print(line, flush=True)  # forwarded as runtime:raw-log
             item = context.consume(line)
             if item is not None:
-                emit_event({
-                    "event": "parse.item",
-                    "target": target,
-                    "status": "parsing",
-                    "message": f"解析到视频: {item['title']}",
-                    "progressCurrent": item["index"],
-                    "progressTotal": 0,
-                    "progressUnit": "item",
-                    "parseItem": item,
-                })
+                emit_event(
+                    {
+                        "event": "parse.item",
+                        "target": target,
+                        "status": "parsing",
+                        "message": f"解析到视频: {item['title']}",
+                        "progressCurrent": item["index"],
+                        "progressTotal": 0,
+                        "progressUnit": "item",
+                        "parseItem": item,
+                    }
+                )
 
         returncode = proc.wait()
     finally:
@@ -758,13 +804,13 @@ def cmd_parse(target: str) -> None:
     if returncode != 0:
         fail(f"解析失败，退出码 {returncode}")
 
-    parsed = context.finish()
-    items = parsed["items"]
-    groups = parsed["groups"]
-    video_qualities = parsed["videoQualities"]
-    audio_qualities = parsed["audioQualities"]
+    parsed: dict[str, Any] = context.finish()
+    items: list[dict[str, Any]] = parsed["items"]
+    groups: list[dict[str, Any]] = parsed["groups"]
+    video_qualities: list[dict[str, Any]] = parsed["videoQualities"]
+    audio_qualities: list[dict[str, Any]] = parsed["audioQualities"]
 
-    all_items: list[dict] = items[:]
+    all_items: list[dict[str, Any]] = items[:]
     for group in groups:
         all_items.extend(group.get("items", []))
     total_items = len(all_items)
@@ -804,32 +850,32 @@ def cmd_parse(target: str) -> None:
     # is "{series_title}/{title}" where {title} is the file stem so all videos land
     # flat in the series dir; the single leaf IS collection_dir → is_per_video = False.
     collection_dir_path = pathlib.Path(collection_dir) if collection_dir else None
-    is_per_video = bool(
-        collection_dir
-        and leaf_dirs
-        and not any(d == collection_dir_path for d in leaf_dirs)
-    )
+    is_per_video = bool(collection_dir and leaf_dirs and not any(d == collection_dir_path for d in leaf_dirs))
     _assign_parse_item_dirs(items, collection_dir, is_per_video)
     _assign_parse_group_dirs(groups, collection_dir)
 
-    emit_event({
-        "event": "parse.completed",
-        "target": target,
-        "status": "completed",
-        "message": f"解析完成，共 {total_items} 个视频",
-        "progressCurrent": total_items,
-        "progressTotal": total_items,
-        "progressUnit": "item",
-    })
+    emit_event(
+        {
+            "event": "parse.completed",
+            "target": target,
+            "status": "completed",
+            "message": f"解析完成，共 {total_items} 个视频",
+            "progressCurrent": total_items,
+            "progressTotal": total_items,
+            "progressUnit": "item",
+        }
+    )
 
-    emit_payload({
-        "url": target,
-        "dir": collection_dir,
-        "items": items,
-        "groups": groups,
-        "videoQualities": video_qualities,
-        "audioQualities": audio_qualities,
-    })
+    emit_payload(
+        {
+            "url": target,
+            "dir": collection_dir,
+            "items": items,
+            "groups": groups,
+            "videoQualities": video_qualities,
+            "audioQualities": audio_qualities,
+        }
+    )
 
 
 def cmd_fetch_meta(url: str) -> None:
@@ -849,10 +895,10 @@ def cmd_fetch_meta(url: str) -> None:
         "Accept-Language": "zh-CN,zh;q=0.9",
     }
 
-    def emit_payload(payload: dict) -> None:
+    def emit_payload(payload: dict[str, Any]) -> None:
         print(json.dumps({"kind": "payload", "payload": payload}, ensure_ascii=False), flush=True)
 
-    bvid_m = re.search(r'(BV[1-9A-HJ-NP-Za-km-z]{10})', url)
+    bvid_m = re.search(r"(BV[1-9A-HJ-NP-Za-km-z]{10})", url)
     if not bvid_m:
         emit_payload({"error": "无法从 URL 中提取 BV 号"})
         return
@@ -867,9 +913,9 @@ def cmd_fetch_meta(url: str) -> None:
     if data.get("code") != 0:
         emit_payload({"error": f"API 错误: {data.get('message')}"})
         return
-    d = data["data"]
-    owner = d.get("owner") or {}
-    stat = d.get("stat") or {}
+    d: dict[str, Any] = data["data"]
+    owner: dict[str, Any] = d.get("owner") or {}
+    stat: dict[str, Any] = d.get("stat") or {}
 
     # Fetch cover image locally and encode as base64 data URL to bypass hotlink protection
     cover_data_url = ""
@@ -884,16 +930,18 @@ def cmd_fetch_meta(url: str) -> None:
         except Exception:
             pass  # fall back to empty string; frontend will skip the image
 
-    emit_payload({
-        "title": d.get("title", ""),
-        "cover": cover_data_url,
-        "description": d.get("desc", ""),
-        "uploader": owner.get("name", ""),
-        "pubdate": d.get("pubdate", 0),
-        "duration": d.get("duration", 0),
-        "view": stat.get("view", 0),
-        "like": stat.get("like", 0),
-    })
+    emit_payload(
+        {
+            "title": d.get("title", ""),
+            "cover": cover_data_url,
+            "description": d.get("desc", ""),
+            "uploader": owner.get("name", ""),
+            "pubdate": d.get("pubdate", 0),
+            "duration": d.get("duration", 0),
+            "view": stat.get("view", 0),
+            "like": stat.get("like", 0),
+        }
+    )
 
 
 def cmd_fetch_cover(url: str) -> None:
@@ -901,7 +949,8 @@ def cmd_fetch_cover(url: str) -> None:
     Download a single cover image and emit it as a base64 data URL.
     Called on demand when the user opens a detail panel.
     """
-    def emit_payload(payload: dict) -> None:
+
+    def emit_payload(payload: dict[str, Any]) -> None:
         print(json.dumps({"kind": "payload", "payload": payload}, ensure_ascii=False), flush=True)
 
     data_url = _fetch_image_as_data_url(url)
@@ -925,7 +974,9 @@ def cmd_save_settings(ffmpeg_path: str, no_proxy: bool, download_dir: str | None
             settings.download_dir = download_dir
         write_settings_file("uiya.toml", settings)
     except Exception as exc:
-        print(json.dumps({"kind": "payload", "payload": {"ok": False, "error": str(exc)}}, ensure_ascii=False), flush=True)
+        print(
+            json.dumps({"kind": "payload", "payload": {"ok": False, "error": str(exc)}}, ensure_ascii=False), flush=True
+        )
         sys.exit(1)
     print(json.dumps({"kind": "payload", "payload": {"ok": True}}, ensure_ascii=False), flush=True)
 
@@ -947,22 +998,24 @@ def cmd_auth_login() -> None:
 
     from uiya.utils.config import UiyaSetting, load_settings_file
 
-    def emit_event(payload: dict) -> None:
+    def emit_event(payload: dict[str, Any]) -> None:
         print(json.dumps({"kind": "event", "payload": payload}, ensure_ascii=False), flush=True)
 
-    def emit_payload(payload: dict) -> None:
+    def emit_payload(payload: dict[str, Any]) -> None:
         print(json.dumps({"kind": "payload", "payload": payload}, ensure_ascii=False), flush=True)
 
-    def fail(message: str) -> None:
-        emit_event({
-            "event": "auth.login.failed",
-            "target": "auth",
-            "status": "failed",
-            "message": message,
-            "progressCurrent": 0,
-            "progressTotal": 0,
-            "progressUnit": "step",
-        })
+    def fail(message: str) -> NoReturn:
+        emit_event(
+            {
+                "event": "auth.login.failed",
+                "target": "auth",
+                "status": "failed",
+                "message": message,
+                "progressCurrent": 0,
+                "progressTotal": 0,
+                "progressUnit": "step",
+            }
+        )
         emit_payload({"ok": False, "error": message})
         sys.exit(1)
 
@@ -976,29 +1029,33 @@ def cmd_auth_login() -> None:
     except Exception as exc:
         fail(f"初始化登录环境失败: {exc}")
 
-    emit_event({
-        "event": "auth.login.started",
-        "target": "auth",
-        "status": "pending",
-        "message": "正在生成二维码",
-        "progressCurrent": 0,
-        "progressTotal": 3,
-        "progressUnit": "step",
-    })
+    emit_event(
+        {
+            "event": "auth.login.started",
+            "target": "auth",
+            "status": "pending",
+            "message": "正在生成二维码",
+            "progressCurrent": 0,
+            "progressTotal": 3,
+            "progressUnit": "step",
+        }
+    )
 
     try:
         with create_sync_client(proxy=ctx.proxy, trust_env=ctx.trust_env, timeout=10, verify=True) as client:
             qr_login_url, qr_key = generate_qr_login(client)
-            emit_event({
-                "event": "auth.login.qr",
-                "target": "auth",
-                "status": "pending",
-                "message": "请使用哔哩哔哩 App 扫码登录",
-                "progressCurrent": 1,
-                "progressTotal": 3,
-                "progressUnit": "step",
-                "authQrDataUrl": _build_qr_data_url(qr_login_url),
-            })
+            emit_event(
+                {
+                    "event": "auth.login.qr",
+                    "target": "auth",
+                    "status": "pending",
+                    "message": "请使用哔哩哔哩 App 扫码登录",
+                    "progressCurrent": 1,
+                    "progressTotal": 3,
+                    "progressUnit": "step",
+                    "authQrDataUrl": _build_qr_data_url(qr_login_url),
+                }
+            )
 
             deadline = __import__("time").monotonic() + 120
             last_status: int | None = None
@@ -1013,43 +1070,48 @@ def cmd_auth_login() -> None:
                 if not isinstance(code, int) or code != 0:
                     raise ValueError(f"轮询登录状态失败：{payload}")
 
-                data_any = payload.get("data")
+                data_any: Any = payload.get("data")
                 if not isinstance(data_any, dict):
                     raise ValueError(f"轮询登录状态失败，返回值异常：{payload}")
-                data = data_any
-                status = data.get("code")
+                data: dict[str, Any] = cast("dict[str, Any]", data_any)
+                status: Any = data.get("code")
                 if not isinstance(status, int):
                     raise ValueError(f"轮询登录状态失败，缺少状态码：{payload}")
 
                 if status != last_status:
                     if status == QR_STATUS_NOT_SCANNED:
-                        emit_event({
-                            "event": "auth.login.waiting",
-                            "target": "auth",
-                            "status": "pending",
-                            "message": "二维码待扫描",
-                            "progressCurrent": 1,
-                            "progressTotal": 3,
-                            "progressUnit": "step",
-                        })
+                        emit_event(
+                            {
+                                "event": "auth.login.waiting",
+                                "target": "auth",
+                                "status": "pending",
+                                "message": "二维码待扫描",
+                                "progressCurrent": 1,
+                                "progressTotal": 3,
+                                "progressUnit": "step",
+                            }
+                        )
                     elif status == QR_STATUS_SCANNED:
-                        emit_event({
-                            "event": "auth.login.scanned",
-                            "target": "auth",
-                            "status": "pending",
-                            "message": "已扫码，请在 App 内确认登录",
-                            "progressCurrent": 2,
-                            "progressTotal": 3,
-                            "progressUnit": "step",
-                        })
+                        emit_event(
+                            {
+                                "event": "auth.login.scanned",
+                                "target": "auth",
+                                "status": "pending",
+                                "message": "已扫码，请在 App 内确认登录",
+                                "progressCurrent": 2,
+                                "progressTotal": 3,
+                                "progressUnit": "step",
+                            }
+                        )
                     elif status == QR_STATUS_EXPIRED:
                         raise TimeoutError("二维码已过期，请重新登录")
                     last_status = status
 
                 if status == QR_STATUS_CONFIRMED:
-                    redirect_url = data.get("url")
-                    if not isinstance(redirect_url, str):
+                    redirect_url_raw: Any = data.get("url")
+                    if not isinstance(redirect_url_raw, str):
                         raise ValueError(f"登录成功但未返回跳转链接：{payload}")
+                    redirect_url = redirect_url_raw
                     break
 
                 __import__("time").sleep(0.8)
@@ -1066,27 +1128,29 @@ def cmd_auth_login() -> None:
 
     try:
         save_auth(auth_file, auth_profile, sessdata, bili_jct)
-        auth = {"SESSDATA": sessdata, "bili_jct": bili_jct}
+        auth: Any = {"SESSDATA": sessdata, "bili_jct": bili_jct}
         is_valid = validate_saved_auth(auth, proxy=ctx.proxy, trust_env=ctx.trust_env)
     except Exception as exc:
         fail(f"写入认证信息失败: {exc}")
 
-    emit_event({
-        "event": "auth.login.completed",
-        "target": "auth",
-        "status": "completed",
-        "message": "登录成功" if is_valid else "登录成功，认证状态待校验",
-        "progressCurrent": 3,
-        "progressTotal": 3,
-        "progressUnit": "step",
-    })
+    emit_event(
+        {
+            "event": "auth.login.completed",
+            "target": "auth",
+            "status": "completed",
+            "message": "登录成功" if is_valid else "登录成功，认证状态待校验",
+            "progressCurrent": 3,
+            "progressTotal": 3,
+            "progressUnit": "step",
+        }
+    )
     emit_payload({"ok": True})
 
 
 def cmd_auth_logout() -> None:
     from yutto.auth import default_auth_file, remove_auth
 
-    def emit_payload(payload: dict) -> None:
+    def emit_payload(payload: dict[str, Any]) -> None:
         print(json.dumps({"kind": "payload", "payload": payload}, ensure_ascii=False), flush=True)
 
     auth_profile = "default"

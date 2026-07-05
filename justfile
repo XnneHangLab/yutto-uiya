@@ -39,3 +39,24 @@ inspect:
 fmt:
     uv run ruff format python/
     uv run ruff check --fix python/
+
+# 代码检查
+lint:
+    uv run pyright python/uiya
+    uv run ruff check python/
+
+# ── CI ────────────────────────────────────────────────────────────────────────
+
+# CI: 安装依赖
+ci-install:
+    uv sync
+
+# CI: lint 检查
+ci-lint:
+    uv run pyright python/uiya
+    uv run ruff check python/
+
+# CI: 格式检查（不修改文件）
+ci-fmt-check:
+    uv run ruff format --check python/
+    uv run ruff check --select I python/
