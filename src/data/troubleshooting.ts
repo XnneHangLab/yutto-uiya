@@ -1,9 +1,17 @@
+export interface FaqVideo {
+  bvid: string;
+  title: string;
+  /** e.g. "1:54" — optional timestamp hint shown to user */
+  timestamp?: string;
+}
+
 export interface FaqItem {
   id: string;
   title: string;
   symptom: string;
   cause: string;
   steps: string[];
+  video?: FaqVideo;
 }
 
 export interface FaqCategory {
@@ -30,6 +38,11 @@ export const faqCategories: FaqCategory[] = [
           '点击「浏览」→ 找到 ffmpeg.exe 选中',
           '点击「保存并重新检测」',
         ],
+        video: {
+          bvid: 'BV1yRdBBsEGZ',
+          title: '一键包使用教程',
+          timestamp: '1:54',
+        },
       },
       {
         id: 'uv-sync-failed',
@@ -58,23 +71,6 @@ export const faqCategories: FaqCategory[] = [
           '设置 → 账号状态 → 点击「扫码登录」',
           '用 B站手机 App 扫描弹出的二维码',
           '等待显示「已登录」后重新下载',
-        ],
-      },
-    ],
-  },
-  {
-    id: 'settings',
-    label: '设置相关',
-    icon: '🔧',
-    items: [
-      {
-        id: 'workspace-switch-blocked',
-        title: '切换工作目录被禁止',
-        symptom: '点击「更改目录」后提示「有任务运行，禁止切换」。',
-        cause: '有下载任务正在进行中。',
-        steps: [
-          '等下载完成，或在下载页取消正在进行的任务',
-          '然后再去设置里更改目录',
         ],
       },
     ],

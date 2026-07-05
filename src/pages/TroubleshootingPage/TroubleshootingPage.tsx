@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { type FaqItem, faqCategories } from '../../data/troubleshooting';
+import { openUrl } from '../../services/runtime/bridge';
 import '../../styles/troubleshooting.css';
 
 const channels = ['GitHub Issues', '交流群', '私信'];
@@ -18,6 +19,12 @@ function FaqCard({
   expanded: boolean;
   onToggle: () => void;
 }) {
+  function handleOpenVideo() {
+    if (!item.video) return;
+    const url = `https://www.bilibili.com/video/${item.video.bvid}`;
+    void openUrl(url);
+  }
+
   return (
     <div className={`faq-card ${expanded ? 'faq-card--expanded' : ''}`}>
       <button
@@ -54,6 +61,19 @@ function FaqCard({
               ))}
             </ol>
           </div>
+          {item.video && (
+            <button
+              type="button"
+              className="faq-video-btn"
+              onClick={handleOpenVideo}
+            >
+              <span className="faq-video-icon">▶</span>
+              <span className="faq-video-text">
+                {item.video.title}
+                {item.video.timestamp ? ` (${item.video.timestamp})` : ''}
+              </span>
+            </button>
+          )}
         </div>
       )}
     </div>
