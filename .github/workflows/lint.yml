@@ -37,7 +37,35 @@ jobs:
         run: just ci-install
 
       - name: Lint
-        run: just ci-lint
+        run: just ci-lint-python
 
       - name: Format check
-        run: just ci-fmt-check
+        run: just ci-fmt-check-python
+
+  lint-and-fmt-rust:
+    runs-on: ubuntu-latest
+    name: Lint and Format (Rust)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Install just
+        uses: extractions/setup-just@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clippy
+        run: just ci-lint-rust
+
+      - name: Format check
+        run: just ci-fmt-check-rust

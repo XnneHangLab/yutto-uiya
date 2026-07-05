@@ -2,18 +2,17 @@ use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
 use super::process::{
-    drain_download_queue,
-    ensure_environment_ready, kill_process, open_path, open_url, pick_download_dir,
-    pick_ffmpeg_path, pick_python_path, pick_workspace_root,
+    drain_download_queue, ensure_environment_ready, kill_process, open_path, open_url,
+    pick_download_dir, pick_ffmpeg_path, pick_python_path, pick_workspace_root,
     resolve_managed_path, run_auth_login_command, run_auth_logout_command, run_fetch_cover_command,
     run_fetch_meta_command, run_inspect_command, run_parse_command, run_probe_command,
     run_save_settings_command, run_uv_sync_command, write_console_log,
 };
 use super::state::{
-    read_saved_driver_config, read_saved_download_dir, resolve_portable_ffmpeg_path,
-    resolve_portable_python_path, resolve_repo_root, resolve_workspace_root, write_driver_config,
-    RuntimeDriverConfig, RuntimeState, DEFAULT_DOWNLOAD_DIR, DEFAULT_HOTKEY, read_saved_hotkey,
-    write_hotkey_config,
+    read_saved_download_dir, read_saved_driver_config, read_saved_hotkey,
+    resolve_portable_ffmpeg_path, resolve_portable_python_path, resolve_repo_root,
+    resolve_workspace_root, write_driver_config, write_hotkey_config, RuntimeDriverConfig,
+    RuntimeState, DEFAULT_DOWNLOAD_DIR, DEFAULT_HOTKEY,
 };
 
 fn runtime_driver_api_value(driver: &RuntimeDriverConfig) -> &'static str {
@@ -56,7 +55,13 @@ pub async fn inspect_runtime(
     let inspect_driver = driver.clone();
     let ffmpeg_path = state.current_ffmpeg_path();
     let mut result = run_blocking_runtime_action(move || {
-        ensure_environment_ready(&repo_root, &workspace_root, &inspect_driver, &ffmpeg_path, &app)?;
+        ensure_environment_ready(
+            &repo_root,
+            &workspace_root,
+            &inspect_driver,
+            &ffmpeg_path,
+            &app,
+        )?;
         run_inspect_command(&repo_root, &workspace_root, &inspect_driver, &app)
     })
     .await?;
@@ -71,7 +76,10 @@ pub async fn inspect_runtime(
             .map(|path| path.display().to_string()),
     };
     if let Some(payload) = result.as_object_mut() {
-        payload.insert("runtimeDriver".to_string(), serde_json::json!(runtime_driver));
+        payload.insert(
+            "runtimeDriver".to_string(),
+            serde_json::json!(runtime_driver),
+        );
         payload.insert("pythonPath".to_string(), serde_json::json!(python_path));
         payload.insert(
             "appRoot".to_string(),
@@ -114,7 +122,14 @@ pub async fn parse_target(
     let driver = state.current_driver_config();
     let ffmpeg_path = state.current_ffmpeg_path();
     run_blocking_runtime_action(move || {
-        let result = run_parse_command(&repo_root, &workspace_root, &driver, &target, &ffmpeg_path, &app)?;
+        let result = run_parse_command(
+            &repo_root,
+            &workspace_root,
+            &driver,
+            &target,
+            &ffmpeg_path,
+            &app,
+        )?;
         serde_json::to_value(result).map_err(|error| error.to_string())
     })
     .await
@@ -172,6 +187,7 @@ pub async fn use_repo_workspace_root(
     switch_workspace_root(app, &state, repo_root).await
 }
 
+#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub async fn enqueue_download(
     app: AppHandle,
@@ -203,7 +219,19 @@ pub async fn enqueue_download(
     let dir = dir_override.filter(|s| !s.is_empty());
     let (task, should_spawn_worker) = {
         let mut queue = state.queue.lock().unwrap();
-        queue.enqueue_with_worker_control(target.to_string(), display_label, rv, ra, rc, rs, rd, vq, aq, select_index, dir)
+        queue.enqueue_with_worker_control(
+            target.to_string(),
+            display_label,
+            rv,
+            ra,
+            rc,
+            rs,
+            rd,
+            vq,
+            aq,
+            select_index,
+            dir,
+        )
     };
 
     if should_spawn_worker {
@@ -256,44 +284,50 @@ pub async fn start_auth_login(
         let cancelled = runtime_state.finish_auth_process();
         if cancelled && result.is_err() {
             let timestamp = super::state::current_timestamp();
-            let _ = app_handle.emit("runtime:event", &super::models::RuntimeEventPayload {
-                event: "auth.login.cancelled".to_string(),
-                task_id: String::new(),
-                target: "auth".to_string(),
-                status: "cancelled".to_string(),
-                message: "已取消登录".to_string(),
-                progress_current: 0,
-                progress_total: 3,
-                progress_unit: "step".to_string(),
-                timestamp,
-                desc: None,
-                percent: None,
-                downloaded: None,
-                total: None,
-                parse_item: None,
-                auth_qr_data_url: None,
-            });
+            let _ = app_handle.emit(
+                "runtime:event",
+                &super::models::RuntimeEventPayload {
+                    event: "auth.login.cancelled".to_string(),
+                    task_id: String::new(),
+                    target: "auth".to_string(),
+                    status: "cancelled".to_string(),
+                    message: "已取消登录".to_string(),
+                    progress_current: 0,
+                    progress_total: 3,
+                    progress_unit: "step".to_string(),
+                    timestamp,
+                    desc: None,
+                    percent: None,
+                    downloaded: None,
+                    total: None,
+                    parse_item: None,
+                    auth_qr_data_url: None,
+                },
+            );
             return;
         }
         if let Err(error) = result {
             let timestamp = super::state::current_timestamp();
-            let _ = app_handle.emit("runtime:event", &super::models::RuntimeEventPayload {
-                event: "auth.login.failed".to_string(),
-                task_id: String::new(),
-                target: "auth".to_string(),
-                status: "failed".to_string(),
-                message: error,
-                progress_current: 0,
-                progress_total: 0,
-                progress_unit: "step".to_string(),
-                timestamp,
-                desc: None,
-                percent: None,
-                downloaded: None,
-                total: None,
-                parse_item: None,
-                auth_qr_data_url: None,
-            });
+            let _ = app_handle.emit(
+                "runtime:event",
+                &super::models::RuntimeEventPayload {
+                    event: "auth.login.failed".to_string(),
+                    task_id: String::new(),
+                    target: "auth".to_string(),
+                    status: "failed".to_string(),
+                    message: error,
+                    progress_current: 0,
+                    progress_total: 0,
+                    progress_unit: "step".to_string(),
+                    timestamp,
+                    desc: None,
+                    percent: None,
+                    downloaded: None,
+                    total: None,
+                    parse_item: None,
+                    auth_qr_data_url: None,
+                },
+            );
         }
     });
 
@@ -314,10 +348,7 @@ pub fn cancel_auth_login(state: State<'_, RuntimeState>) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn logout_auth(
-    app: AppHandle,
-    state: State<'_, RuntimeState>,
-) -> Result<String, String> {
+pub async fn logout_auth(app: AppHandle, state: State<'_, RuntimeState>) -> Result<String, String> {
     if state.auth_in_progress() {
         return Err("登录流程进行中，暂时不能退出登录".to_string());
     }
@@ -331,32 +362,32 @@ pub async fn logout_auth(
     .await?;
 
     let timestamp = super::state::current_timestamp();
-    let _ = app.emit("runtime:event", &super::models::RuntimeEventPayload {
-        event: "auth.logout.completed".to_string(),
-        task_id: String::new(),
-        target: "auth".to_string(),
-        status: "completed".to_string(),
-        message: message.clone(),
-        progress_current: 1,
-        progress_total: 1,
-        progress_unit: "step".to_string(),
-        timestamp,
-        desc: None,
-        percent: None,
-        downloaded: None,
-        total: None,
-        parse_item: None,
-        auth_qr_data_url: None,
-    });
+    let _ = app.emit(
+        "runtime:event",
+        &super::models::RuntimeEventPayload {
+            event: "auth.logout.completed".to_string(),
+            task_id: String::new(),
+            target: "auth".to_string(),
+            status: "completed".to_string(),
+            message: message.clone(),
+            progress_current: 1,
+            progress_total: 1,
+            progress_unit: "step".to_string(),
+            timestamp,
+            desc: None,
+            percent: None,
+            downloaded: None,
+            total: None,
+            parse_item: None,
+            auth_qr_data_url: None,
+        },
+    );
 
     Ok(message)
 }
 
 #[tauri::command]
-pub async fn uv_sync(
-    app: AppHandle,
-    state: State<'_, RuntimeState>,
-) -> Result<(), String> {
+pub async fn uv_sync(app: AppHandle, state: State<'_, RuntimeState>) -> Result<(), String> {
     let repo_root = state.repo_root.clone();
     run_blocking_runtime_action(move || run_uv_sync_command(&repo_root, &app)).await
 }
@@ -385,20 +416,26 @@ pub fn cancel_task(
     };
 
     if let Some(target) = cancelled_target {
-        let _ = app.emit("runtime:event", &RuntimeEventPayload {
-            event: "download.cancelled".to_string(),
-            task_id: task_id.clone(),
-            target,
-            status: "cancelled".to_string(),
-            message: "已取消".to_string(),
-            progress_current: 0,
-            progress_total: 3,
-            progress_unit: "stage".to_string(),
-            timestamp,
-            desc: None, percent: None, downloaded: None, total: None,
-            parse_item: None,
-            auth_qr_data_url: None,
-        });
+        let _ = app.emit(
+            "runtime:event",
+            &RuntimeEventPayload {
+                event: "download.cancelled".to_string(),
+                task_id: task_id.clone(),
+                target,
+                status: "cancelled".to_string(),
+                message: "已取消".to_string(),
+                progress_current: 0,
+                progress_total: 3,
+                progress_unit: "stage".to_string(),
+                timestamp,
+                desc: None,
+                percent: None,
+                downloaded: None,
+                total: None,
+                parse_item: None,
+                auth_qr_data_url: None,
+            },
+        );
         return Ok(());
     }
 
@@ -410,7 +447,9 @@ pub fn cancel_task(
 
             let target = {
                 let queue = state.queue.lock().unwrap();
-                queue.tasks.iter()
+                queue
+                    .tasks
+                    .iter()
                     .find(|t| t.task_id == task_id)
                     .map(|t| t.target.clone())
                     .unwrap_or_default()
@@ -422,20 +461,26 @@ pub fn cancel_task(
                 queue.apply_update(&task_id, TaskStatus::Cancelled, "已取消".to_string(), 0, 3);
             }
 
-            let _ = app.emit("runtime:event", &RuntimeEventPayload {
-                event: "download.cancelled".to_string(),
-                task_id,
-                target,
-                status: "cancelled".to_string(),
-                message: "已取消".to_string(),
-                progress_current: 0,
-                progress_total: 3,
-                progress_unit: "stage".to_string(),
-                timestamp,
-                desc: None, percent: None, downloaded: None, total: None,
-                parse_item: None,
-                auth_qr_data_url: None,
-            });
+            let _ = app.emit(
+                "runtime:event",
+                &RuntimeEventPayload {
+                    event: "download.cancelled".to_string(),
+                    task_id,
+                    target,
+                    status: "cancelled".to_string(),
+                    message: "已取消".to_string(),
+                    progress_current: 0,
+                    progress_total: 3,
+                    progress_unit: "stage".to_string(),
+                    timestamp,
+                    desc: None,
+                    percent: None,
+                    downloaded: None,
+                    total: None,
+                    parse_item: None,
+                    auth_qr_data_url: None,
+                },
+            );
         }
     }
 
@@ -469,7 +514,11 @@ pub fn open_url_command(url: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn open_managed_path(app: AppHandle, state: State<'_, RuntimeState>, path_key: String) -> Result<(), String> {
+pub fn open_managed_path(
+    app: AppHandle,
+    state: State<'_, RuntimeState>,
+    path_key: String,
+) -> Result<(), String> {
     let workspace_root = state.current_workspace_root();
     let download_dir = state.current_download_dir();
     let path = resolve_managed_path(&workspace_root, &path_key, Some(&download_dir))?;
@@ -481,7 +530,11 @@ pub fn open_managed_path(app: AppHandle, state: State<'_, RuntimeState>, path_ke
 }
 
 #[tauri::command]
-pub fn open_task_save_dir(app: AppHandle, state: State<'_, RuntimeState>, relative_path: String) -> Result<(), String> {
+pub fn open_task_save_dir(
+    app: AppHandle,
+    state: State<'_, RuntimeState>,
+    relative_path: String,
+) -> Result<(), String> {
     let workspace_root = state.current_workspace_root();
     let download_dir = state.current_download_dir();
     let downloads_dir = resolve_managed_path(&workspace_root, "downloads", Some(&download_dir))?;
@@ -490,11 +543,18 @@ pub fn open_task_save_dir(app: AppHandle, state: State<'_, RuntimeState>, relati
     } else {
         downloads_dir.join(&relative_path)
     };
-    let open_target = if target.exists() { &target } else { &downloads_dir };
+    let open_target = if target.exists() {
+        &target
+    } else {
+        &downloads_dir
+    };
     if !open_target.exists() {
         std::fs::create_dir_all(open_target).map_err(|e| e.to_string())?;
     }
-    let _ = app.emit("runtime:raw-log", format!("[open] {}", open_target.display()));
+    let _ = app.emit(
+        "runtime:raw-log",
+        format!("[open] {}", open_target.display()),
+    );
     open_path(open_target)
 }
 
@@ -534,10 +594,7 @@ pub fn set_hotkey(
 /// Temporarily unregisters the current global shortcut so key capture in
 /// the settings UI can intercept the combo without the window hiding itself.
 #[tauri::command]
-pub fn pause_hotkey(
-    app: AppHandle,
-    state: State<'_, RuntimeState>,
-) -> Result<(), String> {
+pub fn pause_hotkey(app: AppHandle, state: State<'_, RuntimeState>) -> Result<(), String> {
     let current = state.current_hotkey();
     let _ = app.global_shortcut().unregister(current.as_str());
     Ok(())
@@ -573,8 +630,8 @@ pub fn build_runtime_state() -> Result<RuntimeState, String> {
             state.set_driver_config(saved);
         }
     }
-    let saved_hotkey = read_saved_hotkey(&workspace_root)
-        .unwrap_or_else(|| DEFAULT_HOTKEY.to_string());
+    let saved_hotkey =
+        read_saved_hotkey(&workspace_root).unwrap_or_else(|| DEFAULT_HOTKEY.to_string());
     state.set_hotkey_str(saved_hotkey);
     if let Some(saved_download_dir) = read_saved_download_dir(&workspace_root) {
         state.set_download_dir(saved_download_dir);
@@ -643,9 +700,19 @@ pub async fn set_runtime_driver(
     })
     .await;
 
-    let result = apply_runtime_state_update(state.inner(), driver_config, next_ffmpeg, next_download_dir, round_trip_result);
+    let result = apply_runtime_state_update(
+        state.inner(),
+        driver_config,
+        next_ffmpeg,
+        next_download_dir,
+        round_trip_result,
+    );
     if result.is_ok() {
-        write_driver_config(&state.current_workspace_root(), &state.current_driver_config(), &state.current_download_dir());
+        write_driver_config(
+            &state.current_workspace_root(),
+            &state.current_driver_config(),
+            &state.current_download_dir(),
+        );
     }
     result
 }
@@ -724,7 +791,13 @@ async fn switch_workspace_root(
     let driver = state.current_driver_config();
     let ffmpeg_path = state.current_ffmpeg_path();
     run_blocking_runtime_action(move || {
-        let probe = run_probe_command(&repo_root, &next_workspace_root, &driver, &ffmpeg_path, &app)?;
+        let probe = run_probe_command(
+            &repo_root,
+            &next_workspace_root,
+            &driver,
+            &ffmpeg_path,
+            &app,
+        )?;
         serde_json::to_value(probe).map_err(|error| error.to_string())
     })
     .await
@@ -749,7 +822,10 @@ mod tests {
 
     #[test]
     fn runtime_driver_api_value_uses_uv_and_conda() {
-        assert_eq!(super::runtime_driver_api_value(&RuntimeDriverConfig::Uv), "uv");
+        assert_eq!(
+            super::runtime_driver_api_value(&RuntimeDriverConfig::Uv),
+            "uv"
+        );
         assert_eq!(
             super::runtime_driver_api_value(&RuntimeDriverConfig::DirectPython {
                 python_path: std::path::PathBuf::from("/app/env/python"),

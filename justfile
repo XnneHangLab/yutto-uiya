@@ -39,11 +39,13 @@ inspect:
 fmt:
     uv run ruff format python/
     uv run ruff check --fix python/
+    cargo fmt --manifest-path src-tauri/Cargo.toml
 
 # 代码检查
 lint:
     uv run pyright python/uiya
     uv run ruff check python/
+    cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
 
 # ── CI ────────────────────────────────────────────────────────────────────────
 
@@ -51,12 +53,20 @@ lint:
 ci-install:
     uv sync
 
-# CI: lint 检查
-ci-lint:
+# CI: Python lint
+ci-lint-python:
     uv run pyright python/uiya
     uv run ruff check python/
 
-# CI: 格式检查（不修改文件）
-ci-fmt-check:
+# CI: Python 格式检查
+ci-fmt-check-python:
     uv run ruff format --check python/
     uv run ruff check --select I python/
+
+# CI: Rust lint
+ci-lint-rust:
+    cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
+
+# CI: Rust 格式检查
+ci-fmt-check-rust:
+    cargo fmt --manifest-path src-tauri/Cargo.toml --check
