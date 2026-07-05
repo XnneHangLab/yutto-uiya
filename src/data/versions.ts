@@ -7,17 +7,30 @@ export interface VersionEntry {
 }
 
 export const CURRENT_VERSION = {
-  version: 'v2.0.1',
-  date: '2026-04-16',
+  version: 'v2.0.2',
+  date: '2026-07-05',
   channel: '稳定版',
-  summary: '资源选择器、音频画质选项、多平台构建',
+  summary: '下载目录可配置、疑难解答页面、音频格式选择',
 };
 
 export const VERSION_TIMELINE: VersionEntry[] = [
   {
+    date: '2026-07-05',
+    version: 'v2.0.2',
+    badge: '当前',
+    title: '下载目录可配置与疑难解答',
+    highlights: [
+      '下载目录可独立配置，不再绑定根目录',
+      '疑难解答页面（分类、截图、视频引用）',
+      '音频格式选择（M4A/MP3/FLAC/WAV）',
+      'Python/Rust/TypeScript CI lint 流水线',
+      '非首页懒加载，优化启动速度',
+    ],
+  },
+  {
     date: '2026-04-16',
     version: 'v2.0.1',
-    badge: '当前',
+    badge: '',
     title: '资源选择器与多平台构建',
     highlights: [
       '下载资源选择器（视频/音频/封面/字幕/弹幕）',
