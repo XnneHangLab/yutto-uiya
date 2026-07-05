@@ -131,12 +131,12 @@ export function AppShell() {
       setRuntimeDriver(nextInspection.runtimeDriver);
       setPythonExePath(nextInspection.pythonPath ?? '');
       setFolders(buildFolderItemsFromPaths(paths));
-      if (nextInspection.ffmpegPath && nextInspection.ffmpegPath !== 'ffmpeg') {
-        setFfmpegMode('local');
-        setFfmpegExePath(nextInspection.ffmpegPath);
-      } else {
+      if (nextInspection.ffmpegPath === 'ffmpeg') {
         setFfmpegMode('system');
         setFfmpegExePath('');
+      } else {
+        setFfmpegMode('local');
+        setFfmpegExePath(nextInspection.ffmpegPath ?? '');
       }
       setNoProxy(nextInspection.noProxy ?? false);
       setDownloadDirSetting(nextInspection.downloadDirSetting ?? './downloads');
@@ -172,15 +172,12 @@ export function AppShell() {
         setRuntimeDriver(nextInspection.runtimeDriver);
         setPythonExePath(nextInspection.pythonPath ?? '');
         setFolders(buildFolderItemsFromPaths(paths));
-        if (
-          nextInspection.ffmpegPath &&
-          nextInspection.ffmpegPath !== 'ffmpeg'
-        ) {
-          setFfmpegMode('local');
-          setFfmpegExePath(nextInspection.ffmpegPath);
-        } else {
+        if (nextInspection.ffmpegPath === 'ffmpeg') {
           setFfmpegMode('system');
           setFfmpegExePath('');
+        } else {
+          setFfmpegMode('local');
+          setFfmpegExePath(nextInspection.ffmpegPath ?? '');
         }
         setNoProxy(nextInspection.noProxy ?? false);
         setDownloadDirSetting(
@@ -493,12 +490,12 @@ export function AppShell() {
     setRuntimeDriver(nextInspection.runtimeDriver);
     setPythonExePath(nextInspection.pythonPath ?? '');
     setFolders(buildFolderItemsFromPaths(paths));
-    if (nextInspection.ffmpegPath && nextInspection.ffmpegPath !== 'ffmpeg') {
-      setFfmpegMode('local');
-      setFfmpegExePath(nextInspection.ffmpegPath);
-    } else {
+    if (nextInspection.ffmpegPath === 'ffmpeg') {
       setFfmpegMode('system');
       setFfmpegExePath('');
+    } else {
+      setFfmpegMode('local');
+      setFfmpegExePath(nextInspection.ffmpegPath ?? '');
     }
     setNoProxy(nextInspection.noProxy ?? false);
   }
