@@ -92,6 +92,7 @@ def _build_yutto_command(
     skip_download: bool = False,
     select_index: int | None = None,
     output_dir: str | None = None,
+    audio_format: str | None = None,
 ) -> list[str]:
     command: list[str] = [sys.executable, "-m", "yutto", target, "--no-color"]
 
@@ -112,6 +113,9 @@ def _build_yutto_command(
         command += ["--proxy", "no"]
     elif proxy_pool:
         command += ["--proxy", proxy_pool]
+
+    if audio_format and audio_format != "infer":
+        command += ["--output-format-audio-only", audio_format]
 
     return command
 
@@ -495,6 +499,7 @@ def cmd_download(
     audio_quality: int = 30280,
     select_index: int | None = None,
     dir_override: str | None = None,
+    audio_format: str | None = None,
 ) -> None:
     """
     Build and run a yutto download job for *target* (a BiliBili URL).
@@ -575,6 +580,7 @@ def cmd_download(
         no_proxy=settings.no_proxy,
         proxy_pool=settings.proxy_pool if settings.custom_proxy_pool else "",
         select_index=select_index,
+        audio_format=audio_format,
     )
 
     # ── 4. spawn and stream ───────────────────────────────────────────────
@@ -1187,6 +1193,7 @@ def main() -> None:
     dl_parser.add_argument("--audio-quality", type=int, default=30280)
     dl_parser.add_argument("--select-index", type=int, default=None)
     dl_parser.add_argument("--dir-override", default=None)
+    dl_parser.add_argument("--audio-format", default=None)
 
     parse_parser = subparsers.add_parser("parse")
     parse_parser.add_argument("target")
@@ -1221,6 +1228,7 @@ def main() -> None:
             audio_quality=args.audio_quality,
             select_index=args.select_index,
             dir_override=args.dir_override,
+            audio_format=args.audio_format,
         )
     elif args.command == "parse":
         cmd_parse(args.target)

@@ -593,6 +593,39 @@ export function DownloadPage({
               </div>
             ) : null}
 
+            {downloadOptions.requireAudio && !downloadOptions.requireVideo ? (
+              <div className="dl-opts-row">
+                <div className="dl-opts-text">
+                  <span className="dl-opts-name">音频格式</span>
+                  <span className="dl-opts-desc">纯音频下载时的输出格式</span>
+                </div>
+                <div className="dl-opts-btn-group">
+                  {(
+                    [
+                      { label: '自动', value: 'infer' },
+                      { label: 'M4A', value: 'm4a' },
+                      { label: 'MP3', value: 'mp3' },
+                      { label: 'FLAC', value: 'flac' },
+                    ] as const
+                  ).map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      className={`dl-opts-btn-group__item${downloadOptions.audioFormat === opt.value ? ' dl-opts-btn-group__item--active' : ''}`}
+                      onClick={() =>
+                        onDownloadOptionsChange({
+                          ...downloadOptions,
+                          audioFormat: opt.value,
+                        })
+                      }
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
             <div className="dl-opts-footer">
               <span className="dl-opts-hint">
                 {downloadHint(downloadOptions)}
