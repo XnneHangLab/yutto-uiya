@@ -62,17 +62,19 @@ function FaqCard({
             </ol>
           </div>
           {item.video && (
-            <button
-              type="button"
-              className="faq-video-btn"
-              onClick={handleOpenVideo}
-            >
-              <span className="faq-video-icon">▶</span>
-              <span className="faq-video-text">
-                {item.video.title}
-                {item.video.timestamp ? ` (${item.video.timestamp})` : ''}
-              </span>
-            </button>
+            <div className="faq-video-row">
+              <button
+                type="button"
+                className="faq-video-btn"
+                onClick={handleOpenVideo}
+              >
+                <span className="faq-video-icon">▶</span>
+                <span className="faq-video-text">
+                  视频教程
+                  {item.video.timestamp ? ` ${item.video.timestamp}` : ''}
+                </span>
+              </button>
+            </div>
           )}
         </div>
       )}
