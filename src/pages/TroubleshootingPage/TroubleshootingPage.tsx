@@ -1,8 +1,64 @@
 import { useState } from 'react';
-import { faqItems } from '../../data/troubleshooting';
+import { type FaqItem, faqCategories } from '../../data/troubleshooting';
 import '../../styles/troubleshooting.css';
 
 const channels = ['GitHub Issues', '交流群', '私信'];
+
+const totalCount = faqCategories.reduce(
+  (sum, cat) => sum + cat.items.length,
+  0,
+);
+
+function FaqCard({
+  item,
+  expanded,
+  onToggle,
+}: {
+  item: FaqItem;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className={`faq-card ${expanded ? 'faq-card--expanded' : ''}`}>
+      <button
+        type="button"
+        className="faq-header"
+        onClick={onToggle}
+        aria-expanded={expanded}
+      >
+        <div className="faq-header-content">
+          <span className="faq-title">{item.title}</span>
+          {!expanded && <span className="faq-preview">{item.symptom}</span>}
+        </div>
+        <span className="faq-chevron">{expanded ? '−' : '+'}</span>
+      </button>
+      {expanded && (
+        <div className="faq-body">
+          <div className="faq-row">
+            <div className="faq-col">
+              <span className="faq-label">现象</span>
+              <p className="faq-text">{item.symptom}</p>
+            </div>
+            {item.cause && (
+              <div className="faq-col">
+                <span className="faq-label">原因</span>
+                <p className="faq-text">{item.cause}</p>
+              </div>
+            )}
+          </div>
+          <div className="faq-section">
+            <span className="faq-label">解决</span>
+            <ol className="faq-steps">
+              {item.steps.map((step, i) => (
+                <li key={`${item.id}-step-${i}`}>{step}</li>
+              ))}
+            </ol>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function TroubleshootingPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -14,63 +70,37 @@ export function TroubleshootingPage() {
   return (
     <div className="troubleshooting-page">
       <h2 className="troubleshooting-section-title">疑难解答</h2>
-      <p className="troubleshooting-desc">
-        常见问题与解法汇总，点击展开查看详情。
-        <br />
-        有其他问题可以通过以下渠道反馈：
-      </p>
-      <div className="troubleshooting-channels">
-        {channels.map((c) => (
-          <span key={c} className="troubleshooting-channel">
-            {c}
-          </span>
-        ))}
+      <div className="troubleshooting-meta">
+        <span className="troubleshooting-count">共 {totalCount} 条收录</span>
+        <div className="troubleshooting-channels">
+          {channels.map((c) => (
+            <span key={c} className="troubleshooting-channel">
+              {c}
+            </span>
+          ))}
+        </div>
       </div>
 
-      <p className="troubleshooting-sub-title">问题收录（{faqItems.length}）</p>
-
-      <div className="faq-list">
-        {faqItems.map((item) => {
-          const expanded = expandedId === item.id;
-          return (
-            <div
-              key={item.id}
-              className={`faq-card ${expanded ? 'faq-card--expanded' : ''}`}
-            >
-              <button
-                type="button"
-                className="faq-header"
-                onClick={() => toggleExpand(item.id)}
-                aria-expanded={expanded}
-              >
-                <span className="faq-title">{item.title}</span>
-                <span className="faq-chevron">{expanded ? '−' : '+'}</span>
-              </button>
-              {expanded && (
-                <div className="faq-body">
-                  <div className="faq-section">
-                    <span className="faq-label">现象</span>
-                    <p className="faq-text">{item.symptom}</p>
-                  </div>
-                  {item.cause && (
-                    <div className="faq-section">
-                      <span className="faq-label">原因</span>
-                      <p className="faq-text">{item.cause}</p>
-                    </div>
-                  )}
-                  <div className="faq-section">
-                    <span className="faq-label">解决</span>
-                    <ol className="faq-steps">
-                      {item.steps.map((step, i) => (
-                        <li key={`${item.id}-step-${i}`}>{step}</li>
-                      ))}
-                    </ol>
-                  </div>
-                </div>
-              )}
+      <div className="faq-categories">
+        {faqCategories.map((cat) => (
+          <section key={cat.id} className="faq-category">
+            <div className="faq-category-header">
+              <span className="faq-category-icon">{cat.icon}</span>
+              <span className="faq-category-label">{cat.label}</span>
+              <span className="faq-category-count">{cat.items.length}</span>
             </div>
-          );
-        })}
+            <div className="faq-list">
+              {cat.items.map((item) => (
+                <FaqCard
+                  key={item.id}
+                  item={item}
+                  expanded={expandedId === item.id}
+                  onToggle={() => toggleExpand(item.id)}
+                />
+              ))}
+            </div>
+          </section>
+        ))}
       </div>
     </div>
   );
