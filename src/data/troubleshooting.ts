@@ -75,7 +75,7 @@ export const faqCategories: FaqCategory[] = [
         video: {
           bvid: 'BV1yRdBBsEGZ',
           title: '一键包使用教程',
-          timestamp: '1:41',
+          timestamp: '2:35',
         },
       },
     ],
