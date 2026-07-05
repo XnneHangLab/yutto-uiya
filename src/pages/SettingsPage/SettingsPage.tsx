@@ -156,13 +156,9 @@ export function SettingsPage({
     if (results.length > 0) {
       setLocalFfmpegExePath(results[0]);
       setLocalFfmpegMode('local');
-      setDetectStatus(
-        results.length === 1
-          ? '已找到 FFmpeg'
-          : `已找到 ${results.length} 个，已选第一个`,
-      );
+      setDetectStatus('已找到');
     } else {
-      setDetectStatus('未找到 FFmpeg，请手动浏览选择');
+      setDetectStatus('未找到，请手动浏览选择');
     }
   }
 
