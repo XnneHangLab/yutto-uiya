@@ -1012,6 +1012,7 @@ pub fn open_url(url: &str) -> Result<(), String> {
     command.spawn().map_err(|error| error.to_string())?;
     Ok(())
 }
+#[cfg(any(target_os = "windows", test))]
 fn build_windows_open_command(path: &Path) -> Command {
     let mut command = new_background_command("powershell");
     command
@@ -1584,7 +1585,7 @@ fn detect_platform() -> String {
                 }
             }
         }
-        return "Linux".to_string();
+        "Linux".to_string()
     }
 
     #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
