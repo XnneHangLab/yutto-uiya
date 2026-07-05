@@ -762,10 +762,7 @@ pub fn detect_ffmpeg_path(state: State<'_, RuntimeState>) -> Vec<String> {
         }
     }
     #[cfg(target_os = "windows")]
-    if let Ok(output) = std::process::Command::new("where")
-        .arg("ffmpeg")
-        .output()
-    {
+    if let Ok(output) = std::process::Command::new("where").arg("ffmpeg").output() {
         if output.status.success() {
             for line in String::from_utf8_lossy(&output.stdout).lines() {
                 let p = line.trim().to_string();

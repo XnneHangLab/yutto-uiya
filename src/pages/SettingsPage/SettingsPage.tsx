@@ -503,7 +503,15 @@ export function SettingsPage({
                     </button>
                   </div>
                   {detectStatus ? (
-                    <p style={{ margin: '4px 0 0', fontSize: 12, color: detectStatus.startsWith('未') ? '#ff9b9b' : 'var(--accent)' }}>
+                    <p
+                      style={{
+                        margin: '4px 0 0',
+                        fontSize: 12,
+                        color: detectStatus.startsWith('未')
+                          ? '#ff9b9b'
+                          : 'var(--accent)',
+                      }}
+                    >
                       {detectStatus}
                     </p>
                   ) : null}
