@@ -260,6 +260,7 @@ pub fn run_save_settings_command(
     driver: &RuntimeDriverConfig,
     ffmpeg_path: &str,
     no_proxy: bool,
+    download_dir: &str,
 ) -> Result<(), String> {
     let output = build_python_command_for_driver(
         repo_root,
@@ -267,7 +268,8 @@ pub fn run_save_settings_command(
         driver,
         ["-m", "uiya.cli", "save-settings",
          "--ffmpeg-path", ffmpeg_path,
-         "--no-proxy", if no_proxy { "true" } else { "false" }],
+         "--no-proxy", if no_proxy { "true" } else { "false" },
+         "--download-dir", download_dir],
     )
     .output()
     .map_err(|error| format!("failed to run save-settings: {error}"))?;
@@ -842,6 +844,7 @@ pub fn drain_download_queue(app: AppHandle, state: RuntimeState) {
                 active_download: state.active_download.clone(),
                 active_auth: state.active_auth.clone(),
                 hotkey: state.hotkey.clone(),
+                download_dir: state.download_dir.clone(),
             },
             task.task_id.clone(),
             task.target.clone(),
@@ -1041,13 +1044,20 @@ pub fn pick_workspace_root() -> Result<Option<PathBuf>, String> {
     }
 }
 
-pub fn resolve_managed_path(workspace_root: &Path, path_key: &str) -> Result<PathBuf, String> {
-    let downloads_root = workspace_root.join("downloads");
+pub fn resolve_managed_path(workspace_root: &Path, path_key: &str, download_dir: Option<&str>) -> Result<PathBuf, String> {
     let logs_root = workspace_root.join("logs");
 
     match path_key {
         "workspace" => Ok(workspace_root.to_path_buf()),
-        "downloads" => Ok(downloads_root),
+        "downloads" => {
+            let dir = download_dir.unwrap_or("./downloads");
+            let path = PathBuf::from(dir);
+            if path.is_absolute() {
+                Ok(path)
+            } else {
+                Ok(workspace_root.join(dir))
+            }
+        }
         "logs" => Ok(logs_root),
         other => Err(format!("managed path key not found in local runtime layout: {other}")),
     }
@@ -1405,6 +1415,87 @@ pub fn pick_ffmpeg_path() -> Result<Option<PathBuf>, String> {
         }
 
         Err("failed to open ffmpeg path picker: no supported dialog program found".to_string())
+    }
+}
+
+pub fn pick_download_dir() -> Result<Option<PathBuf>, String> {
+    #[cfg(target_os = "windows")]
+    {
+        let output = new_background_command("powershell")
+            .args([
+                "-NoProfile",
+                "-Command",
+                "Add-Type -AssemblyName System.Windows.Forms; $dialog = New-Object System.Windows.Forms.FolderBrowserDialog; $dialog.Description = '选择下载目录'; $dialog.ShowNewFolderButton = $true; if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Write-Output $dialog.SelectedPath }",
+            ])
+            .output()
+            .map_err(|error| format!("failed to open download dir picker: {error}"))?;
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            return Err(if stderr.is_empty() {
+                "failed to open download dir picker".to_string()
+            } else {
+                stderr
+            });
+        }
+        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        return if stdout.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(PathBuf::from(stdout)))
+        };
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let output = Command::new("osascript")
+            .args([
+                "-e",
+                "POSIX path of (choose folder with prompt \"选择下载目录\")",
+            ])
+            .output()
+            .map_err(|error| format!("failed to open download dir picker: {error}"))?;
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            return Err(if stderr.is_empty() {
+                "failed to open download dir picker".to_string()
+            } else {
+                stderr
+            });
+        }
+        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let path = stdout.trim_end_matches('\n');
+        return if path.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(PathBuf::from(path)))
+        };
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        for (program, args) in [
+            (
+                "zenity",
+                vec!["--file-selection", "--directory", "--title=选择下载目录"],
+            ),
+            ("kdialog", vec!["--getexistingdirectory", "."]),
+        ] {
+            let output = Command::new(program).args(args).output();
+            let Ok(output) = output else {
+                continue;
+            };
+            if !output.status.success() {
+                continue;
+            }
+            let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            return if stdout.is_empty() {
+                Ok(None)
+            } else {
+                Ok(Some(PathBuf::from(stdout)))
+            };
+        }
+
+        Err("failed to open download dir picker: no supported dialog program found".to_string())
     }
 }
 

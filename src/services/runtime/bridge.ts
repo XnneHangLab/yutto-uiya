@@ -63,8 +63,8 @@ export function exportConsoleLogs(contents: string) {
   return invoke<string>('export_console_logs', { contents });
 }
 
-export function setRuntimeDriver(driver: string, pythonPath: string | null, ffmpegPath: string | null, noProxy: boolean) {
-  return invoke<EnvironmentProbe>('set_runtime_driver', { driver, pythonPath, ffmpegPath, noProxy });
+export function setRuntimeDriver(driver: string, pythonPath: string | null, ffmpegPath: string | null, noProxy: boolean, downloadDir: string | null) {
+  return invoke<EnvironmentProbe>('set_runtime_driver', { driver, pythonPath, ffmpegPath, noProxy, downloadDir });
 }
 
 export function uvSync() {
@@ -77,6 +77,10 @@ export function pickPythonPath() {
 
 export function pickFfmpegPath() {
   return invoke<string | null>('pick_ffmpeg_path_command');
+}
+
+export function pickDownloadDir() {
+  return invoke<string | null>('pick_download_dir_command');
 }
 
 export function cancelTask(taskId: string) {

@@ -4,6 +4,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub const DEFAULT_HOTKEY: &str = "Ctrl+Shift+Space";
+pub const DEFAULT_DOWNLOAD_DIR: &str = "./downloads";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RuntimeDriverConfig {
@@ -174,6 +175,8 @@ pub struct RuntimeState {
     pub active_download: Arc<Mutex<Option<(String, u32)>>>,
     pub(crate) active_auth: Arc<Mutex<Option<AuthProcessState>>>,
     pub hotkey: Arc<Mutex<String>>,
+    /// Download directory — relative (resolved against workspace_root) or absolute.
+    pub download_dir: Arc<Mutex<String>>,
 }
 
 impl RuntimeState {
@@ -188,6 +191,7 @@ impl RuntimeState {
             active_download: Arc::new(Mutex::new(None)),
             active_auth: Arc::new(Mutex::new(None)),
             hotkey: Arc::new(Mutex::new(DEFAULT_HOTKEY.to_string())),
+            download_dir: Arc::new(Mutex::new(DEFAULT_DOWNLOAD_DIR.to_string())),
         }
     }
 
@@ -229,6 +233,14 @@ impl RuntimeState {
 
     pub fn set_hotkey_str(&self, next: String) {
         *self.hotkey.lock().unwrap() = next;
+    }
+
+    pub fn current_download_dir(&self) -> String {
+        self.download_dir.lock().unwrap().clone()
+    }
+
+    pub fn set_download_dir(&self, next: String) {
+        *self.download_dir.lock().unwrap() = next;
     }
 
     pub fn auth_in_progress(&self) -> bool {
@@ -345,17 +357,27 @@ pub fn read_saved_driver_config(workspace_root: &Path) -> Option<RuntimeDriverCo
     }
 }
 
-pub fn write_driver_config(workspace_root: &Path, driver: &RuntimeDriverConfig) {
+pub fn read_saved_download_dir(workspace_root: &Path) -> Option<String> {
+    let path = workspace_root.join("config").join("runtime.json");
+    let content = std::fs::read_to_string(&path).ok()?;
+    let value: serde_json::Value = serde_json::from_str(&content).ok()?;
+    value.get("downloadDir")?.as_str().map(|s| s.to_string())
+}
+
+pub fn write_driver_config(workspace_root: &Path, driver: &RuntimeDriverConfig, download_dir: &str) {
     let config_dir = workspace_root.join("config");
     let _ = std::fs::create_dir_all(&config_dir);
     let path = config_dir.join("runtime.json");
-    let value = match driver {
+    let mut value = match driver {
         RuntimeDriverConfig::Uv => serde_json::json!({"driver": "uv"}),
         RuntimeDriverConfig::DirectPython { python_path } => serde_json::json!({
             "driver": "conda",
             "pythonPath": python_path.display().to_string(),
         }),
     };
+    if download_dir != DEFAULT_DOWNLOAD_DIR {
+        value["downloadDir"] = serde_json::Value::String(download_dir.to_string());
+    }
     if let Ok(content) = serde_json::to_string_pretty(&value) {
         let _ = std::fs::write(&path, content);
     }
@@ -382,7 +404,7 @@ pub fn write_hotkey_config(workspace_root: &Path, shortcut: &str) {
 mod tests {
     use super::{
         read_saved_driver_config, resolve_portable_python_path, write_driver_config, QueueState,
-        RuntimeDriverConfig, RuntimeState, TaskStatus,
+        RuntimeDriverConfig, RuntimeState, TaskStatus, DEFAULT_DOWNLOAD_DIR,
     };
     use std::path::PathBuf;
 
@@ -502,7 +524,7 @@ mod tests {
         let tmp = std::env::temp_dir().join(format!("uiya-test-driver-{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
         std::fs::create_dir_all(&tmp).unwrap();
 
-        write_driver_config(&tmp, &RuntimeDriverConfig::Uv);
+        write_driver_config(&tmp, &RuntimeDriverConfig::Uv, DEFAULT_DOWNLOAD_DIR);
         let restored = read_saved_driver_config(&tmp);
         assert_eq!(restored, Some(RuntimeDriverConfig::Uv));
 
@@ -517,7 +539,7 @@ mod tests {
         let fake_python = tmp.join("python");
         std::fs::write(&fake_python, b"").unwrap();
 
-        write_driver_config(&tmp, &RuntimeDriverConfig::DirectPython { python_path: fake_python.clone() });
+        write_driver_config(&tmp, &RuntimeDriverConfig::DirectPython { python_path: fake_python.clone() }, DEFAULT_DOWNLOAD_DIR);
         let restored = read_saved_driver_config(&tmp);
         assert_eq!(restored, Some(RuntimeDriverConfig::DirectPython { python_path: fake_python }));
 

@@ -21,6 +21,7 @@ import {
   openManagedPath,
   openTaskSaveDir,
   parseTarget,
+  pickDownloadDir,
   pickFfmpegPath,
   pickPythonPath,
   probeEnvironment,
@@ -90,6 +91,7 @@ export function AppShell() {
   const [ffmpegMode, setFfmpegMode] = useState<'system' | 'local'>('system');
   const [ffmpegExePath, setFfmpegExePath] = useState('');
   const [noProxy, setNoProxy] = useState(false);
+  const [downloadDirSetting, setDownloadDirSetting] = useState('./downloads');
   const [parseItems, setParseItems] = useState<VideoParseItem[]>([]);
   const [parseGroups, setParseGroups] = useState<VideoParseGroup[]>([]);
   const [parseSelected, setParseSelected] = useState<Set<number>>(new Set());
@@ -128,6 +130,7 @@ export function AppShell() {
         setFfmpegExePath('');
       }
       setNoProxy(nextInspection.noProxy ?? false);
+      setDownloadDirSetting(nextInspection.downloadDirSetting ?? './downloads');
     } catch (error) {
       setLogs((current) => [
         ...current,
@@ -165,6 +168,7 @@ export function AppShell() {
           setFfmpegExePath('');
         }
         setNoProxy(nextInspection.noProxy ?? false);
+        setDownloadDirSetting(nextInspection.downloadDirSetting ?? './downloads');
       } catch (error) {
         if (disposed) {
           return;
@@ -538,6 +542,18 @@ export function AppShell() {
     }
   }
 
+  async function handleChooseDownloadDir(): Promise<string | null> {
+    try {
+      return await pickDownloadDir();
+    } catch (error) {
+      setLogs((current) => [
+        ...current,
+        createConsoleLog('stderr', `选择下载目录失败: ${toErrorMessage(error)}`),
+      ]);
+      return null;
+    }
+  }
+
   async function handleChooseFfmpegExe(): Promise<string | null> {
     try {
       return await pickFfmpegPath();
@@ -561,15 +577,17 @@ export function AppShell() {
     nextFfmpegMode: 'system' | 'local',
     nextFfmpegExePath: string,
     nextNoProxy: boolean,
+    nextDownloadDir: string,
   ) {
     const ffmpegPath = nextFfmpegMode === 'local' ? nextFfmpegExePath : null;
     try {
-      const nextProbe = await setRuntimeDriverApi(driver, exePath || null, ffmpegPath, nextNoProxy);
+      const nextProbe = await setRuntimeDriverApi(driver, exePath || null, ffmpegPath, nextNoProxy, nextDownloadDir || null);
       setRuntimeDriver(driver);
       setPythonExePath(exePath);
       setFfmpegMode(nextFfmpegMode);
       setFfmpegExePath(nextFfmpegExePath);
       setNoProxy(nextNoProxy);
+      setDownloadDirSetting(nextDownloadDir || './downloads');
       if (nextProbe) {
         await handleWorkspaceProbe(nextProbe);
       }
@@ -681,6 +699,8 @@ export function AppShell() {
               ffmpegExePath,
               onChooseFfmpegExe: handleChooseFfmpegExe,
               noProxy,
+              downloadDir: downloadDirSetting,
+              onChooseDownloadDir: handleChooseDownloadDir,
               authBusy,
               authDialogOpen,
               authDialogStatus,

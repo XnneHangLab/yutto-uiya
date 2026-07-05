@@ -449,6 +449,7 @@ def cmd_inspect_runtime() -> None:
             {"key": "logs", "path": "./logs"},
         ],
         "downloadDir": resolved_download_dir.resolve().as_posix(),
+        "downloadDirSetting": settings.download_dir,
         "sessData": bool(settings.SESS_DATA),
         "ffmpegPath": settings.ffmpeg_path,
         "noProxy": settings.no_proxy,
@@ -910,9 +911,9 @@ def cmd_fetch_cover(url: str) -> None:
         emit_payload({"error": "封面图片加载失败"})
 
 
-def cmd_save_settings(ffmpeg_path: str, no_proxy: bool) -> None:
+def cmd_save_settings(ffmpeg_path: str, no_proxy: bool, download_dir: str | None = None) -> None:
     """
-    Persist updated settings (currently ffmpeg_path and no_proxy) to uiya.toml.
+    Persist updated settings to uiya.toml.
     """
     from uiya.utils.config import UiyaSetting, load_settings_file, write_settings_file
 
@@ -920,6 +921,8 @@ def cmd_save_settings(ffmpeg_path: str, no_proxy: bool) -> None:
         settings = load_settings_file("uiya.toml", UiyaSetting)
         settings.ffmpeg_path = ffmpeg_path
         settings.no_proxy = no_proxy
+        if download_dir is not None:
+            settings.download_dir = download_dir
         write_settings_file("uiya.toml", settings)
     except Exception as exc:
         print(json.dumps({"kind": "payload", "payload": {"ok": False, "error": str(exc)}}, ensure_ascii=False), flush=True)
@@ -1133,6 +1136,7 @@ def main() -> None:
     save_parser = subparsers.add_parser("save-settings")
     save_parser.add_argument("--ffmpeg-path", default="ffmpeg")
     save_parser.add_argument("--no-proxy", default="false")
+    save_parser.add_argument("--download-dir", default=None)
 
     subparsers.add_parser("auth-login")
     subparsers.add_parser("auth-logout")
@@ -1161,7 +1165,7 @@ def main() -> None:
     elif args.command == "fetch-cover":
         cmd_fetch_cover(args.url)
     elif args.command == "save-settings":
-        cmd_save_settings(args.ffmpeg_path, args.no_proxy.lower() == "true")
+        cmd_save_settings(args.ffmpeg_path, args.no_proxy.lower() == "true", args.download_dir)
     elif args.command == "auth-login":
         cmd_auth_login()
     elif args.command == "auth-logout":

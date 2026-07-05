@@ -58,6 +58,8 @@ interface RenderPageOptions {
   ffmpegExePath: string;
   onChooseFfmpegExe: () => Promise<string | null>;
   noProxy: boolean;
+  downloadDir: string;
+  onChooseDownloadDir: () => Promise<string | null>;
   authBusy: boolean;
   authDialogOpen: boolean;
   authDialogStatus: string;
@@ -65,7 +67,7 @@ interface RenderPageOptions {
   onStartAuthLogin: () => void;
   onLogoutAuth: () => void;
   onCloseAuthDialog: () => void;
-  onSave: (driver: RuntimeDriver, pythonExePath: string, ffmpegMode: 'system' | 'local', ffmpegExePath: string, noProxy: boolean) => void;
+  onSave: (driver: RuntimeDriver, pythonExePath: string, ffmpegMode: 'system' | 'local', ffmpegExePath: string, noProxy: boolean, downloadDir: string) => void;
   onUvSync: () => Promise<void>;
   onSetAutoScroll: (next: boolean) => void;
   onSetWrapLines: (next: boolean) => void;
@@ -103,6 +105,8 @@ export function renderPage(
           ffmpegExePath={options.ffmpegExePath}
           onChooseFfmpegExe={options.onChooseFfmpegExe}
           noProxy={options.noProxy}
+          downloadDir={options.downloadDir}
+          onChooseDownloadDir={options.onChooseDownloadDir}
           authBusy={options.authBusy}
           authDialogOpen={options.authDialogOpen}
           authDialogStatus={options.authDialogStatus}

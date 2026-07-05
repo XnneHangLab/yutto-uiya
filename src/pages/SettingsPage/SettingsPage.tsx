@@ -27,6 +27,8 @@ interface SettingsPageProps {
   ffmpegExePath: string;
   onChooseFfmpegExe: () => Promise<string | null>;
   noProxy: boolean;
+  downloadDir: string;
+  onChooseDownloadDir: () => Promise<string | null>;
   authBusy: boolean;
   authDialogOpen: boolean;
   authDialogStatus: string;
@@ -34,7 +36,7 @@ interface SettingsPageProps {
   onStartAuthLogin: () => void;
   onLogoutAuth: () => void;
   onCloseAuthDialog: () => void;
-  onSave: (driver: RuntimeDriver, pythonExePath: string, ffmpegMode: 'system' | 'local', ffmpegExePath: string, noProxy: boolean) => void;
+  onSave: (driver: RuntimeDriver, pythonExePath: string, ffmpegMode: 'system' | 'local', ffmpegExePath: string, noProxy: boolean, downloadDir: string) => void;
   onUvSync: () => Promise<void>;
   hotkey: string;
   onSetHotkey: (shortcut: string) => Promise<void>;
@@ -53,6 +55,8 @@ export function SettingsPage({
   ffmpegExePath,
   onChooseFfmpegExe,
   noProxy,
+  downloadDir,
+  onChooseDownloadDir,
   authBusy,
   authDialogOpen,
   authDialogStatus,
@@ -71,6 +75,7 @@ export function SettingsPage({
   const [localFfmpegMode, setLocalFfmpegMode] = useState<'system' | 'local'>(ffmpegMode);
   const [localFfmpegExePath, setLocalFfmpegExePath] = useState(ffmpegExePath);
   const [localNoProxy, setLocalNoProxy] = useState(noProxy);
+  const [localDownloadDir, setLocalDownloadDir] = useState(downloadDir);
   const [syncing, setSyncing] = useState(false);
 
   // Hotkey recording state
@@ -84,7 +89,8 @@ export function SettingsPage({
     setLocalFfmpegMode(ffmpegMode);
     setLocalFfmpegExePath(ffmpegExePath);
     setLocalNoProxy(noProxy);
-  }, [runtimeDriver, pythonExePath, ffmpegMode, ffmpegExePath, noProxy]);
+    setLocalDownloadDir(downloadDir);
+  }, [runtimeDriver, pythonExePath, ffmpegMode, ffmpegExePath, noProxy, downloadDir]);
 
   const environmentLabel = environmentProbe
     ? formatEnvironmentStatus(environmentProbe.status)
@@ -121,6 +127,13 @@ export function SettingsPage({
     if (picked) {
       setLocalFfmpegExePath(picked);
       setLocalFfmpegMode('local');
+    }
+  }
+
+  async function handleBrowseDownloadDir() {
+    const picked = await onChooseDownloadDir();
+    if (picked) {
+      setLocalDownloadDir(picked);
     }
   }
 
@@ -312,6 +325,29 @@ export function SettingsPage({
               </SettingRow>
 
               <SettingRow
+                name="下载目录"
+                description="视频文件保存位置，支持绝对路径或相对于根目录的路径"
+                icon="📥"
+              >
+                <div className="workspace-actions">
+                  <input
+                    className="proxy-input workspace-input"
+                    aria-label="下载目录路径"
+                    value={localDownloadDir}
+                    onChange={(event) => setLocalDownloadDir(event.target.value)}
+                    placeholder="./downloads"
+                  />
+                  <button
+                    type="button"
+                    className="workspace-button"
+                    onClick={handleBrowseDownloadDir}
+                  >
+                    浏览
+                  </button>
+                </div>
+              </SettingRow>
+
+              <SettingRow
                 name="Python 运行方式"
                 description="uv 为推荐方式；conda 可指定自有环境"
                 icon="🐍"
@@ -467,7 +503,7 @@ export function SettingsPage({
               <button
                 type="button"
                 className="settings-save-button"
-                onClick={() => onSave(localDriver, localPythonExePath, localFfmpegMode, localFfmpegExePath, localNoProxy)}
+                onClick={() => onSave(localDriver, localPythonExePath, localFfmpegMode, localFfmpegExePath, localNoProxy, localDownloadDir)}
               >
                 保存并重新检测
               </button>
