@@ -41,41 +41,46 @@ function FaqCard({
       </button>
       {expanded && (
         <div className="faq-body">
-          <div className="faq-row">
-            <div className="faq-col">
+          <div className="faq-grid">
+            <div className="faq-cell">
               <span className="faq-label">现象</span>
               <p className="faq-text">{item.symptom}</p>
             </div>
-            {item.cause && (
-              <div className="faq-col">
+            {item.cause ? (
+              <div className="faq-cell">
                 <span className="faq-label">原因</span>
                 <p className="faq-text">{item.cause}</p>
               </div>
+            ) : (
+              <div />
+            )}
+            <div className="faq-cell">
+              <span className="faq-label">解决</span>
+              <ol className="faq-steps">
+                {item.steps.map((step, i) => (
+                  <li key={`${item.id}-step-${i}`}>{step}</li>
+                ))}
+              </ol>
+            </div>
+            {item.video ? (
+              <div className="faq-cell faq-cell--video">
+                <span className="faq-label">参考</span>
+                <button
+                  type="button"
+                  className="faq-video-btn"
+                  onClick={handleOpenVideo}
+                >
+                  <span className="faq-video-icon">▶</span>
+                  <span className="faq-video-text">
+                    {item.video.title}
+                    {item.video.timestamp ? ` ${item.video.timestamp}` : ''}
+                  </span>
+                </button>
+              </div>
+            ) : (
+              <div />
             )}
           </div>
-          <div className="faq-section">
-            <span className="faq-label">解决</span>
-            <ol className="faq-steps">
-              {item.steps.map((step, i) => (
-                <li key={`${item.id}-step-${i}`}>{step}</li>
-              ))}
-            </ol>
-          </div>
-          {item.video && (
-            <div className="faq-video-row">
-              <button
-                type="button"
-                className="faq-video-btn"
-                onClick={handleOpenVideo}
-              >
-                <span className="faq-video-icon">▶</span>
-                <span className="faq-video-text">
-                  视频教程
-                  {item.video.timestamp ? ` ${item.video.timestamp}` : ''}
-                </span>
-              </button>
-            </div>
-          )}
         </div>
       )}
     </div>

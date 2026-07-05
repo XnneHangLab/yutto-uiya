@@ -157,29 +157,24 @@
 
 .faq-body {
   padding: 0 16px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
   border-top: 1px solid var(--line);
   padding-top: 12px;
 }
 
-.faq-row {
+.faq-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 14px 24px;
 }
 
-.faq-col {
+.faq-cell {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.faq-section {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.faq-cell--video {
+  justify-content: flex-start;
 }
 
 .faq-label {
@@ -210,28 +205,26 @@
 
 /* ── Video button ─────────────────────────────────────── */
 
-.faq-video-row {
-  display: flex;
-  justify-content: flex-end;
-}
-
 .faq-video-btn {
   display: inline-flex;
   align-items: center;
+  align-self: flex-start;
   gap: 6px;
-  padding: 5px 12px;
-  border: none;
+  margin-top: 2px;
+  padding: 6px 12px;
+  border: 1px solid rgba(63, 163, 255, 0.2);
   border-radius: 6px;
-  background: none;
+  background: rgba(63, 163, 255, 0.06);
   color: var(--accent);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, border-color 0.15s;
 }
 
 .faq-video-btn:hover {
-  background: rgba(63, 163, 255, 0.1);
+  background: rgba(63, 163, 255, 0.12);
+  border-color: rgba(63, 163, 255, 0.35);
 }
 
 .faq-video-icon {
