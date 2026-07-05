@@ -1,6 +1,9 @@
 use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
 use super::process::{
     drain_download_queue, ensure_environment_ready, kill_process, open_path, open_url,
     pick_download_dir, pick_ffmpeg_path, pick_python_path, pick_workspace_root,
@@ -762,7 +765,12 @@ pub fn detect_ffmpeg_path(state: State<'_, RuntimeState>) -> Vec<String> {
         }
     }
     #[cfg(target_os = "windows")]
-    if let Ok(output) = std::process::Command::new("where").arg("ffmpeg").output() {
+    if let Ok(output) = {
+        let mut cmd = std::process::Command::new("where");
+        cmd.arg("ffmpeg");
+        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        cmd.output()
+    } {
         if output.status.success() {
             for line in String::from_utf8_lossy(&output.stdout).lines() {
                 let p = line.trim().to_string();
