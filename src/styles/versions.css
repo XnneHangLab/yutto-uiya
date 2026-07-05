@@ -162,8 +162,13 @@
   height: 12px;
   margin-top: 9px;
   border-radius: 999px;
-  background: var(--text);
-  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.06);
+  background: var(--muted);
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.04);
+}
+
+.versions-timeline__dot--active {
+  background: var(--accent);
+  box-shadow: 0 0 0 6px rgba(63, 163, 255, 0.15);
 }
 
 .versions-timeline__content {
@@ -205,6 +210,18 @@
   font-size: 14px;
   line-height: 1.75;
   color: var(--muted);
+}
+
+.versions-timeline__highlights {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+.versions-timeline__highlights li {
+  padding-left: 2px;
 }
 
 @media (max-width: 960px) {
