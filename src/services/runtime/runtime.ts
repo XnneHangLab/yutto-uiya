@@ -287,9 +287,7 @@ export function getQueueSummary(tasks: RuntimeTaskRecord[]) {
 }
 
 export function isEnvironmentReady(probe: EnvironmentProbe | null) {
-  return (
-    probe?.status === 'ready' || probe?.status === 'ffmpeg-unavailable'
-  );
+  return probe?.status === 'ready';
 }
 
 function buildRuntimeTaskLabel(target: string) {
