@@ -45,6 +45,16 @@ export const faqCategories: FaqCategory[] = [
         },
       },
       {
+        id: 'folder-cannot-access',
+        title: '拒绝访问（WinError 5）',
+        symptom: '扫码或解析时提示 WinError 5 - 拒绝访问。',
+        cause: '一键包被解压到了 Program Files 等需要管理员权限的目录。',
+        steps: [
+          '将一键包移到其他位置，如 D 盘根目录或桌面',
+          '重新启动即可',
+        ],
+      },
+      {
         id: 'uv-sync-failed',
         title: '依赖安装失败',
         symptom: '环境检测卡在「uiya 不可用」，或点击同步后长时间无响应。',
@@ -62,6 +72,17 @@ export const faqCategories: FaqCategory[] = [
     label: '下载问题',
     icon: '⬇️',
     items: [
+      {
+        id: 'collection-parse-single',
+        title: '合集只解析到一个视频',
+        symptom: '有的合集可以解析全部，但有的只解析到一个视频。',
+        cause: '使用了播放页的链接，只能解析当前播放的视频，无法识别所在合集。',
+        steps: [
+          '点击合集标题，进入 UP 主空间的合集页面',
+          '复制合集页面的链接（而不是播放页链接）',
+          '用合集链接重新解析',
+        ],
+      },
       {
         id: 'low-quality',
         title: '画质只有 360P / 480P',
