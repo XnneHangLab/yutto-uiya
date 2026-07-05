@@ -664,13 +664,6 @@ export function AppShell() {
     nextNoProxy: boolean,
     nextDownloadDir: string,
   ) {
-    if (nextFfmpegMode === 'local' && !nextFfmpegExePath.trim()) {
-      setLogs((current) => [
-        ...current,
-        createConsoleLog('stderr', '请先选择本地 FFmpeg 可执行文件路径'),
-      ]);
-      return;
-    }
     const ffmpegPath = nextFfmpegMode === 'local' ? nextFfmpegExePath : null;
     try {
       const nextProbe = await setRuntimeDriverApi(
