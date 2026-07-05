@@ -72,6 +72,11 @@ export const faqCategories: FaqCategory[] = [
           '用 B站手机 App 扫描弹出的二维码',
           '等待显示「已登录」后重新下载',
         ],
+        video: {
+          bvid: 'BV1yRdBBsEGZ',
+          title: '一键包使用教程',
+          timestamp: '1:41',
+        },
       },
     ],
   },
