@@ -57,6 +57,7 @@ export interface EnvironmentProbe {
 export interface RuntimeInspection {
   managedPaths: { key: string; path: string }[];
   downloadDir: string;
+  downloadDirSetting: string;
   sessData: boolean;
   ffmpegPath: string;
   noProxy: boolean;

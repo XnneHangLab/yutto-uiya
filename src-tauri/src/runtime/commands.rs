@@ -3,15 +3,17 @@ use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
 use super::process::{
     drain_download_queue,
-    ensure_environment_ready, kill_process, open_path, open_url, pick_ffmpeg_path, pick_python_path, pick_workspace_root,
+    ensure_environment_ready, kill_process, open_path, open_url, pick_download_dir,
+    pick_ffmpeg_path, pick_python_path, pick_workspace_root,
     resolve_managed_path, run_auth_login_command, run_auth_logout_command, run_fetch_cover_command,
     run_fetch_meta_command, run_inspect_command, run_parse_command, run_probe_command,
     run_save_settings_command, run_uv_sync_command, write_console_log,
 };
 use super::state::{
-    read_saved_driver_config, resolve_portable_ffmpeg_path, resolve_portable_python_path, resolve_repo_root,
-    resolve_workspace_root, write_driver_config, RuntimeDriverConfig, RuntimeState,
-    DEFAULT_HOTKEY, read_saved_hotkey, write_hotkey_config,
+    read_saved_driver_config, read_saved_download_dir, resolve_portable_ffmpeg_path,
+    resolve_portable_python_path, resolve_repo_root, resolve_workspace_root, write_driver_config,
+    RuntimeDriverConfig, RuntimeState, DEFAULT_DOWNLOAD_DIR, DEFAULT_HOTKEY, read_saved_hotkey,
+    write_hotkey_config,
 };
 
 fn runtime_driver_api_value(driver: &RuntimeDriverConfig) -> &'static str {
@@ -32,11 +34,13 @@ fn apply_runtime_state_update(
     state: &RuntimeState,
     next_driver: RuntimeDriverConfig,
     next_ffmpeg: String,
+    next_download_dir: String,
     round_trip_result: Result<serde_json::Value, String>,
 ) -> Result<serde_json::Value, String> {
     let payload = round_trip_result?;
     state.set_driver_config(next_driver);
     state.set_ffmpeg_path(next_ffmpeg);
+    state.set_download_dir(next_download_dir);
     Ok(payload)
 }
 
@@ -214,6 +218,7 @@ pub async fn enqueue_download(
             active_download: state.active_download.clone(),
             active_auth: state.active_auth.clone(),
             hotkey: state.hotkey.clone(),
+            download_dir: state.download_dir.clone(),
         };
 
         tauri::async_runtime::spawn_blocking(move || {
@@ -440,8 +445,9 @@ pub fn cancel_task(
 #[tauri::command]
 pub fn list_managed_folders(state: State<'_, RuntimeState>) -> Result<serde_json::Value, String> {
     let workspace_root = state.current_workspace_root();
-    let downloads_root = workspace_root.join("downloads");
-    let logs_root = workspace_root.join("logs");
+    let download_dir = state.current_download_dir();
+    let downloads_root = resolve_managed_path(&workspace_root, "downloads", Some(&download_dir))?;
+    let logs_root = resolve_managed_path(&workspace_root, "logs", None)?;
     let items = serde_json::json!([
         { "key": "workspace", "label": "根目录",     "path": workspace_root.display().to_string() },
         { "key": "downloads", "label": "下载目录",   "path": downloads_root.display().to_string() },
@@ -465,7 +471,8 @@ pub fn open_url_command(url: String) -> Result<(), String> {
 #[tauri::command]
 pub fn open_managed_path(app: AppHandle, state: State<'_, RuntimeState>, path_key: String) -> Result<(), String> {
     let workspace_root = state.current_workspace_root();
-    let path = resolve_managed_path(&workspace_root, &path_key)?;
+    let download_dir = state.current_download_dir();
+    let path = resolve_managed_path(&workspace_root, &path_key, Some(&download_dir))?;
     if !path.exists() {
         std::fs::create_dir_all(&path).map_err(|e| e.to_string())?;
     }
@@ -476,7 +483,8 @@ pub fn open_managed_path(app: AppHandle, state: State<'_, RuntimeState>, path_ke
 #[tauri::command]
 pub fn open_task_save_dir(app: AppHandle, state: State<'_, RuntimeState>, relative_path: String) -> Result<(), String> {
     let workspace_root = state.current_workspace_root();
-    let downloads_dir = resolve_managed_path(&workspace_root, "downloads")?;
+    let download_dir = state.current_download_dir();
+    let downloads_dir = resolve_managed_path(&workspace_root, "downloads", Some(&download_dir))?;
     let target = if relative_path.is_empty() {
         downloads_dir.clone()
     } else {
@@ -496,7 +504,7 @@ pub fn export_console_logs(
     contents: String,
 ) -> Result<String, String> {
     let workspace_root = state.current_workspace_root();
-    let log_dir = resolve_managed_path(&workspace_root, "logs")?;
+    let log_dir = resolve_managed_path(&workspace_root, "logs", None)?;
     let path = write_console_log(&log_dir, &contents)?;
     Ok(path.display().to_string())
 }
@@ -568,6 +576,9 @@ pub fn build_runtime_state() -> Result<RuntimeState, String> {
     let saved_hotkey = read_saved_hotkey(&workspace_root)
         .unwrap_or_else(|| DEFAULT_HOTKEY.to_string());
     state.set_hotkey_str(saved_hotkey);
+    if let Some(saved_download_dir) = read_saved_download_dir(&workspace_root) {
+        state.set_download_dir(saved_download_dir);
+    }
     Ok(state)
 }
 
@@ -579,6 +590,7 @@ pub async fn set_runtime_driver(
     python_path: Option<String>,
     ffmpeg_path: Option<String>,
     no_proxy: Option<bool>,
+    download_dir: Option<String>,
 ) -> Result<serde_json::Value, String> {
     let driver_config = match driver.as_str() {
         "uv" => RuntimeDriverConfig::Uv,
@@ -600,11 +612,17 @@ pub async fn set_runtime_driver(
 
     let resolved_no_proxy = no_proxy.unwrap_or(false);
 
+    let next_download_dir = download_dir
+        .map(|d| d.trim().to_string())
+        .filter(|d| !d.is_empty())
+        .unwrap_or_else(|| DEFAULT_DOWNLOAD_DIR.to_string());
+
     let repo_root = state.repo_root.clone();
     let workspace_root = state.current_workspace_root();
     let current_driver = state.current_driver_config();
     let (save_driver, probe_driver) = resolve_round_trip_drivers(&current_driver, &driver_config);
     let ffmpeg_for_round_trip = next_ffmpeg.clone();
+    let download_dir_for_round_trip = next_download_dir.clone();
     let round_trip_result = run_blocking_runtime_action(move || {
         run_save_settings_command(
             &repo_root,
@@ -612,6 +630,7 @@ pub async fn set_runtime_driver(
             &save_driver,
             &ffmpeg_for_round_trip,
             resolved_no_proxy,
+            &download_dir_for_round_trip,
         )?;
         let probe = run_probe_command(
             &repo_root,
@@ -624,9 +643,9 @@ pub async fn set_runtime_driver(
     })
     .await;
 
-    let result = apply_runtime_state_update(state.inner(), driver_config, next_ffmpeg, round_trip_result);
+    let result = apply_runtime_state_update(state.inner(), driver_config, next_ffmpeg, next_download_dir, round_trip_result);
     if result.is_ok() {
-        write_driver_config(&state.current_workspace_root(), &state.current_driver_config());
+        write_driver_config(&state.current_workspace_root(), &state.current_driver_config(), &state.current_download_dir());
     }
     result
 }
@@ -635,6 +654,15 @@ pub async fn set_runtime_driver(
 pub async fn pick_python_path_command() -> Result<Option<String>, String> {
     run_blocking_runtime_action(move || {
         let path = pick_python_path()?;
+        Ok(path.map(|p| p.display().to_string()))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn pick_download_dir_command() -> Result<Option<String>, String> {
+    run_blocking_runtime_action(move || {
+        let path = pick_download_dir()?;
         Ok(path.map(|p| p.display().to_string()))
     })
     .await
@@ -688,6 +716,10 @@ async fn switch_workspace_root(
 
     state.set_workspace_root(next_workspace_root.clone());
 
+    let saved_download_dir = read_saved_download_dir(&next_workspace_root)
+        .unwrap_or_else(|| DEFAULT_DOWNLOAD_DIR.to_string());
+    state.set_download_dir(saved_download_dir);
+
     let repo_root = state.repo_root.clone();
     let driver = state.current_driver_config();
     let ffmpeg_path = state.current_ffmpeg_path();
@@ -738,6 +770,7 @@ mod tests {
             &state,
             RuntimeDriverConfig::Uv,
             "ffmpeg".to_string(),
+            "./downloads".to_string(),
             Err("probe failed".to_string()),
         );
 
@@ -761,6 +794,7 @@ mod tests {
                 python_path: PathBuf::from("/workspace/env/python"),
             },
             "/workspace/tools/ffmpeg".to_string(),
+            "./downloads".to_string(),
             Ok(serde_json::json!({"status": "ready"})),
         )
         .unwrap();
@@ -783,6 +817,7 @@ mod tests {
             &state,
             RuntimeDriverConfig::Uv,
             "ffmpeg".to_string(),
+            "./downloads".to_string(),
             Ok(serde_json::json!({"status": "uv-unavailable"})),
         )
         .unwrap();
