@@ -114,7 +114,7 @@ def _build_yutto_command(
     elif proxy_pool:
         command += ["--proxy", proxy_pool]
 
-    if audio_format and audio_format != "infer":
+    if audio_format and audio_format not in ("infer", "wav"):
         command += ["--output-format-audio-only", audio_format]
 
     return command
@@ -640,6 +640,8 @@ def cmd_download(
     returncode = proc.wait()
 
     if returncode == 0:
+        if audio_format == "wav":
+            _convert_audio_to_wav(dl_dir, ffmpeg_path or "ffmpeg", emit_event)
         emit_event(
             {
                 "event": "download.completed",
@@ -653,6 +655,39 @@ def cmd_download(
         )
     else:
         fail(f"下载失败，退出码 {returncode}", current=3)
+
+
+def _convert_audio_to_wav(
+    download_dir: pathlib.Path,
+    ffmpeg_cmd: str,
+    emit_event: Callable[..., Any],
+) -> None:
+    for ext in ("m4a", "aac"):
+        for src in download_dir.rglob(f"*.{ext}"):
+            dst = src.with_suffix(".wav")
+            if dst.exists():
+                continue
+            emit_event(
+                {
+                    "event": "download.converting",
+                    "target": str(src.name),
+                    "status": "verifying",
+                    "message": f"转码 {src.name} → wav",
+                    "progressCurrent": 2,
+                    "progressTotal": 3,
+                    "progressUnit": "stage",
+                }
+            )
+            try:
+                subprocess.run(
+                    [ffmpeg_cmd, "-i", str(src), "-y", str(dst)],
+                    capture_output=True,
+                    timeout=300,
+                    check=True,
+                )
+                src.unlink()
+            except Exception as exc:
+                print(f"[warn] 转码失败 {src.name}: {exc}", flush=True)
 
 
 def cmd_parse(target: str) -> None:

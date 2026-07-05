@@ -162,7 +162,7 @@ export const DEFAULT_DOWNLOAD_OPTIONS: DownloadOptions = {
   requireDanmaku: false,
   videoQuality: 127,
   audioQuality: 30280,
-  audioFormat: 'infer',
+  audioFormat: 'm4a',
 };
 
 export interface ManagedFolderItem {

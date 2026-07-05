@@ -602,10 +602,10 @@ export function DownloadPage({
                 <div className="dl-opts-btn-group">
                   {(
                     [
-                      { label: '自动', value: 'infer' },
                       { label: 'M4A', value: 'm4a' },
                       { label: 'MP3', value: 'mp3' },
                       { label: 'FLAC', value: 'flac' },
+                      { label: 'WAV', value: 'wav' },
                     ] as const
                   ).map((opt) => (
                     <button
