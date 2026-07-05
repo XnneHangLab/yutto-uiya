@@ -680,7 +680,15 @@ export function AppShell() {
       setNoProxy(nextNoProxy);
       setDownloadDirSetting(nextDownloadDir || './downloads');
       if (nextProbe) {
-        await handleWorkspaceProbe(nextProbe);
+        setEnvironmentProbe(nextProbe);
+        if (isEnvironmentReady(nextProbe)) {
+          const [nextInspection, paths] = await Promise.all([
+            inspectRuntime(),
+            listManagedFolders(),
+          ]);
+          setInspection(nextInspection);
+          setFolders(buildFolderItemsFromPaths(paths));
+        }
       }
     } catch (error) {
       setLogs((current) => [
