@@ -1,28 +1,5 @@
+import { CURRENT_VERSION, VERSION_TIMELINE } from '../../data/versions';
 import '../../styles/versions.css';
-
-interface VersionTimelineEntry {
-  date: string;
-  version: string;
-  badge: string;
-  title: string;
-  summary?: string;
-}
-
-const CURRENT_VERSION = {
-  version: 'v2.0.0',
-  date: '2026-4-11',
-  channel: '稳定版',
-  summary: '将前端由 streamlit 迁移至 tauri',
-};
-
-const VERSION_TIMELINE: VersionTimelineEntry[] = [
-  {
-    date: '2026-4-11',
-    version: 'v2.0.0',
-    badge: '当前',
-    title: '将前端由 streamlit 迁移至 tauri',
-  },
-];
 
 export function VersionsPage() {
   return (
@@ -59,14 +36,15 @@ export function VersionsPage() {
       <section className="versions-timeline-card">
         <div className="versions-section-head">
           <h2>版本时间线</h2>
-          <p>将来会保留历史版本的下载链接，并按时间继续追加在这里。</p>
         </div>
 
         <div className="versions-timeline">
           {VERSION_TIMELINE.map((entry) => (
             <article key={entry.version} className="versions-timeline__item">
               <div className="versions-timeline__rail">
-                <span className="versions-timeline__dot" />
+                <span
+                  className={`versions-timeline__dot${entry.badge ? ' versions-timeline__dot--active' : ''}`}
+                />
               </div>
 
               <div className="versions-timeline__content">
@@ -75,12 +53,20 @@ export function VersionsPage() {
                   <span className="versions-timeline__version">
                     {entry.version}
                   </span>
-                  <span className="versions-timeline__badge">
-                    {entry.badge}
-                  </span>
+                  {entry.badge && (
+                    <span className="versions-timeline__badge">
+                      {entry.badge}
+                    </span>
+                  )}
                 </div>
                 <p className="versions-timeline__title">{entry.title}</p>
-                {entry.summary ? <p>{entry.summary}</p> : null}
+                {entry.highlights && entry.highlights.length > 0 && (
+                  <ul className="versions-timeline__highlights">
+                    {entry.highlights.map((h) => (
+                      <li key={h}>{h}</li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </article>
           ))}
