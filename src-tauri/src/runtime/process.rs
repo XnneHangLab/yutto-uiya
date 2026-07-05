@@ -75,7 +75,8 @@ if result["status"] == "ready":
         result["authMessage"] = "认证信息无效，只能下载低画质"
         result["issues"].append(f"认证信息无效，将只能下载低画质: {error}")
 
-ffmpeg_cmd = os.environ.get("UIYA_FFMPEG_PATH") or "ffmpeg"
+_env_ffmpeg = os.environ.get("UIYA_FFMPEG_PATH")
+ffmpeg_cmd = _env_ffmpeg if _env_ffmpeg is not None else "ffmpeg"
 if ffmpeg_cmd == "ffmpeg":
     try:
         import tomllib
