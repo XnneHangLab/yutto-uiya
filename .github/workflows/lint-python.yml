@@ -1,20 +1,31 @@
-name: Lint and Format
+name: Lint Python
 
 on:
   push:
     branches: [dev]
+    paths:
+      - "python/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "justfile"
+      - ".github/workflows/lint-python.yml"
   pull_request:
-  merge_group:
+    paths:
+      - "python/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "justfile"
+      - ".github/workflows/lint-python.yml"
   workflow_dispatch:
 
 jobs:
-  lint-and-fmt-python:
+  lint-and-fmt:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.11"]
         architecture: ["x64"]
-    name: Lint and Format (Python)
+    name: Lint and Format
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,7 +48,7 @@ jobs:
         run: just ci-install
 
       - name: Lint
-        run: just ci-lint
+        run: just ci-lint-python
 
       - name: Format check
-        run: just ci-fmt-check
+        run: just ci-fmt-check-python

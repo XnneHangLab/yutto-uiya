@@ -1,8 +1,8 @@
 mod runtime;
 
+use runtime::state::RuntimeState;
 use tauri::Manager;
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
-use runtime::state::RuntimeState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

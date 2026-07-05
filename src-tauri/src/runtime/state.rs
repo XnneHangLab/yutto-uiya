@@ -39,8 +39,22 @@ pub struct QueueState {
     pub worker_running: bool,
 }
 
+#[allow(clippy::too_many_arguments)]
 impl QueueState {
-    pub fn enqueue(&mut self, target: String, label: String, require_video: bool, require_audio: bool, require_cover: bool, require_subtitle: bool, require_danmaku: bool, video_quality: u32, audio_quality: u32, select_index: Option<u32>, dir_override: Option<String>) -> RuntimeTaskRecord {
+    pub fn enqueue(
+        &mut self,
+        target: String,
+        label: String,
+        require_video: bool,
+        require_audio: bool,
+        require_cover: bool,
+        require_subtitle: bool,
+        require_danmaku: bool,
+        video_quality: u32,
+        audio_quality: u32,
+        select_index: Option<u32>,
+        dir_override: Option<String>,
+    ) -> RuntimeTaskRecord {
         self.next_id += 1;
         let task_id = format!("task-{}", self.next_id);
         let queued_target = target.clone();
@@ -86,7 +100,19 @@ impl QueueState {
         select_index: Option<u32>,
         dir_override: Option<String>,
     ) -> (RuntimeTaskRecord, bool) {
-        let task = self.enqueue(target, label, require_video, require_audio, require_cover, require_subtitle, require_danmaku, video_quality, audio_quality, select_index, dir_override);
+        let task = self.enqueue(
+            target,
+            label,
+            require_video,
+            require_audio,
+            require_cover,
+            require_subtitle,
+            require_danmaku,
+            video_quality,
+            audio_quality,
+            select_index,
+            dir_override,
+        );
         if self.worker_running {
             (task, false)
         } else {
@@ -124,16 +150,15 @@ impl QueueState {
 
     pub fn has_active_tasks(&self) -> bool {
         self.worker_running
-            || self
-                .tasks
-                .iter()
-                .any(|task| matches!(
+            || self.tasks.iter().any(|task| {
+                matches!(
                     task.status,
                     TaskStatus::Queued
                         | TaskStatus::Preparing
                         | TaskStatus::Downloading
                         | TaskStatus::Verifying
-                ))
+                )
+            })
     }
 
     /// Remove a waiting (not-yet-started) task from the queue, mark it cancelled, and return its target URL.
@@ -141,7 +166,9 @@ impl QueueState {
     pub fn cancel_waiting_task(&mut self, task_id: &str) -> Option<String> {
         let pos = self.waiting.iter().position(|t| t.task_id == task_id)?;
         self.waiting.remove(pos);
-        let target = self.tasks.iter()
+        let target = self
+            .tasks
+            .iter()
             .find(|t| t.task_id == task_id)
             .map(|t| t.target.clone())
             .unwrap_or_default();
@@ -316,12 +343,12 @@ pub fn resolve_repo_root() -> Result<PathBuf, String> {
         .ok_or_else(|| "failed to resolve app root from current exe".to_string())
 }
 
-pub fn resolve_workspace_root(repo_root: &PathBuf) -> Result<PathBuf, String> {
+pub fn resolve_workspace_root(repo_root: &Path) -> Result<PathBuf, String> {
     if let Ok(value) = std::env::var("UIYA_WORKSPACE_ROOT") {
         return Ok(PathBuf::from(value));
     }
 
-    Ok(repo_root.clone())
+    Ok(repo_root.to_path_buf())
 }
 
 pub fn resolve_portable_python_path(app_root: &Path) -> PathBuf {
@@ -364,7 +391,11 @@ pub fn read_saved_download_dir(workspace_root: &Path) -> Option<String> {
     value.get("downloadDir")?.as_str().map(|s| s.to_string())
 }
 
-pub fn write_driver_config(workspace_root: &Path, driver: &RuntimeDriverConfig, download_dir: &str) {
+pub fn write_driver_config(
+    workspace_root: &Path,
+    driver: &RuntimeDriverConfig,
+    download_dir: &str,
+) {
     let config_dir = workspace_root.join("config");
     let _ = std::fs::create_dir_all(&config_dir);
     let path = config_dir.join("runtime.json");
@@ -411,7 +442,19 @@ mod tests {
     #[test]
     fn enqueue_adds_a_task_and_keeps_it_queued() {
         let mut queue = QueueState::default();
-        let task = queue.enqueue("genie-base".to_string(), "GenieData 基础资源".to_string(), true, true, false, false, false, 127, 30280, None, None);
+        let task = queue.enqueue(
+            "genie-base".to_string(),
+            "GenieData 基础资源".to_string(),
+            true,
+            true,
+            false,
+            false,
+            false,
+            127,
+            30280,
+            None,
+            None,
+        );
 
         assert_eq!(task.status, TaskStatus::Queued);
         assert_eq!(queue.tasks.len(), 1);
@@ -421,7 +464,19 @@ mod tests {
     #[test]
     fn apply_status_updates_existing_task_progress() {
         let mut queue = QueueState::default();
-        let task = queue.enqueue("genie-base".to_string(), "GenieData 基础资源".to_string(), true, true, false, false, false, 127, 30280, None, None);
+        let task = queue.enqueue(
+            "genie-base".to_string(),
+            "GenieData 基础资源".to_string(),
+            true,
+            true,
+            false,
+            false,
+            false,
+            127,
+            30280,
+            None,
+            None,
+        );
 
         queue.apply_update(
             &task.task_id,
@@ -453,7 +508,15 @@ mod tests {
         let (_task, should_start_worker) = queue.enqueue_with_worker_control(
             "genie-base".to_string(),
             "GenieData 基础资源".to_string(),
-            true, true, false, false, false, 127, 30280, None, None,
+            true,
+            true,
+            false,
+            false,
+            false,
+            127,
+            30280,
+            None,
+            None,
         );
 
         assert!(should_start_worker);
@@ -466,7 +529,15 @@ mod tests {
         let (task, started_worker) = queue.enqueue_with_worker_control(
             "genie-base".to_string(),
             "GenieData 基础资源".to_string(),
-            true, true, false, false, false, 127, 30280, None, None,
+            true,
+            true,
+            false,
+            false,
+            false,
+            127,
+            30280,
+            None,
+            None,
         );
         assert!(started_worker);
 
@@ -480,10 +551,28 @@ mod tests {
         let mut queue = QueueState::default();
         assert!(!queue.has_active_tasks());
 
-        let task = queue.enqueue("genie-base".to_string(), "GenieData 基础资源".to_string(), true, true, false, false, false, 127, 30280, None, None);
+        let task = queue.enqueue(
+            "genie-base".to_string(),
+            "GenieData 基础资源".to_string(),
+            true,
+            true,
+            false,
+            false,
+            false,
+            127,
+            30280,
+            None,
+            None,
+        );
         assert!(queue.has_active_tasks());
 
-        queue.apply_update(&task.task_id, TaskStatus::Completed, "完成".to_string(), 3, 3);
+        queue.apply_update(
+            &task.task_id,
+            TaskStatus::Completed,
+            "完成".to_string(),
+            3,
+            3,
+        );
         queue.worker_running = false;
         assert!(!queue.has_active_tasks());
     }
@@ -521,7 +610,13 @@ mod tests {
 
     #[test]
     fn write_and_read_driver_config_round_trips_uv() {
-        let tmp = std::env::temp_dir().join(format!("uiya-test-driver-{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+        let tmp = std::env::temp_dir().join(format!(
+            "uiya-test-driver-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
         std::fs::create_dir_all(&tmp).unwrap();
 
         write_driver_config(&tmp, &RuntimeDriverConfig::Uv, DEFAULT_DOWNLOAD_DIR);
@@ -533,15 +628,32 @@ mod tests {
 
     #[test]
     fn write_and_read_driver_config_round_trips_conda() {
-        let tmp = std::env::temp_dir().join(format!("uiya-test-driver-conda-{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+        let tmp = std::env::temp_dir().join(format!(
+            "uiya-test-driver-conda-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
         std::fs::create_dir_all(tmp.join("config")).unwrap();
         // create a fake python executable so is_file() passes
         let fake_python = tmp.join("python");
         std::fs::write(&fake_python, b"").unwrap();
 
-        write_driver_config(&tmp, &RuntimeDriverConfig::DirectPython { python_path: fake_python.clone() }, DEFAULT_DOWNLOAD_DIR);
+        write_driver_config(
+            &tmp,
+            &RuntimeDriverConfig::DirectPython {
+                python_path: fake_python.clone(),
+            },
+            DEFAULT_DOWNLOAD_DIR,
+        );
         let restored = read_saved_driver_config(&tmp);
-        assert_eq!(restored, Some(RuntimeDriverConfig::DirectPython { python_path: fake_python }));
+        assert_eq!(
+            restored,
+            Some(RuntimeDriverConfig::DirectPython {
+                python_path: fake_python
+            })
+        );
 
         std::fs::remove_dir_all(&tmp).ok();
     }

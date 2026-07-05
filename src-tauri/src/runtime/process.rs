@@ -7,7 +7,9 @@ use std::thread;
 
 use tauri::{AppHandle, Emitter};
 
-use super::models::{EnvironmentProbePayload, ParseResult, PythonEnvelope, RuntimeEventPayload, TaskStatus};
+use super::models::{
+    EnvironmentProbePayload, ParseResult, PythonEnvelope, RuntimeEventPayload, TaskStatus,
+};
 use super::state::{RuntimeDriverConfig, RuntimeState};
 
 #[cfg(target_os = "windows")]
@@ -129,7 +131,12 @@ where
     command
 }
 
-pub fn run_inspect_command(repo_root: &Path, workspace_root: &Path, driver: &RuntimeDriverConfig, app: &AppHandle) -> Result<serde_json::Value, String> {
+pub fn run_inspect_command(
+    repo_root: &Path,
+    workspace_root: &Path,
+    driver: &RuntimeDriverConfig,
+    app: &AppHandle,
+) -> Result<serde_json::Value, String> {
     emit_raw_log(app, "[inspect] 正在读取运行时信息 …");
     let output = build_python_command_for_driver(
         repo_root,
@@ -215,7 +222,12 @@ pub fn run_parse_command(
             Ok(envelope) => match envelope.kind.as_str() {
                 "event" => {
                     let timestamp = super::state::current_timestamp();
-                    let event = runtime_event_from_python_payload("", target, &envelope.payload, &timestamp);
+                    let event = runtime_event_from_python_payload(
+                        "",
+                        target,
+                        &envelope.payload,
+                        &timestamp,
+                    );
                     let _ = app.emit("runtime:event", &event);
                 }
                 "payload" => {
@@ -244,13 +256,19 @@ pub fn run_parse_command(
         if let Some(error) = payload.get("error").and_then(serde_json::Value::as_str) {
             return Err(error.to_string());
         }
-        return Err(format!("parse command failed with exit code {:?}", status.code()));
+        return Err(format!(
+            "parse command failed with exit code {:?}",
+            status.code()
+        ));
     }
 
     let result: ParseResult = serde_json::from_value(payload)
         .map_err(|error| format!("failed to deserialize parse result: {error}"))?;
 
-    emit_raw_log(app, &format!("[parse] 解析完成，共 {} 个视频", result.items.len()));
+    emit_raw_log(
+        app,
+        &format!("[parse] 解析完成，共 {} 个视频", result.items.len()),
+    );
     Ok(result)
 }
 
@@ -266,10 +284,17 @@ pub fn run_save_settings_command(
         repo_root,
         workspace_root,
         driver,
-        ["-m", "uiya.cli", "save-settings",
-         "--ffmpeg-path", ffmpeg_path,
-         "--no-proxy", if no_proxy { "true" } else { "false" },
-         "--download-dir", download_dir],
+        [
+            "-m",
+            "uiya.cli",
+            "save-settings",
+            "--ffmpeg-path",
+            ffmpeg_path,
+            "--no-proxy",
+            if no_proxy { "true" } else { "false" },
+            "--download-dir",
+            download_dir,
+        ],
     )
     .output()
     .map_err(|error| format!("failed to run save-settings: {error}"))?;
@@ -343,7 +368,12 @@ pub fn run_auth_login_command(
             Ok(envelope) => match envelope.kind.as_str() {
                 "event" => {
                     let timestamp = super::state::current_timestamp();
-                    let event = runtime_event_from_python_payload("", "auth", &envelope.payload, &timestamp);
+                    let event = runtime_event_from_python_payload(
+                        "",
+                        "auth",
+                        &envelope.payload,
+                        &timestamp,
+                    );
                     let _ = app.emit("runtime:event", &event);
                 }
                 "payload" => {
@@ -365,7 +395,10 @@ pub fn run_auth_login_command(
         if let Some(error) = payload.get("error").and_then(serde_json::Value::as_str) {
             return Err(error.to_string());
         }
-        return Err(format!("auth-login command failed with exit code {:?}", status.code()));
+        return Err(format!(
+            "auth-login command failed with exit code {:?}",
+            status.code()
+        ));
     }
 
     if payload.get("ok").and_then(serde_json::Value::as_bool) == Some(false) {
@@ -400,7 +433,9 @@ pub fn run_auth_logout_command(
         serde_json::from_str(last_line).map_err(|error| error.to_string())?;
     let payload = envelope.payload;
 
-    if !output.status.success() || payload.get("ok").and_then(serde_json::Value::as_bool) == Some(false) {
+    if !output.status.success()
+        || payload.get("ok").and_then(serde_json::Value::as_bool) == Some(false)
+    {
         if let Some(error) = payload.get("error").and_then(serde_json::Value::as_str) {
             return Err(error.to_string());
         }
@@ -451,7 +486,9 @@ pub fn run_uv_sync_command(repo_root: &Path, app: &AppHandle) -> Result<(), Stri
     }
 
     let _ = stderr_handle.join();
-    let status = child.wait().map_err(|error| format!("等待进程结束失败: {error}"))?;
+    let status = child
+        .wait()
+        .map_err(|error| format!("等待进程结束失败: {error}"))?;
 
     if status.success() {
         emit_raw_log(app, "[sync] uv sync 完成");
@@ -462,11 +499,20 @@ pub fn run_uv_sync_command(repo_root: &Path, app: &AppHandle) -> Result<(), Stri
     }
 }
 
-pub fn run_probe_command(repo_root: &Path, workspace_root: &Path, driver: &RuntimeDriverConfig, ffmpeg_path: &str, app: &AppHandle) -> Result<EnvironmentProbePayload, String> {
+pub fn run_probe_command(
+    repo_root: &Path,
+    workspace_root: &Path,
+    driver: &RuntimeDriverConfig,
+    ffmpeg_path: &str,
+    app: &AppHandle,
+) -> Result<EnvironmentProbePayload, String> {
     emit_raw_log(app, "[probe] 开始检测运行环境 …");
 
     if !workspace_root.is_dir() {
-        emit_raw_log(app, &format!("[probe] 工作目录无效: {}", workspace_root.display()));
+        emit_raw_log(
+            app,
+            &format!("[probe] 工作目录无效: {}", workspace_root.display()),
+        );
         return Ok(build_probe_payload(
             repo_root,
             workspace_root,
@@ -505,7 +551,9 @@ pub fn run_probe_command(repo_root: &Path, workspace_root: &Path, driver: &Runti
             };
 
             if !uv_version.status.success() {
-                let stderr = String::from_utf8_lossy(&uv_version.stderr).trim().to_string();
+                let stderr = String::from_utf8_lossy(&uv_version.stderr)
+                    .trim()
+                    .to_string();
                 emit_raw_log(app, &format!("[probe] uv 不可用: {stderr}"));
                 return Ok(build_probe_payload(
                     repo_root,
@@ -516,7 +564,9 @@ pub fn run_probe_command(repo_root: &Path, workspace_root: &Path, driver: &Runti
                 ));
             }
 
-            let uv_ver_str = String::from_utf8_lossy(&uv_version.stdout).trim().to_string();
+            let uv_ver_str = String::from_utf8_lossy(&uv_version.stdout)
+                .trim()
+                .to_string();
             if !uv_ver_str.is_empty() {
                 emit_raw_log(app, &format!("[probe] {uv_ver_str}"));
             }
@@ -548,7 +598,9 @@ pub fn run_probe_command(repo_root: &Path, workspace_root: &Path, driver: &Runti
     emit_stderr_lines(app, &python_probe.stderr);
 
     if !python_probe.status.success() {
-        let stderr = String::from_utf8_lossy(&python_probe.stderr).trim().to_string();
+        let stderr = String::from_utf8_lossy(&python_probe.stderr)
+            .trim()
+            .to_string();
         return Ok(build_probe_payload(
             repo_root,
             workspace_root,
@@ -558,15 +610,22 @@ pub fn run_probe_command(repo_root: &Path, workspace_root: &Path, driver: &Runti
         ));
     }
 
-    let python_exe = String::from_utf8_lossy(&python_probe.stdout).trim().to_string();
+    let python_exe = String::from_utf8_lossy(&python_probe.stdout)
+        .trim()
+        .to_string();
     if !python_exe.is_empty() {
         emit_raw_log(app, &format!("[probe] Python: {python_exe}"));
     }
 
-    let output = build_python_command_for_driver(repo_root, workspace_root, driver, ["-c", ENVIRONMENT_PROBE_SCRIPT])
-        .env("UIYA_FFMPEG_PATH", ffmpeg_path)
-        .output()
-        .map_err(|error| format!("failed to run environment probe: {error}"))?;
+    let output = build_python_command_for_driver(
+        repo_root,
+        workspace_root,
+        driver,
+        ["-c", ENVIRONMENT_PROBE_SCRIPT],
+    )
+    .env("UIYA_FFMPEG_PATH", ffmpeg_path)
+    .output()
+    .map_err(|error| format!("failed to run environment probe: {error}"))?;
 
     emit_stderr_lines(app, &output.stderr);
 
@@ -617,6 +676,7 @@ pub fn ensure_environment_ready(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn run_download_command(
     app: AppHandle,
     state: RuntimeState,
@@ -641,13 +701,20 @@ pub fn run_download_command(
     );
     command
         .arg(&target)
-        .arg("--require-video").arg(if require_video { "true" } else { "false" })
-        .arg("--require-audio").arg(if require_audio { "true" } else { "false" })
-        .arg("--require-cover").arg(if require_cover { "true" } else { "false" })
-        .arg("--require-subtitle").arg(if require_subtitle { "true" } else { "false" })
-        .arg("--require-danmaku").arg(if require_danmaku { "true" } else { "false" })
-        .arg("--video-quality").arg(video_quality.to_string())
-        .arg("--audio-quality").arg(audio_quality.to_string())
+        .arg("--require-video")
+        .arg(if require_video { "true" } else { "false" })
+        .arg("--require-audio")
+        .arg(if require_audio { "true" } else { "false" })
+        .arg("--require-cover")
+        .arg(if require_cover { "true" } else { "false" })
+        .arg("--require-subtitle")
+        .arg(if require_subtitle { "true" } else { "false" })
+        .arg("--require-danmaku")
+        .arg(if require_danmaku { "true" } else { "false" })
+        .arg("--video-quality")
+        .arg(video_quality.to_string())
+        .arg("--audio-quality")
+        .arg(audio_quality.to_string())
         .env("UIYA_FFMPEG_PATH", &ffmpeg_path)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -699,7 +766,10 @@ pub fn run_download_command(
         }
         // Strip trailing \n only — keep \r so the frontend can detect progress lines
         let line = raw_line.trim_end_matches('\n');
-        if line.trim_matches(|c: char| c == '\r' || c.is_whitespace()).is_empty() {
+        if line
+            .trim_matches(|c: char| c == '\r' || c.is_whitespace())
+            .is_empty()
+        {
             continue;
         }
         // Strip \r for JSON parsing only (progress bar lines are never valid JSON)
@@ -708,12 +778,8 @@ pub fn run_download_command(
             if envelope.kind == "event" {
                 let payload = envelope.payload;
                 let timestamp = super::state::current_timestamp();
-                let event = runtime_event_from_python_payload(
-                    &task_id,
-                    &target,
-                    &payload,
-                    &timestamp,
-                );
+                let event =
+                    runtime_event_from_python_payload(&task_id, &target, &payload, &timestamp);
                 if event.event != "download.file_progress" {
                     let mut queue = state.queue.lock().unwrap();
                     queue.apply_update(
@@ -860,7 +926,9 @@ pub fn drain_download_queue(app: AppHandle, state: RuntimeState) {
             // If the task was already marked cancelled (by cancel_task), don't overwrite.
             let already_cancelled = {
                 let queue = state.queue.lock().unwrap();
-                queue.tasks.iter()
+                queue
+                    .tasks
+                    .iter()
                     .find(|t| t.task_id == task.task_id)
                     .map(|t| t.status == TaskStatus::Cancelled)
                     .unwrap_or(false)
@@ -871,12 +939,8 @@ pub fn drain_download_queue(app: AppHandle, state: RuntimeState) {
                 queue.apply_update(&task.task_id, TaskStatus::Failed, error.clone(), 3, 3);
                 drop(queue);
 
-                let event = build_terminal_failure_event(
-                    &task.task_id,
-                    &task.target,
-                    &error,
-                    &timestamp,
-                );
+                let event =
+                    build_terminal_failure_event(&task.task_id, &task.target, &error, &timestamp);
                 let _ = app.emit("runtime:event", &event);
             }
         }
@@ -948,6 +1012,7 @@ pub fn open_url(url: &str) -> Result<(), String> {
     command.spawn().map_err(|error| error.to_string())?;
     Ok(())
 }
+#[cfg(any(target_os = "windows", test))]
 fn build_windows_open_command(path: &Path) -> Command {
     let mut command = new_background_command("powershell");
     command
@@ -980,11 +1045,11 @@ pub fn pick_workspace_root() -> Result<Option<PathBuf>, String> {
             });
         }
         let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        return if stdout.is_empty() {
+        if stdout.is_empty() {
             Ok(None)
         } else {
             Ok(Some(PathBuf::from(stdout)))
-        };
+        }
     }
 
     #[cfg(target_os = "macos")]
@@ -1005,11 +1070,11 @@ pub fn pick_workspace_root() -> Result<Option<PathBuf>, String> {
             });
         }
         let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        return if stdout.is_empty() {
+        if stdout.is_empty() {
             Ok(None)
         } else {
             Ok(Some(PathBuf::from(stdout)))
-        };
+        }
     }
 
     #[cfg(target_os = "linux")]
@@ -1017,11 +1082,7 @@ pub fn pick_workspace_root() -> Result<Option<PathBuf>, String> {
         for (program, args) in [
             (
                 "zenity",
-                vec![
-                    "--file-selection",
-                    "--directory",
-                    "--title=选择工作目录",
-                ],
+                vec!["--file-selection", "--directory", "--title=选择工作目录"],
             ),
             ("kdialog", vec!["--getexistingdirectory", "."]),
         ] {
@@ -1044,7 +1105,11 @@ pub fn pick_workspace_root() -> Result<Option<PathBuf>, String> {
     }
 }
 
-pub fn resolve_managed_path(workspace_root: &Path, path_key: &str, download_dir: Option<&str>) -> Result<PathBuf, String> {
+pub fn resolve_managed_path(
+    workspace_root: &Path,
+    path_key: &str,
+    download_dir: Option<&str>,
+) -> Result<PathBuf, String> {
     let logs_root = workspace_root.join("logs");
 
     match path_key {
@@ -1059,12 +1124,14 @@ pub fn resolve_managed_path(workspace_root: &Path, path_key: &str, download_dir:
             }
         }
         "logs" => Ok(logs_root),
-        other => Err(format!("managed path key not found in local runtime layout: {other}")),
+        other => Err(format!(
+            "managed path key not found in local runtime layout: {other}"
+        )),
     }
 }
 
 pub fn write_console_log(log_dir: &Path, contents: &str) -> Result<PathBuf, String> {
-    fs::create_dir_all(&log_dir).map_err(|error| error.to_string())?;
+    fs::create_dir_all(log_dir).map_err(|error| error.to_string())?;
     let log_path = log_dir.join(format!(
         "launcher-{}.log",
         super::state::current_timestamp()
@@ -1141,8 +1208,14 @@ fn runtime_event_from_python_payload(
             .unwrap_or("download.progress")
             .to_string(),
         task_id: task_id.to_string(),
-        target: payload["target"].as_str().unwrap_or(default_target).to_string(),
-        status: payload["status"].as_str().unwrap_or("downloading").to_string(),
+        target: payload["target"]
+            .as_str()
+            .unwrap_or(default_target)
+            .to_string(),
+        status: payload["status"]
+            .as_str()
+            .unwrap_or("downloading")
+            .to_string(),
         message: payload["message"].as_str().unwrap_or("").to_string(),
         progress_current: payload["progressCurrent"].as_u64().unwrap_or(0),
         progress_total: payload["progressTotal"].as_u64().unwrap_or(3),
@@ -1270,11 +1343,11 @@ pub fn pick_python_path() -> Result<Option<PathBuf>, String> {
             });
         }
         let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        return if stdout.is_empty() {
+        if stdout.is_empty() {
             Ok(None)
         } else {
             Ok(Some(PathBuf::from(stdout)))
-        };
+        }
     }
 
     #[cfg(target_os = "macos")]
@@ -1308,10 +1381,7 @@ pub fn pick_python_path() -> Result<Option<PathBuf>, String> {
         for (program, args) in [
             (
                 "zenity",
-                vec![
-                    "--file-selection",
-                    "--title=选择 Python 可执行文件",
-                ],
+                vec!["--file-selection", "--title=选择 Python 可执行文件"],
             ),
             ("kdialog", vec!["--getopenfilename", "."]),
         ] {
@@ -1354,11 +1424,11 @@ pub fn pick_ffmpeg_path() -> Result<Option<PathBuf>, String> {
             });
         }
         let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        return if stdout.is_empty() {
+        if stdout.is_empty() {
             Ok(None)
         } else {
             Ok(Some(PathBuf::from(stdout)))
-        };
+        }
     }
 
     #[cfg(target_os = "macos")]
@@ -1392,10 +1462,7 @@ pub fn pick_ffmpeg_path() -> Result<Option<PathBuf>, String> {
         for (program, args) in [
             (
                 "zenity",
-                vec![
-                    "--file-selection",
-                    "--title=选择 FFmpeg 可执行文件",
-                ],
+                vec!["--file-selection", "--title=选择 FFmpeg 可执行文件"],
             ),
             ("kdialog", vec!["--getopenfilename", "."]),
         ] {
@@ -1438,11 +1505,11 @@ pub fn pick_download_dir() -> Result<Option<PathBuf>, String> {
             });
         }
         let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        return if stdout.is_empty() {
+        if stdout.is_empty() {
             Ok(None)
         } else {
             Ok(Some(PathBuf::from(stdout)))
-        };
+        }
     }
 
     #[cfg(target_os = "macos")]
@@ -1518,7 +1585,7 @@ fn detect_platform() -> String {
                 }
             }
         }
-        return "Linux".to_string();
+        "Linux".to_string()
     }
 
     #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
@@ -1607,16 +1674,14 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert!(envs.iter().any(|(key, value)| {
-            key == "UIYA_WORKSPACE_ROOT"
-                && value.as_deref() == Some("/tmp/workspace")
+            key == "UIYA_WORKSPACE_ROOT" && value.as_deref() == Some("/tmp/workspace")
         }));
         assert!(envs.iter().any(|(key, value)| {
-            key == "UIYA_HIDE_CONSOLE_WINDOW"
-                && value.as_deref() == Some("1")
+            key == "UIYA_HIDE_CONSOLE_WINDOW" && value.as_deref() == Some("1")
         }));
-        assert!(envs.iter().any(|(key, value)| {
-            key == "PYTHONUNBUFFERED" && value.as_deref() == Some("1")
-        }));
+        assert!(envs
+            .iter()
+            .any(|(key, value)| { key == "PYTHONUNBUFFERED" && value.as_deref() == Some("1") }));
     }
 
     #[test]
@@ -1639,16 +1704,13 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert!(envs.iter().any(|(key, value)| {
-            key == "UIYA_RUNTIME_CONFIG"
-                && value.as_deref() == Some("/app/config/uiya.toml")
+            key == "UIYA_RUNTIME_CONFIG" && value.as_deref() == Some("/app/config/uiya.toml")
         }));
         assert!(envs.iter().any(|(key, value)| {
-            key == "UIYA_HIDE_CONSOLE_WINDOW"
-                && value.as_deref() == Some("1")
+            key == "UIYA_HIDE_CONSOLE_WINDOW" && value.as_deref() == Some("1")
         }));
         assert!(envs.iter().any(|(key, value)| {
-            key == "PYTHONPATH"
-                && value.as_deref() == Some("/repo/python")
+            key == "PYTHONPATH" && value.as_deref() == Some("/repo/python")
         }));
     }
 
@@ -1665,10 +1727,7 @@ mod tests {
             .map(|value| value.to_string_lossy().into_owned())
             .collect::<Vec<_>>();
 
-        assert_eq!(
-            command.get_program().to_string_lossy(),
-            "powershell"
-        );
+        assert_eq!(command.get_program().to_string_lossy(), "powershell");
         assert_eq!(
             args,
             vec![
@@ -1689,12 +1748,10 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert!(envs.iter().any(|(key, value)| {
-            key == "UIYA_OPEN_PATH"
-                && value.as_deref() == Some(r"C:\Users\demo\Downloads")
+            key == "UIYA_OPEN_PATH" && value.as_deref() == Some(r"C:\Users\demo\Downloads")
         }));
         assert!(envs.iter().any(|(key, value)| {
-            key == "UIYA_HIDE_CONSOLE_WINDOW"
-                && value.as_deref() == Some("1")
+            key == "UIYA_HIDE_CONSOLE_WINDOW" && value.as_deref() == Some("1")
         }));
     }
 
@@ -1747,12 +1804,8 @@ mod tests {
 
     #[test]
     fn build_terminal_failure_event_marks_task_as_failed() {
-        let event = build_terminal_failure_event(
-            "task-7",
-            "genie-base",
-            "spawn failed",
-            "1712300000",
-        );
+        let event =
+            build_terminal_failure_event("task-7", "genie-base", "spawn failed", "1712300000");
 
         assert_eq!(event.event, "download.failed");
         assert_eq!(event.task_id, "task-7");
@@ -1781,12 +1834,8 @@ mod tests {
             "total": "180M"
         });
 
-        let event = runtime_event_from_python_payload(
-            "task-1",
-            "genie-base",
-            &payload,
-            "1712300001",
-        );
+        let event =
+            runtime_event_from_python_payload("task-1", "genie-base", &payload, "1712300001");
 
         assert_eq!(event.event, "download.file_progress");
         assert_eq!(
@@ -1849,6 +1898,9 @@ mod tests {
         let event = runtime_event_from_python_payload("", "auth", &payload, "1712300003");
 
         assert_eq!(event.event, "auth.login.qr");
-        assert_eq!(event.auth_qr_data_url.as_deref(), Some("data:image/png;base64,abc"));
+        assert_eq!(
+            event.auth_qr_data_url.as_deref(),
+            Some("data:image/png;base64,abc")
+        );
     }
 }
