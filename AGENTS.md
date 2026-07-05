@@ -92,7 +92,7 @@ pytest                 # Python 测试
 ## 关键约定
 
 - 语言：UI 文本用中文，代码/注释用英文
-- 分支：`dev` 为主分支，功能分支从 `tauri-dev` 切出
+- 分支：`tauri-dev` 为主分支，功能分支从 `tauri-dev` 切出，切之前先 pull 最新
 - Python：3.11+，uv 管理依赖，pyright strict 类型检查，ruff lint
 - Rust：Tauri 2，无 unsafe，测试在各模块底部 `#[cfg(test)] mod tests`
 - 前端：React 18，无状态管理库，状态集中在 `AppShell.tsx`
