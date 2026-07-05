@@ -221,14 +221,6 @@ export function SettingsPage({
                   </span>
                 </div>
               ) : null}
-              {environmentProbe?.message ? (
-                <div className="env-info-row">
-                  <span className="env-info-label">详情</span>
-                  <span className="env-info-value">
-                    {environmentProbe.message}
-                  </span>
-                </div>
-              ) : null}
               {environmentProbe?.issues &&
               environmentProbe.issues.length > 0 ? (
                 <div className="env-info-row env-info-row--issues">
