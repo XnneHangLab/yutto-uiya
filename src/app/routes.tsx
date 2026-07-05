@@ -83,7 +83,7 @@ interface RenderPageOptions {
   ffmpegMode: 'system' | 'local';
   ffmpegExePath: string;
   onChooseFfmpegExe: () => Promise<string | null>;
-  onDetectFfmpeg: () => Promise<string | null>;
+  onDetectFfmpeg: () => Promise<string[]>;
   noProxy: boolean;
   downloadDir: string;
   onChooseDownloadDir: () => Promise<string | null>;

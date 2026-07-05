@@ -26,7 +26,7 @@ interface SettingsPageProps {
   ffmpegMode: 'system' | 'local';
   ffmpegExePath: string;
   onChooseFfmpegExe: () => Promise<string | null>;
-  onDetectFfmpeg: () => Promise<string | null>;
+  onDetectFfmpeg: () => Promise<string[]>;
   noProxy: boolean;
   downloadDir: string;
   onChooseDownloadDir: () => Promise<string | null>;
@@ -148,11 +148,21 @@ export function SettingsPage({
     }
   }
 
+  const [detectStatus, setDetectStatus] = useState<string | null>(null);
+
   async function handleDetectFfmpeg() {
-    const detected = await onDetectFfmpeg();
-    if (detected) {
-      setLocalFfmpegExePath(detected);
+    setDetectStatus(null);
+    const results = await onDetectFfmpeg();
+    if (results.length > 0) {
+      setLocalFfmpegExePath(results[0]);
       setLocalFfmpegMode('local');
+      setDetectStatus(
+        results.length === 1
+          ? '已找到 FFmpeg'
+          : `已找到 ${results.length} 个，已选第一个`,
+      );
+    } else {
+      setDetectStatus('未找到 FFmpeg，请手动浏览选择');
     }
   }
 
@@ -496,6 +506,11 @@ export function SettingsPage({
                       浏览
                     </button>
                   </div>
+                  {detectStatus ? (
+                    <p style={{ margin: '4px 0 0', fontSize: 12, color: detectStatus.startsWith('未') ? '#ff9b9b' : 'var(--accent)' }}>
+                      {detectStatus}
+                    </p>
+                  ) : null}
                 </SettingRow>
               ) : null}
 

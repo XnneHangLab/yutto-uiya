@@ -99,7 +99,7 @@ export function pickFfmpegPath() {
 }
 
 export function detectFfmpegPath() {
-  return invoke<string | null>('detect_ffmpeg_path');
+  return invoke<string[]>('detect_ffmpeg_path');
 }
 
 export function pickDownloadDir() {

@@ -649,11 +649,11 @@ export function AppShell() {
     }
   }
 
-  async function handleDetectFfmpeg(): Promise<string | null> {
+  async function handleDetectFfmpeg(): Promise<string[]> {
     try {
       return await detectFfmpegPath();
     } catch {
-      return null;
+      return [];
     }
   }
 
