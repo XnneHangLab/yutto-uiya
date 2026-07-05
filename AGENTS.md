@@ -1,126 +1,99 @@
 # AGENTS.md
 
-# 身份
+yutto-uiya is a Tauri 2 desktop client for the yutto Bilibili video downloader. Frontend is React + TypeScript, backend is Rust, and the download engine runs via Python subprocess calling yutto.
 
-有经验的技术同事，平级，不是老师。
+## Project Structure
 
----
+```
+yutto-uiya/
+├── src/                          # React frontend (TypeScript)
+│   ├── app/                      #   Routing (routes.tsx)
+│   ├── components/               #   UI components (grouped by feature)
+│   ├── layouts/AppShell/         #   Main layout, central state management
+│   ├── pages/                    #   Page components (Settings, Download, Console, etc.)
+│   ├── services/
+│   │   ├── runtime/bridge.ts     #   Tauri invoke wrappers (all frontend↔Rust IPC lives here)
+│   │   ├── runtime/runtime.ts    #   TypeScript type definitions (RuntimeInspection, etc.)
+│   │   └── ...
+│   └── styles/                   #   Global CSS
+├── src-tauri/                    # Rust backend (Tauri 2)
+│   ├── src/lib.rs                #   Tauri entry point, command registration
+│   └── src/runtime/
+│       ├── commands.rs           #   Tauri commands (#[tauri::command])
+│       ├── process.rs            #   Python subprocess calls, file picker dialogs
+│       ├── state.rs              #   RuntimeState global state, config read/write
+│       └── models.rs             #   Serialization structs
+├── python/uiya/                  # Python module (called by Rust via subprocess)
+│   ├── cli.py                    #   CLI entry (inspect-runtime, download, parse, save-settings subcommands)
+│   └── utils/config.py           #   Config loading/writing, path resolution
+├── config/                       # Runtime config (under workspace_root/config/)
+│   ├── runtime.json              #   Rust-side fast load (driver, pythonPath, downloadDir)
+│   ├── uiya.toml                 #   Python-side full config (download_dir, ffmpeg_path, no_proxy, etc.)
+│   └── hotkey.json               #   Global shortcut
+└── tests/                        # Python tests (pytest)
+```
 
-# 思考阶段（不输出）
+## Three-Layer Architecture
 
-他真正想达到什么？
-卡在哪里？
-最短路径是什么？
+```
+Frontend (React/TS)  ←→  Backend (Rust/Tauri)  ←→  Python subprocess (uiya.cli)
+     invoke()               Command                subprocess + stdout JSON
+```
 
-用结论组织回答。
+- Frontend calls Rust commands via `invoke()` in `bridge.ts`
+- Rust spawns Python subprocesses via `build_python_command_for_driver()`
+- Python returns results as JSON envelopes (`{kind, payload}`) on stdout
+- Rust pushes events to the frontend via `app.emit("runtime:event", ...)`
 
----
+Typical change path for adding a new setting:
+1. `state.rs` — add field, getter/setter, persist read/write
+2. `commands.rs` — expose Tauri command
+3. `process.rs` — pass to Python subprocess
+4. `cli.py` — Python-side handling
+5. `bridge.ts` — frontend invoke wrapper
+6. `runtime.ts` — TypeScript types
+7. `SettingsPage.tsx` — UI
+8. `AppShell.tsx` — state management
+9. `routes.tsx` — prop threading
+10. `lib.rs` — register new command
 
-# 报错结构
+## Dev Commands
 
-原因：一句话
-解决：命令或操作
-验证：怎么确认
+```bash
+npm run tauri dev      # Start dev environment (Vite + Tauri)
+npm run build          # Build frontend
+npx tsc --noEmit       # TypeScript type check
+cargo check            # Rust compile check (run in src-tauri/)
+cargo test             # Rust tests
+npm run test           # Frontend tests (vitest)
+pytest                 # Python tests
+```
 
----
+## Commit Convention (Gitmoji)
 
-# 示例
+Format: `:gitmoji: type: description`
 
-❌ 用户说失败过的方案，还是给同一个
+| gitmoji | type | usage |
+|---------|------|-------|
+| :sparkles: `:sparkles:` | feat | New feature |
+| :bug: `:bug:` | fix | Bug fix |
+| :recycle: `:recycle:` | refactor | Refactor |
+| :pencil2: `:pencil2:` | fix | Text/naming correction |
+| :construction_worker: `:construction_worker:` | ci | CI/CD |
+| :memo: `:memo:` | docs | Documentation |
+| :art: `:art:` | style | Code format/structure |
+| :zap: `:zap:` | perf | Performance |
+| :white_check_mark: `:white_check_mark:` | test | Tests |
+| :fire: `:fire:` | chore | Remove code/files |
+| :wrench: `:wrench:` | chore | Config files |
 
-用户：试过 pip install，装不上，报网络错误  
-助手：可以试试 pip install -U ultralytics
+Example: `:sparkles: feat: add download resource selectors and audio quality option`
 
-✅ 原因：网络问题  
-解决：pip install ultralytics -i https://pypi.tuna.tsinghua.edu.cn/simple  
-验证：import ultralytics 不报错
+## Key Conventions
 
----
-
-❌ 简单问题给了复杂回答
-
-用户：git 怎么撤销上一次 commit  
-助手：Git 提供了多种撤销方式，具体取决于你的需求……
-
-✅ git reset --soft HEAD~1 # 保留改动  
-git reset --hard HEAD~1 # 彻底删除
-
----
-
-❌ 二选一问题绕回"各有优劣"
-
-用户：PyTorch 和 TensorFlow 学哪个  
-助手：两者各有优劣，PyTorch 更适合研究，TensorFlow 更适合生产……
-
-✅ PyTorch。现在学术界和工业界都在往这边走， YOLO 这条线也是 PyTorch。
-
----
-
-❌ 报错问题给了原理分析
-
-用户：docker compose up -d 报错  
-助手：这说明你的环境里 compose 插件没有安装， Docker 把整条命令当成普通命令来解析了……
-
-✅ 原因：旧版 Docker，无 compose 插件  
-解决：apt install docker-compose -y && docker-compose up -d  
-验证：docker-compose version 有输出
-
----
-
-❌ 开放问题给了学习框架
-
-用户：如何学 YOLO  
-助手：📚 前置知识 / 你需要先掌握 / 你按这个路径……
-
-✅ 先跑通这两步：  
-pip install ultralytics  
-yolo predict model=yolov8n.pt source='https://ultralytics.com/images/bus.jpg'  
-跑完告诉我想做什么方向。
-
----
-
-❌ 开头定性"这样学最快/最好/最对"
-
-✅ 直接给步骤，不加价值判断
-
----
-
-❌ 用一整块告诉用户不要做什么
-
-用户：如何学 YOLO  
-助手：别这样学：一开始就改模型结构 / 一开始就啃论文 / 拿脏数据反复训练……
-
-✅ 步骤里没有那一步就行，不需要专门列出来
-
----
-
-❌ 评判用户行为
-
-✅ 陈述步骤，不提用户应该怎么做
-
-❌ 结尾加升华句或打气  
-❌ 结尾加一句"别先做 X"  
-✅ 说完就停
-
----
-
-# 硬性禁止
-
-- 来源标注
-- 结尾推销下一轮对话
-- 评判用户行为
-- 一次问多个问题
-- emoji / 加粗标题 / 表格
-- "你真正需要的是……"
-- "各有优劣，取决于你的需求"
-- "这样学最快/最好/最对"
-- 用一整块列出用户不应该做的事
-- 用户说失败过的方案再出现一次
-
----
-
-# 发送前
-
-能立刻知道下一步做什么？
-有在表演经验或评判用户吗？
-有就删。
+- Language: UI text in Chinese, code/comments in English
+- Branching: `tauri-dev` is the main branch; create feature branches from it; always pull latest before branching
+- Python: 3.11+, uv for deps, pyright strict, ruff lint
+- Rust: Tauri 2, no unsafe, tests at module bottom `#[cfg(test)] mod tests`
+- Frontend: React 18, no state library, state centralized in `AppShell.tsx`
+- Config persistence: Rust writes `runtime.json` (fast startup load), Python writes `uiya.toml` (full config)
