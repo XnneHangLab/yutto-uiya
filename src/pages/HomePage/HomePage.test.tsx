@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
-import { HomePage } from './HomePage';
 import type { ManagedFolderItem } from '../../services/runtime/runtime';
+import { HomePage } from './HomePage';
 
 describe('HomePage', () => {
   const folders: ManagedFolderItem[] = [
@@ -28,9 +28,15 @@ describe('HomePage', () => {
     expect(
       screen.getByRole('heading', { level: 2, name: '公告' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '打开 根目录' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '打开 下载目录' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '前往下载' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: '打开 根目录' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: '打开 下载目录' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: '前往下载' }),
+    ).toBeInTheDocument();
   });
 
   it('opens managed paths and navigates to download page through callbacks', async () => {

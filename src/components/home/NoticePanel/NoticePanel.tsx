@@ -12,11 +12,7 @@ export function NoticePanel({ notices, onOpenModels }: NoticePanelProps) {
         <p key={notice}>{notice}</p>
       ))}
 
-      <button
-        type="button"
-        className="run-btn"
-        onClick={onOpenModels}
-      >
+      <button type="button" className="run-btn" onClick={onOpenModels}>
         前往下载
       </button>
     </aside>

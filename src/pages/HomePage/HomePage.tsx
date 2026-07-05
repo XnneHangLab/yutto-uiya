@@ -11,11 +11,7 @@ interface HomePageProps {
   onOpenModels: () => void;
 }
 
-export function HomePage({
-  folders,
-  onOpenPath,
-  onOpenModels,
-}: HomePageProps) {
+export function HomePage({ folders, onOpenPath, onOpenModels }: HomePageProps) {
   return (
     <div className="home-page">
       <HeroBanner />
@@ -26,10 +22,7 @@ export function HomePage({
           <FolderGrid items={folders} onOpen={onOpenPath} />
         </div>
 
-        <NoticePanel
-          notices={notices}
-          onOpenModels={onOpenModels}
-        />
+        <NoticePanel notices={notices} onOpenModels={onOpenModels} />
       </div>
     </div>
   );

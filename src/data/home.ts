@@ -21,13 +21,55 @@ export const heroCopy = {
 
 export const heroConfetti: HeroConfettiPiece[] = [
   { top: '40px', left: '63%', color: '#ffd54b', rotate: '-28deg' },
-  { top: '72px', left: '70%', color: '#7ef9ff', rotate: '-52deg', width: '24px' },
-  { top: '54px', left: '81%', color: '#ff79c6', rotate: '16deg', width: '22px' },
-  { top: '120px', left: '88%', color: '#ffe36f', rotate: '-62deg', width: '26px' },
-  { top: '126px', left: '28%', color: '#ff9a43', rotate: '-28deg', width: '12px' },
-  { top: '165px', left: '16%', color: '#8dd0ff', rotate: '18deg', width: '18px' },
-  { top: '196px', left: '10%', color: '#f1cf67', rotate: '-12deg', width: '22px' },
-  { top: '178px', left: '76%', color: '#72a7ff', rotate: '-32deg', width: '18px' },
+  {
+    top: '72px',
+    left: '70%',
+    color: '#7ef9ff',
+    rotate: '-52deg',
+    width: '24px',
+  },
+  {
+    top: '54px',
+    left: '81%',
+    color: '#ff79c6',
+    rotate: '16deg',
+    width: '22px',
+  },
+  {
+    top: '120px',
+    left: '88%',
+    color: '#ffe36f',
+    rotate: '-62deg',
+    width: '26px',
+  },
+  {
+    top: '126px',
+    left: '28%',
+    color: '#ff9a43',
+    rotate: '-28deg',
+    width: '12px',
+  },
+  {
+    top: '165px',
+    left: '16%',
+    color: '#8dd0ff',
+    rotate: '18deg',
+    width: '18px',
+  },
+  {
+    top: '196px',
+    left: '10%',
+    color: '#f1cf67',
+    rotate: '-12deg',
+    width: '22px',
+  },
+  {
+    top: '178px',
+    left: '76%',
+    color: '#72a7ff',
+    rotate: '-32deg',
+    width: '18px',
+  },
 ];
 
 export const notices = [
@@ -41,8 +83,28 @@ export const placeholderFolders: PlaceholderFolderItem[] = [
   { key: 'extensions', title: '扩展文件夹', path: 'extensions', icon: '🧷' },
   { key: 'tmp', title: '临时文件夹', path: 'tmp', icon: '🧹' },
   { key: 'extras-images', title: '超分输出', path: 'extras-images', icon: '⊞' },
-  { key: 'txt2img-grids', title: '文生图（网格）', path: 'txt2img-grids', icon: '🖹' },
-  { key: 'txt2img-images', title: '文生图（单图）', path: 'txt2img-images', icon: '📄' },
-  { key: 'img2img-grids', title: '图生图（网格）', path: 'img2img-grids', icon: '🖼' },
-  { key: 'img2img-images', title: '图生图（单图）', path: 'img2img-images', icon: '▣' },
+  {
+    key: 'txt2img-grids',
+    title: '文生图（网格）',
+    path: 'txt2img-grids',
+    icon: '🖹',
+  },
+  {
+    key: 'txt2img-images',
+    title: '文生图（单图）',
+    path: 'txt2img-images',
+    icon: '📄',
+  },
+  {
+    key: 'img2img-grids',
+    title: '图生图（网格）',
+    path: 'img2img-grids',
+    icon: '🖼',
+  },
+  {
+    key: 'img2img-images',
+    title: '图生图（单图）',
+    path: 'img2img-images',
+    icon: '▣',
+  },
 ];

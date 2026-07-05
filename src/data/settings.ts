@@ -10,6 +10,4 @@ export const settingsTabs: SettingsTab[] = [
   { id: 'about', label: '关于' },
 ];
 
-export const aboutInfo = [
-  '这里仅仅只是一个占位，这里还什么都没有 ...',
-];
+export const aboutInfo = ['这里仅仅只是一个占位，这里还什么都没有 ...'];

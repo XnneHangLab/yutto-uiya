@@ -12,9 +12,7 @@ describe('ModelsPage', () => {
     render(
       <ModelsPage
         inspection={{
-          managedPaths: [
-            { key: 'workspace', path: '/repo' },
-          ],
+          managedPaths: [{ key: 'workspace', path: '/repo' }],
           downloadDir: '/repo/downloads',
           sessData: false,
           ffmpegPath: 'ffmpeg',
@@ -43,7 +41,9 @@ describe('ModelsPage', () => {
       />,
     );
 
-    expect(screen.getByRole('heading', { name: '模型管理' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: '模型管理' }),
+    ).toBeInTheDocument();
     expect(screen.getByText('Genie-TTS 基础资源')).toBeInTheDocument();
     expect(screen.getByText('GSV-Lite 数据包')).toBeInTheDocument();
     expect(screen.getByText('正在下载')).toBeInTheDocument();
@@ -73,7 +73,9 @@ describe('ModelsPage', () => {
     for (const btn of downloadBtns) {
       expect(btn).toBeDisabled();
     }
-    expect(screen.getByText('运行环境未就绪，暂时无法执行下载。')).toBeInTheDocument();
+    expect(
+      screen.getByText('运行环境未就绪，暂时无法执行下载。'),
+    ).toBeInTheDocument();
   });
 
   it('disables gsv-lite download in cpu mode', () => {
@@ -95,6 +97,6 @@ describe('ModelsPage', () => {
     const downloadBtns = screen.getAllByRole('button', { name: '下载' });
     expect(downloadBtns[0]).not.toBeDisabled(); // genie-base (cpu ok)
     expect(downloadBtns[1]).not.toBeDisabled(); // luming-genie-tts (cpu ok)
-    expect(downloadBtns[2]).toBeDisabled();     // gsv-lite (gpu only)
+    expect(downloadBtns[2]).toBeDisabled(); // gsv-lite (gpu only)
   });
 });

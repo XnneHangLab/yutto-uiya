@@ -1,7 +1,7 @@
 import {
-  THEME_STORAGE_KEY,
   isThemeMode,
   readStoredTheme,
+  THEME_STORAGE_KEY,
   toggleThemeMode,
   writeStoredTheme,
 } from './theme';

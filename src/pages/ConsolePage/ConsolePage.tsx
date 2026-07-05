@@ -50,7 +50,7 @@ export function ConsolePage({
     if (!autoScroll) return;
     const el = panelRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [logs.length, autoScroll]);
 
   function handleCopyAll() {
@@ -66,7 +66,9 @@ export function ConsolePage({
             {queueSummary.activeTask ? queueSummary.activeTask.status : 'idle'}
           </span>
           <div className="console-toolbar__meta">
-            <span className="console-toolbar__label">运行驱动 {runtimeDriver}</span>
+            <span className="console-toolbar__label">
+              运行驱动 {runtimeDriver}
+            </span>
             <span className="console-command">{activeTaskLabel}</span>
           </div>
         </div>
@@ -82,10 +84,18 @@ export function ConsolePage({
           >
             追踪最新日志
           </button>
-          <button type="button" onClick={handleCopyAll} disabled={logs.length === 0}>
+          <button
+            type="button"
+            onClick={handleCopyAll}
+            disabled={logs.length === 0}
+          >
             全部复制
           </button>
-          <button type="button" onClick={onExportLogs} disabled={logs.length === 0}>
+          <button
+            type="button"
+            onClick={onExportLogs}
+            disabled={logs.length === 0}
+          >
             导出日志
           </button>
           <button
@@ -98,7 +108,10 @@ export function ConsolePage({
         </div>
       </header>
 
-      <section ref={panelRef} className={`console-log-panel${wrapLines ? ' is-wrap' : ''}`}>
+      <section
+        ref={panelRef}
+        className={`console-log-panel${wrapLines ? ' is-wrap' : ''}`}
+      >
         {logs.length === 0 ? (
           <div className="console-empty">
             <h2>尚无运行日志</h2>
@@ -107,7 +120,10 @@ export function ConsolePage({
         ) : (
           <div className="console-log-list">
             {logs.map((entry) => (
-              <div key={entry.id} className={`console-log console-log--${entry.kind}`}>
+              <div
+                key={entry.id}
+                className={`console-log console-log--${entry.kind}`}
+              >
                 <span className="console-log__time">{entry.time}</span>
                 <pre className="console-log__text">{entry.text}</pre>
               </div>

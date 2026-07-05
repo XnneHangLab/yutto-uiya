@@ -1,15 +1,15 @@
+import { listen } from '@tauri-apps/api/event';
+import { subscribeRuntimeEvents } from './bridge';
 import {
-  applyRuntimeEvent,
-  isAuthRuntimeEvent,
   applyParseRuntimeEvent,
+  applyRuntimeEvent,
   buildFolderItemsFromPaths,
   collectParseItems,
   createConsoleLogFromRuntimeEvent,
+  isAuthRuntimeEvent,
   isParseRuntimeEvent,
   type RuntimeTaskRecord,
 } from './runtime';
-import { listen } from '@tauri-apps/api/event';
-import { subscribeRuntimeEvents } from './bridge';
 
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(),
@@ -35,7 +35,12 @@ describe('runtime helpers', () => {
   it('builds folder items from managed paths', () => {
     expect(buildFolderItemsFromPaths(managedPaths)).toEqual([
       { key: 'workspace', title: '根目录', path: '/repo', icon: '📁' },
-      { key: 'downloads', title: '下载目录', path: '/repo/downloads', icon: '⬇' },
+      {
+        key: 'downloads',
+        title: '下载目录',
+        path: '/repo/downloads',
+        icon: '⬇',
+      },
       { key: 'logs', title: '日志目录', path: '/repo/logs', icon: '🧾' },
     ]);
   });

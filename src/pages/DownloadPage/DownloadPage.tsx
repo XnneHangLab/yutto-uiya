@@ -1,13 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { fetchCoverImage } from '../../services/runtime/bridge';
 import type {
-  VideoParseGroup,
   DownloadOptions,
   QualityOption,
   RuntimeTaskRecord,
+  VideoParseGroup,
   VideoParseItem,
 } from '../../services/runtime/runtime';
 import { collectParseItems } from '../../services/runtime/runtime';
-import { fetchCoverImage } from '../../services/runtime/bridge';
 import '../../styles/models.css';
 
 const taskStatusLabel: Record<string, string> = {
@@ -21,9 +21,16 @@ const taskStatusLabel: Record<string, string> = {
 };
 
 function downloadHint(opts: DownloadOptions): string {
-  const { requireVideo, requireAudio, requireCover, requireSubtitle, requireDanmaku } = opts;
+  const {
+    requireVideo,
+    requireAudio,
+    requireCover,
+    requireSubtitle,
+    requireDanmaku,
+  } = opts;
   let hint = '';
-  if (requireVideo && requireAudio && requireCover) hint = '视频 + 音频 + 封面（封面另存同目录）';
+  if (requireVideo && requireAudio && requireCover)
+    hint = '视频 + 音频 + 封面（封面另存同目录）';
   else if (requireVideo && requireAudio) hint = '视频 + 音频，自动混流';
   else if (requireVideo && requireCover) hint = '仅视频流 + 封面';
   else if (requireAudio && requireCover) hint = '仅音频流 + 封面';
@@ -40,7 +47,8 @@ function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
-  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  if (h > 0)
+    return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
@@ -49,7 +57,6 @@ function formatView(n: number): string {
   if (n >= 10_000) return `${(n / 10_000).toFixed(1)}万`;
   return String(n);
 }
-
 
 interface DownloadPageProps {
   tasks: RuntimeTaskRecord[];
@@ -94,7 +101,9 @@ export function DownloadPage({
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   // item.index → 'loading' | data-URL string
-  const [covers, setCovers] = useState<Map<number, 'loading' | string>>(new Map());
+  const [covers, setCovers] = useState<Map<number, 'loading' | string>>(
+    new Map(),
+  );
 
   const listRef = useRef<HTMLUListElement>(null);
   // Tracks previous parsing state to detect false→true→false transition.
@@ -111,7 +120,7 @@ export function DownloadPage({
         listRef.current.scrollTop = listRef.current.scrollHeight;
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allParseItems.length]);
 
   // When parsing finishes, auto-fetch the cover for the last item (single fetch, looks great for
@@ -125,7 +134,7 @@ export function DownloadPage({
         void handleLoadCover(lastItem);
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parsing]);
 
   function handleUrlChange(next: string) {
@@ -182,7 +191,9 @@ export function DownloadPage({
 
   function handleToggleGroup(group: VideoParseGroup) {
     const groupIndexes = group.items.map((item) => item.index);
-    const allGroupItemsSelected = groupIndexes.every((index) => parseSelected.has(index));
+    const allGroupItemsSelected = groupIndexes.every((index) =>
+      parseSelected.has(index),
+    );
     const next = new Set(parseSelected);
 
     if (allGroupItemsSelected) {
@@ -228,23 +239,34 @@ export function DownloadPage({
     if (dataUrl) {
       setCovers((prev) => new Map(prev).set(item.index, dataUrl!));
     } else {
-      setCovers((prev) => { const m = new Map(prev); m.delete(item.index); return m; });
+      setCovers((prev) => {
+        const m = new Map(prev);
+        m.delete(item.index);
+        return m;
+      });
     }
   }
 
   function renderDetailPanel(item: VideoParseItem) {
     const coverState = covers.get(item.index);
-    const coverNode = typeof coverState === 'string' && coverState !== 'loading'
-      ? <img className="parse-detail__cover" src={coverState} alt={item.title} />
-      : null;
+    const coverNode =
+      typeof coverState === 'string' && coverState !== 'loading' ? (
+        <img
+          className="parse-detail__cover"
+          src={coverState}
+          alt={item.title}
+        />
+      ) : null;
 
     return (
       <div className="parse-detail__content">
         {coverNode}
         <div className="parse-detail__info">
           <p className="parse-detail__title">{item.title}</p>
-          {item.uploader ? <p className="parse-detail__uploader">{item.uploader}</p> : null}
-          {(item.view || item.duration) ? (
+          {item.uploader ? (
+            <p className="parse-detail__uploader">{item.uploader}</p>
+          ) : null}
+          {item.view || item.duration ? (
             <p className="parse-detail__stats">
               {item.view ? `${formatView(item.view)} 次播放` : ''}
               {item.view && item.duration ? ' · ' : ''}
@@ -257,7 +279,9 @@ export function DownloadPage({
           {item.tags && item.tags.length > 0 ? (
             <div className="parse-detail__tags">
               {item.tags.map((tag) => (
-                <span key={tag} className="parse-detail__tag">{tag}</span>
+                <span key={tag} className="parse-detail__tag">
+                  {tag}
+                </span>
               ))}
             </div>
           ) : null}
@@ -268,7 +292,10 @@ export function DownloadPage({
 
   function renderParseItem(item: VideoParseItem, nested = false) {
     return (
-      <li key={item.index} className={`parse-item${nested ? ' parse-item--nested' : ''}`}>
+      <li
+        key={item.index}
+        className={`parse-item${nested ? ' parse-item--nested' : ''}`}
+      >
         <div className="parse-item__row">
           <label className="parse-item__label">
             <input
@@ -288,7 +315,11 @@ export function DownloadPage({
               disabled={covers.get(item.index) === 'loading'}
               onClick={() => handleLoadCover(item)}
             >
-              {covers.get(item.index) === 'loading' ? '加载中…' : covers.get(item.index) ? '封面' : '查看封面'}
+              {covers.get(item.index) === 'loading'
+                ? '加载中…'
+                : covers.get(item.index)
+                  ? '封面'
+                  : '查看封面'}
             </button>
           ) : null}
           <button
@@ -300,16 +331,18 @@ export function DownloadPage({
           </button>
         </div>
         {expandedIndex === item.index ? (
-          <div className="parse-item__detail">
-            {renderDetailPanel(item)}
-          </div>
+          <div className="parse-item__detail">{renderDetailPanel(item)}</div>
         ) : null}
       </li>
     );
   }
 
-  const allSelected = allParseItems.length > 0 && parseSelected.size === allParseItems.length;
-  const noneChecked = !downloadOptions.requireVideo && !downloadOptions.requireAudio && !downloadOptions.requireCover;
+  const allSelected =
+    allParseItems.length > 0 && parseSelected.size === allParseItems.length;
+  const noneChecked =
+    !downloadOptions.requireVideo &&
+    !downloadOptions.requireAudio &&
+    !downloadOptions.requireCover;
 
   return (
     <div className="models-page">
@@ -317,7 +350,9 @@ export function DownloadPage({
         <h1>下载管理</h1>
         <p>输入 Bilibili 视频链接，点击"解析"预览视频列表，选择后下载。</p>
         {!scriptsReady ? (
-          <p className="models-page__header-warn">运行环境未就绪，暂时无法执行下载。</p>
+          <p className="models-page__header-warn">
+            运行环境未就绪，暂时无法执行下载。
+          </p>
         ) : null}
       </header>
 
@@ -348,9 +383,15 @@ export function DownloadPage({
             <div className="parse-results__header">
               <span className="parse-results__title">
                 解析结果
-                <span className="parse-results__count">{allParseItems.length} 个视频</span>
+                <span className="parse-results__count">
+                  {allParseItems.length} 个视频
+                </span>
               </span>
-              <button type="button" className="parse-bulk-btn" onClick={handleToggleAll}>
+              <button
+                type="button"
+                className="parse-bulk-btn"
+                onClick={handleToggleAll}
+              >
                 {allSelected ? '取消全选' : '全选'}
               </button>
             </div>
@@ -359,8 +400,9 @@ export function DownloadPage({
               {parseGroups.map((group, groupIndex) => {
                 const groupKey = `${group.dir || group.title}-${groupIndex}`;
                 const expanded = expandedGroups.has(groupKey);
-                const allGroupItemsSelected = group.items.length > 0
-                  && group.items.every((item) => parseSelected.has(item.index));
+                const allGroupItemsSelected =
+                  group.items.length > 0 &&
+                  group.items.every((item) => parseSelected.has(item.index));
 
                 return (
                   <li key={groupKey} className="parse-group">
@@ -373,8 +415,12 @@ export function DownloadPage({
                           aria-label={`选择分组 ${group.title}`}
                           onChange={() => handleToggleGroup(group)}
                         />
-                        <span className="parse-group__title">{group.title}</span>
-                        <span className="parse-group__count">{group.items.length} 个视频</span>
+                        <span className="parse-group__title">
+                          {group.title}
+                        </span>
+                        <span className="parse-group__count">
+                          {group.items.length} 个视频
+                        </span>
                       </label>
                       <button
                         type="button"
@@ -410,20 +456,32 @@ export function DownloadPage({
                 type="button"
                 className={`dl-switch${downloadOptions.requireVideo ? ' dl-switch--on' : ''}`}
                 aria-pressed={downloadOptions.requireVideo}
-                onClick={() => onDownloadOptionsChange({ ...downloadOptions, requireVideo: !downloadOptions.requireVideo })}
+                onClick={() =>
+                  onDownloadOptionsChange({
+                    ...downloadOptions,
+                    requireVideo: !downloadOptions.requireVideo,
+                  })
+                }
               />
             </div>
 
             <div className="dl-opts-row">
               <div className="dl-opts-text">
                 <span className="dl-opts-name">音频</span>
-                <span className="dl-opts-desc">下载音频轨道；与视频同时选中时自动混流</span>
+                <span className="dl-opts-desc">
+                  下载音频轨道；与视频同时选中时自动混流
+                </span>
               </div>
               <button
                 type="button"
                 className={`dl-switch${downloadOptions.requireAudio ? ' dl-switch--on' : ''}`}
                 aria-pressed={downloadOptions.requireAudio}
-                onClick={() => onDownloadOptionsChange({ ...downloadOptions, requireAudio: !downloadOptions.requireAudio })}
+                onClick={() =>
+                  onDownloadOptionsChange({
+                    ...downloadOptions,
+                    requireAudio: !downloadOptions.requireAudio,
+                  })
+                }
               />
             </div>
 
@@ -436,7 +494,12 @@ export function DownloadPage({
                 type="button"
                 className={`dl-switch${downloadOptions.requireCover ? ' dl-switch--on' : ''}`}
                 aria-pressed={downloadOptions.requireCover}
-                onClick={() => onDownloadOptionsChange({ ...downloadOptions, requireCover: !downloadOptions.requireCover })}
+                onClick={() =>
+                  onDownloadOptionsChange({
+                    ...downloadOptions,
+                    requireCover: !downloadOptions.requireCover,
+                  })
+                }
               />
             </div>
 
@@ -449,7 +512,12 @@ export function DownloadPage({
                 type="button"
                 className={`dl-switch${downloadOptions.requireSubtitle ? ' dl-switch--on' : ''}`}
                 aria-pressed={downloadOptions.requireSubtitle}
-                onClick={() => onDownloadOptionsChange({ ...downloadOptions, requireSubtitle: !downloadOptions.requireSubtitle })}
+                onClick={() =>
+                  onDownloadOptionsChange({
+                    ...downloadOptions,
+                    requireSubtitle: !downloadOptions.requireSubtitle,
+                  })
+                }
               />
             </div>
 
@@ -462,7 +530,12 @@ export function DownloadPage({
                 type="button"
                 className={`dl-switch${downloadOptions.requireDanmaku ? ' dl-switch--on' : ''}`}
                 aria-pressed={downloadOptions.requireDanmaku}
-                onClick={() => onDownloadOptionsChange({ ...downloadOptions, requireDanmaku: !downloadOptions.requireDanmaku })}
+                onClick={() =>
+                  onDownloadOptionsChange({
+                    ...downloadOptions,
+                    requireDanmaku: !downloadOptions.requireDanmaku,
+                  })
+                }
               />
             </div>
 
@@ -470,17 +543,24 @@ export function DownloadPage({
               <div className="dl-opts-row">
                 <div className="dl-opts-text">
                   <span className="dl-opts-name">画质</span>
-                  <span className="dl-opts-desc">批量下载时尽量满足该画质，不足时自动降级</span>
+                  <span className="dl-opts-desc">
+                    批量下载时尽量满足该画质，不足时自动降级
+                  </span>
                 </div>
                 <select
                   className="dl-opts-select"
                   value={downloadOptions.videoQuality}
                   onChange={(e) =>
-                    onDownloadOptionsChange({ ...downloadOptions, videoQuality: Number(e.target.value) })
+                    onDownloadOptionsChange({
+                      ...downloadOptions,
+                      videoQuality: Number(e.target.value),
+                    })
                   }
                 >
                   {parseVideoQualities.map((q) => (
-                    <option key={q.code} value={q.code}>{q.label}</option>
+                    <option key={q.code} value={q.code}>
+                      {q.label}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -490,24 +570,33 @@ export function DownloadPage({
               <div className="dl-opts-row">
                 <div className="dl-opts-text">
                   <span className="dl-opts-name">音质</span>
-                  <span className="dl-opts-desc">批量下载时尽量满足该音质，不足时自动降级</span>
+                  <span className="dl-opts-desc">
+                    批量下载时尽量满足该音质，不足时自动降级
+                  </span>
                 </div>
                 <select
                   className="dl-opts-select"
                   value={downloadOptions.audioQuality}
                   onChange={(e) =>
-                    onDownloadOptionsChange({ ...downloadOptions, audioQuality: Number(e.target.value) })
+                    onDownloadOptionsChange({
+                      ...downloadOptions,
+                      audioQuality: Number(e.target.value),
+                    })
                   }
                 >
                   {parseAudioQualities.map((q) => (
-                    <option key={q.code} value={q.code}>{q.label}</option>
+                    <option key={q.code} value={q.code}>
+                      {q.label}
+                    </option>
                   ))}
                 </select>
               </div>
             ) : null}
 
             <div className="dl-opts-footer">
-              <span className="dl-opts-hint">{downloadHint(downloadOptions)}</span>
+              <span className="dl-opts-hint">
+                {downloadHint(downloadOptions)}
+              </span>
               <button
                 type="button"
                 className="download-submit-btn"
@@ -528,7 +617,12 @@ export function DownloadPage({
         ) : (
           <div className="models-page__task-list">
             {tasks.map((task) => {
-              const isActive = ['queued', 'preparing', 'downloading', 'verifying'].includes(task.status);
+              const isActive = [
+                'queued',
+                'preparing',
+                'downloading',
+                'verifying',
+              ].includes(task.status);
               return (
                 <div key={task.taskId} className="models-page__task">
                   <div className="models-page__task-info">
@@ -536,7 +630,9 @@ export function DownloadPage({
                     <div className="models-page__task-msg">{task.message}</div>
                   </div>
                   <div className="models-page__task-right">
-                    <span className={`models-page__task-status models-page__task-status--${task.status}`}>
+                    <span
+                      className={`models-page__task-status models-page__task-status--${task.status}`}
+                    >
                       {taskStatusLabel[task.status] ?? task.status}
                     </span>
                     <span className="models-page__task-progress">
@@ -556,7 +652,9 @@ export function DownloadPage({
                       <button
                         type="button"
                         className="models-page__task-open-folder"
-                        onClick={() => onOpenDownloadsFolder(task.saveDir || undefined)}
+                        onClick={() =>
+                          onOpenDownloadsFolder(task.saveDir || undefined)
+                        }
                       >
                         打开文件夹
                       </button>

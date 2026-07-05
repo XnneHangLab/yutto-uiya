@@ -74,7 +74,7 @@
   color: var(--text);
 }
 
-.console-toolbar__actions button[aria-pressed='true'] {
+.console-toolbar__actions button[aria-pressed="true"] {
   border-color: var(--accent);
   color: var(--accent);
 }
@@ -116,7 +116,12 @@
   display: flex;
   flex-direction: column;
   padding: 8px 0;
-  font: 13px/1.6 "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font:
+    13px / 1.6 "SFMono-Regular",
+    Consolas,
+    "Liberation Mono",
+    Menlo,
+    monospace;
 }
 
 .console-log {

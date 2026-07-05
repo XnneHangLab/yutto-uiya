@@ -1,7 +1,7 @@
 import huixinLogo from '../../../assets/brand/logo-square.jpg';
-import { NavItem } from '../NavItem/NavItem';
 import type { NavItemData, PageId } from '../../../data/nav';
 import type { ThemeMode } from '../../../services/theme/theme';
+import { NavItem } from '../NavItem/NavItem';
 
 interface SidebarProps {
   items: NavItemData[];
@@ -51,7 +51,9 @@ export function Sidebar({
           <NavItem
             key={item.id}
             item={item}
-            active={item.type === 'action' ? theme === 'day' : item.id === activePage}
+            active={
+              item.type === 'action' ? theme === 'day' : item.id === activePage
+            }
             onSelect={handleSelect}
           />
         ))}

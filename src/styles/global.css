@@ -13,7 +13,9 @@ body {
   min-width: 320px;
   background: linear-gradient(180deg, #0f1216 0%, #14181d 100%);
   color: var(--text);
-  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "WenQuanYi Micro Hei", "Droid Sans Fallback", sans-serif;
+  font-family:
+    "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC",
+    "Noto Sans SC", "WenQuanYi Micro Hei", "Droid Sans Fallback", sans-serif;
 }
 
 button,

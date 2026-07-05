@@ -3,10 +3,7 @@ interface PlaceholderPageProps {
   description: string;
 }
 
-export function PlaceholderPage({
-  title,
-  description,
-}: PlaceholderPageProps) {
+export function PlaceholderPage({ title, description }: PlaceholderPageProps) {
   return (
     <div className="placeholder-page">
       <div className="placeholder-card">

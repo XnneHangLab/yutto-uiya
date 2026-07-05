@@ -31,7 +31,11 @@
   padding: 5px 14px;
   border-radius: 999px;
   border: 1px solid var(--elevated-card-border);
-  background: linear-gradient(160deg, var(--elevated-card-bg-start), var(--elevated-card-bg-end));
+  background: linear-gradient(
+    160deg,
+    var(--elevated-card-bg-start),
+    var(--elevated-card-bg-end)
+  );
   color: var(--accent);
   font-size: 12px;
   font-weight: 500;

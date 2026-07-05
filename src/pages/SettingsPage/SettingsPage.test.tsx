@@ -71,7 +71,9 @@ describe('SettingsPage', () => {
     );
     expect(screen.getByLabelText('工作目录路径')).toHaveValue('/repo');
     expect(screen.getByText('就绪')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '退出登录' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: '退出登录' }),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '更改目录' }));
     expect(onChooseWorkspaceRoot).toHaveBeenCalledTimes(1);
@@ -133,7 +135,9 @@ describe('SettingsPage', () => {
     );
 
     expect(screen.getByRole('button', { name: '更改目录' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '重置为应用目录' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: '重置为应用目录' }),
+    ).toBeDisabled();
   });
 
   it('shows python exe path input when conda driver is selected', async () => {
@@ -166,19 +170,29 @@ describe('SettingsPage', () => {
       />,
     );
 
-    expect(screen.queryByLabelText('Python 可执行文件路径')).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('Python 可执行文件路径'),
+    ).not.toBeInTheDocument();
 
-    const driverRow = screen.getByText('Python 运行方式').closest('.setting-row');
+    const driverRow = screen
+      .getByText('Python 运行方式')
+      .closest('.setting-row');
     expect(driverRow).not.toBeNull();
-    expect(within(driverRow as HTMLElement).getByText('🐍')).toBeInTheDocument();
+    expect(
+      within(driverRow as HTMLElement).getByText('🐍'),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'conda' }));
 
     expect(screen.getByLabelText('Python 可执行文件路径')).toBeInTheDocument();
 
-    const pythonExeRow = screen.getByText('Python 可执行文件').closest('.setting-row');
+    const pythonExeRow = screen
+      .getByText('Python 可执行文件')
+      .closest('.setting-row');
     expect(pythonExeRow).not.toBeNull();
-    expect(within(pythonExeRow as HTMLElement).getByText('🐍')).toBeInTheDocument();
+    expect(
+      within(pythonExeRow as HTMLElement).getByText('🐍'),
+    ).toBeInTheDocument();
   });
 
   it('shows auth warning when runtime is ready but not logged in', () => {
@@ -223,7 +237,9 @@ describe('SettingsPage', () => {
 
     expect(screen.getByText('就绪')).toBeInTheDocument();
     expect(screen.getByText('未登录，只能下载低画质')).toBeInTheDocument();
-    expect(screen.getByText('/root/.config/yutto/auth.toml（profile: default）')).toBeInTheDocument();
+    expect(
+      screen.getByText('/root/.config/yutto/auth.toml（profile: default）'),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '登录' })).toBeInTheDocument();
   });
 
@@ -270,8 +286,13 @@ describe('SettingsPage', () => {
       />,
     );
 
-    expect(screen.getByRole('dialog', { name: '扫码登录' })).toBeInTheDocument();
-    expect(screen.getByAltText('登录二维码')).toHaveAttribute('src', 'data:image/png;base64,abc');
+    expect(
+      screen.getByRole('dialog', { name: '扫码登录' }),
+    ).toBeInTheDocument();
+    expect(screen.getByAltText('登录二维码')).toHaveAttribute(
+      'src',
+      'data:image/png;base64,abc',
+    );
     expect(screen.getByText('请使用哔哩哔哩 App 扫码登录')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '关闭' }));
