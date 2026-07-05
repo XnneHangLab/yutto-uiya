@@ -25,7 +25,8 @@
 				"noSvgWithoutTitle": "off",
 				"useSemanticElements": "warn",
 				"noStaticElementInteractions": "off",
-				"noNoninteractiveTabindex": "off"
+				"noNoninteractiveTabindex": "off",
+				"noNoninteractiveElementToInteractiveRole": "off"
 			},
 			"correctness": {
 				"useExhaustiveDependencies": "warn",

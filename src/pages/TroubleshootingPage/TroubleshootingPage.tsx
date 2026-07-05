@@ -1,5 +1,9 @@
 import { useState } from 'react';
-import { type FaqItem, faqCategories } from '../../data/troubleshooting';
+import {
+  type FaqImage,
+  type FaqItem,
+  faqCategories,
+} from '../../data/troubleshooting';
 import { openUrl } from '../../services/runtime/bridge';
 import '../../styles/troubleshooting.css';
 
@@ -10,14 +14,41 @@ const totalCount = faqCategories.reduce(
   0,
 );
 
+function FaqThumb({
+  image,
+  onZoom,
+}: {
+  image: FaqImage;
+  onZoom: (src: string) => void;
+}) {
+  return (
+    <div className="faq-thumb-wrap">
+      <span className="faq-thumb-label">{image.label}</span>
+      <img
+        className="faq-thumb"
+        src={image.src}
+        alt={image.label}
+        role="button"
+        tabIndex={0}
+        onClick={() => onZoom(image.src)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') onZoom(image.src);
+        }}
+      />
+    </div>
+  );
+}
+
 function FaqCard({
   item,
   expanded,
   onToggle,
+  onZoom,
 }: {
   item: FaqItem;
   expanded: boolean;
   onToggle: () => void;
+  onZoom: (src: string) => void;
 }) {
   function handleOpenVideo() {
     if (!item.video) return;
@@ -45,6 +76,9 @@ function FaqCard({
             <div className="faq-cell">
               <span className="faq-label">现象</span>
               <p className="faq-text">{item.symptom}</p>
+              {item.symptomImage && (
+                <FaqThumb image={item.symptomImage} onZoom={onZoom} />
+              )}
             </div>
             {item.cause ? (
               <div className="faq-cell">
@@ -61,6 +95,9 @@ function FaqCard({
                   <li key={`${item.id}-step-${i}`}>{step}</li>
                 ))}
               </ol>
+              {item.stepsImage && (
+                <FaqThumb image={item.stepsImage} onZoom={onZoom} />
+              )}
             </div>
             {item.video ? (
               <div className="faq-cell faq-cell--video">
@@ -81,9 +118,6 @@ function FaqCard({
               <div />
             )}
           </div>
-          {item.image && (
-            <img className="faq-image" src={item.image} alt={item.title} />
-          )}
         </div>
       )}
     </div>
@@ -92,6 +126,7 @@ function FaqCard({
 
 export function TroubleshootingPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [zoomSrc, setZoomSrc] = useState<string | null>(null);
 
   function toggleExpand(id: string) {
     setExpandedId((current) => (current === id ? null : id));
@@ -126,12 +161,27 @@ export function TroubleshootingPage() {
                   item={item}
                   expanded={expandedId === item.id}
                   onToggle={() => toggleExpand(item.id)}
+                  onZoom={setZoomSrc}
                 />
               ))}
             </div>
           </section>
         ))}
       </div>
+
+      {zoomSrc && (
+        <div
+          className="faq-zoom-overlay"
+          role="button"
+          tabIndex={0}
+          onClick={() => setZoomSrc(null)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape' || e.key === 'Enter') setZoomSrc(null);
+          }}
+        >
+          <img className="faq-zoom-img" src={zoomSrc} alt="" />
+        </div>
+      )}
     </div>
   );
 }

@@ -5,14 +5,20 @@ export interface FaqVideo {
   timestamp?: string;
 }
 
+export interface FaqImage {
+  src: string;
+  label: string;
+}
+
 export interface FaqItem {
   id: string;
   title: string;
   symptom: string;
+  symptomImage?: FaqImage;
   cause: string;
   steps: string[];
+  stepsImage?: FaqImage;
   video?: FaqVideo;
-  image?: string;
 }
 
 export interface FaqCategory {
@@ -49,9 +55,12 @@ export const faqCategories: FaqCategory[] = [
         id: 'folder-cannot-access',
         title: '拒绝访问（WinError 5）',
         symptom: '扫码或解析时提示 WinError 5 - 拒绝访问。',
+        symptomImage: {
+          src: '/troubleshooting/folder-cannot-access.jpg',
+          label: '错误提示截图',
+        },
         cause: '一键包被解压到了 Program Files 等需要管理员权限的目录。',
         steps: ['将一键包移到其他位置，如 D 盘根目录或桌面', '重新启动即可'],
-        image: '/troubleshooting/folder-cannot-access.jpg',
       },
       {
         id: 'uv-sync-failed',
@@ -81,7 +90,10 @@ export const faqCategories: FaqCategory[] = [
           '复制合集页面的链接（而不是播放页链接）',
           '用合集链接重新解析',
         ],
-        image: '/troubleshooting/collection-root.jpg',
+        stepsImage: {
+          src: '/troubleshooting/collection-root.jpg',
+          label: '合集源地址位置（点击合集标题进入）',
+        },
       },
       {
         id: 'low-quality',

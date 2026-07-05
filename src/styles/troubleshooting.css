@@ -205,11 +205,52 @@
 
 /* ── Video button ─────────────────────────────────────── */
 
-.faq-image {
-  width: 100%;
-  margin-top: 10px;
-  border-radius: 8px;
+/* ── Thumbnail ────────────────────────────────────────── */
+
+.faq-thumb-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.faq-thumb-label {
+  font-size: 11px;
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+.faq-thumb {
+  max-width: 220px;
+  border-radius: 6px;
   border: 1px solid var(--line);
+  cursor: pointer;
+  transition: border-color 0.15s, opacity 0.15s;
+}
+
+.faq-thumb:hover {
+  border-color: var(--accent);
+  opacity: 0.85;
+}
+
+/* ── Zoom overlay ─────────────────────────────────────── */
+
+.faq-zoom-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  cursor: pointer;
+}
+
+.faq-zoom-img {
+  max-width: 90%;
+  max-height: 90%;
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
 .faq-video-btn {
