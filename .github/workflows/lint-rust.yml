@@ -1,0 +1,44 @@
+name: Lint Rust
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "src-tauri/**"
+      - "justfile"
+      - ".github/workflows/lint-rust.yml"
+  pull_request:
+    paths:
+      - "src-tauri/**"
+      - "justfile"
+      - ".github/workflows/lint-rust.yml"
+  workflow_dispatch:
+
+jobs:
+  lint-and-fmt:
+    runs-on: ubuntu-latest
+    name: Clippy and Format
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Install just
+        uses: extractions/setup-just@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clippy
+        run: just ci-lint-rust
+
+      - name: Format check
+        run: just ci-fmt-check-rust
