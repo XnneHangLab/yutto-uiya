@@ -205,6 +205,13 @@
 
 /* ── Video button ─────────────────────────────────────── */
 
+.faq-image {
+  width: 100%;
+  margin-top: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+
 .faq-video-btn {
   display: inline-flex;
   align-items: center;

@@ -81,6 +81,9 @@ function FaqCard({
               <div />
             )}
           </div>
+          {item.image && (
+            <img className="faq-image" src={item.image} alt={item.title} />
+          )}
         </div>
       )}
     </div>
