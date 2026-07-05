@@ -225,7 +225,9 @@
   border-radius: 6px;
   border: 1px solid var(--line);
   cursor: pointer;
-  transition: border-color 0.15s, opacity 0.15s;
+  transition:
+    border-color 0.15s,
+    opacity 0.15s;
 }
 
 .faq-thumb:hover {
@@ -267,7 +269,9 @@
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 
 .faq-video-btn:hover {
