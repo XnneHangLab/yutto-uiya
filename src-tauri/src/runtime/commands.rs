@@ -446,23 +446,14 @@ pub fn cancel_task(
 pub fn list_managed_folders(state: State<'_, RuntimeState>) -> Result<serde_json::Value, String> {
     let workspace_root = state.current_workspace_root();
     let download_dir = state.current_download_dir();
-    let downloads_root = resolve_download_dir_path(&workspace_root, &download_dir);
-    let logs_root = workspace_root.join("logs");
+    let downloads_root = resolve_managed_path(&workspace_root, "downloads", Some(&download_dir))?;
+    let logs_root = resolve_managed_path(&workspace_root, "logs", None)?;
     let items = serde_json::json!([
         { "key": "workspace", "label": "根目录",     "path": workspace_root.display().to_string() },
         { "key": "downloads", "label": "下载目录",   "path": downloads_root.display().to_string() },
         { "key": "logs",      "label": "日志目录",   "path": logs_root.display().to_string() },
     ]);
     Ok(items)
-}
-
-fn resolve_download_dir_path(workspace_root: &std::path::Path, download_dir: &str) -> std::path::PathBuf {
-    let path = std::path::PathBuf::from(download_dir);
-    if path.is_absolute() {
-        path
-    } else {
-        workspace_root.join(download_dir)
-    }
 }
 
 #[tauri::command]
@@ -493,7 +484,7 @@ pub fn open_managed_path(app: AppHandle, state: State<'_, RuntimeState>, path_ke
 pub fn open_task_save_dir(app: AppHandle, state: State<'_, RuntimeState>, relative_path: String) -> Result<(), String> {
     let workspace_root = state.current_workspace_root();
     let download_dir = state.current_download_dir();
-    let downloads_dir = resolve_download_dir_path(&workspace_root, &download_dir);
+    let downloads_dir = resolve_managed_path(&workspace_root, "downloads", Some(&download_dir))?;
     let target = if relative_path.is_empty() {
         downloads_dir.clone()
     } else {
