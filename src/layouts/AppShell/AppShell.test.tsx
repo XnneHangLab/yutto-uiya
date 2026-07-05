@@ -3,54 +3,52 @@ import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import App from '../../app/App';
 import * as runtimeBridge from '../../services/runtime/bridge';
-import { type RuntimeEvent } from '../../services/runtime/runtime';
+import type { RuntimeEvent } from '../../services/runtime/runtime';
 
 const runtimeListeners = new Set<(event: RuntimeEvent) => void>();
 const rawLogListeners = new Set<(line: string) => void>();
 
-const {
-  readyProbe,
-  defaultInspection,
-  defaultManagedFolders,
-} = vi.hoisted(() => ({
-  readyProbe: {
-    workspaceRoot: '/repo',
-    repoRoot: '/repo',
-    status: 'ready',
-    yuttoAvailable: true,
-    yuttoVersion: '0.0.3',
-    ffmpegAvailable: true,
-    authState: 'authenticated',
-    authMessage: '已登录',
-    authSource: '/root/.config/yutto/auth.toml（profile: default）',
-    issues: [],
-    message: '环境就绪',
-  },
-  defaultInspection: {
-    managedPaths: [
-      { key: 'workspace', path: '/repo' },
-      { key: 'downloads', path: '/repo/downloads' },
-      { key: 'logs', path: '/repo/logs' },
+const { readyProbe, defaultInspection, defaultManagedFolders } = vi.hoisted(
+  () => ({
+    readyProbe: {
+      workspaceRoot: '/repo',
+      repoRoot: '/repo',
+      status: 'ready',
+      yuttoAvailable: true,
+      yuttoVersion: '0.0.3',
+      ffmpegAvailable: true,
+      authState: 'authenticated',
+      authMessage: '已登录',
+      authSource: '/root/.config/yutto/auth.toml（profile: default）',
+      issues: [],
+      message: '环境就绪',
+    },
+    defaultInspection: {
+      managedPaths: [
+        { key: 'workspace', path: '/repo' },
+        { key: 'downloads', path: '/repo/downloads' },
+        { key: 'logs', path: '/repo/logs' },
+      ],
+      downloadDir: '/repo/downloads',
+      sessData: false,
+      ffmpegPath: 'ffmpeg',
+      noProxy: false,
+      runtimeDriver: 'uv',
+      pythonPath: '',
+      appRoot: '/repo',
+    },
+    defaultManagedFolders: [
+      { key: 'workspace', label: '根目录', path: '/repo' },
+      { key: 'downloads', label: '下载目录', path: '/repo/downloads' },
+      { key: 'logs', label: '日志目录', path: '/repo/logs' },
     ],
-    downloadDir: '/repo/downloads',
-    sessData: false,
-    ffmpegPath: 'ffmpeg',
-    noProxy: false,
-    runtimeDriver: 'uv',
-    pythonPath: '',
-    appRoot: '/repo',
-  },
-  defaultManagedFolders: [
-    { key: 'workspace', label: '根目录', path: '/repo' },
-    { key: 'downloads', label: '下载目录', path: '/repo/downloads' },
-    { key: 'logs', label: '日志目录', path: '/repo/logs' },
-  ],
-}));
+  }),
+);
 
 vi.mock('../../services/runtime/bridge', async () => {
-  const actual = await vi.importActual<typeof import('../../services/runtime/bridge')>(
-    '../../services/runtime/bridge',
-  );
+  const actual = await vi.importActual<
+    typeof import('../../services/runtime/bridge')
+  >('../../services/runtime/bridge');
 
   return {
     ...actual,
@@ -73,21 +71,25 @@ vi.mock('../../services/runtime/bridge', async () => {
     openManagedPath: vi.fn().mockResolvedValue(undefined),
     openPath: vi.fn().mockResolvedValue(undefined),
     exportConsoleLogs: vi.fn().mockResolvedValue('/repo/logs/launcher.log'),
-    parseTarget: vi.fn().mockResolvedValue({ items: [], videoQualities: [], audioQualities: [] }),
+    parseTarget: vi
+      .fn()
+      .mockResolvedValue({ items: [], videoQualities: [], audioQualities: [] }),
     startAuthLogin: vi.fn().mockResolvedValue(undefined),
     cancelAuthLogin: vi.fn().mockResolvedValue(undefined),
     logoutAuth: vi.fn().mockResolvedValue('已退出登录'),
     getHotkey: vi.fn().mockResolvedValue('Ctrl+Shift+Space'),
     setHotkey: vi.fn().mockResolvedValue(undefined),
     pauseHotkey: vi.fn().mockResolvedValue(undefined),
-    subscribeRuntimeEvents: vi.fn().mockImplementation(async (onEvent, onRawLog) => {
-      runtimeListeners.add(onEvent);
-      rawLogListeners.add(onRawLog);
-      return () => {
-        runtimeListeners.delete(onEvent);
-        rawLogListeners.delete(onRawLog);
-      };
-    }),
+    subscribeRuntimeEvents: vi
+      .fn()
+      .mockImplementation(async (onEvent, onRawLog) => {
+        runtimeListeners.add(onEvent);
+        rawLogListeners.add(onRawLog);
+        return () => {
+          runtimeListeners.delete(onEvent);
+          rawLogListeners.delete(onRawLog);
+        };
+      }),
     __emitRuntimeEvent(event: RuntimeEvent) {
       runtimeListeners.forEach((listener) => listener(event));
     },
@@ -110,16 +112,26 @@ describe('AppShell', () => {
 
     // listManagedFolders is called immediately; folder cards appear
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: '打开 根目录' })).toBeInTheDocument(),
+      expect(
+        screen.getByRole('button', { name: '打开 根目录' }),
+      ).toBeInTheDocument(),
     );
 
-    expect(screen.getByRole('button', { name: '打开 下载目录' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: '打开 下载目录' }),
+    ).toBeInTheDocument();
     expect(runtimeBridge.listManagedFolders).toHaveBeenCalled();
   });
 
   it('navigates to download page, parses a URL, and enqueues selected items', async () => {
     vi.mocked(runtimeBridge.parseTarget).mockResolvedValue({
-      items: [{ index: 1, title: '测试视频', url: 'https://www.bilibili.com/video/BV1xx411c7mD' }],
+      items: [
+        {
+          index: 1,
+          title: '测试视频',
+          url: 'https://www.bilibili.com/video/BV1xx411c7mD',
+        },
+      ],
       groups: [],
       videoQualities: [],
       audioQualities: [],
@@ -190,7 +202,9 @@ describe('AppShell', () => {
     await user.type(urlInput, 'https://www.bilibili.com/video/BV1xx411c7mD');
 
     await user.click(screen.getByRole('button', { name: '解析' }));
-    await user.click(await screen.findByRole('button', { name: '展开分组 合集' }));
+    await user.click(
+      await screen.findByRole('button', { name: '展开分组 合集' }),
+    );
     await user.click(screen.getByRole('button', { name: '下载所选 (2)' }));
 
     expect(runtimeBridge.enqueueDownload).toHaveBeenNthCalledWith(
@@ -210,17 +224,25 @@ describe('AppShell', () => {
   });
 
   it('shows parse items incrementally before parseTarget resolves', async () => {
-    let resolveParse: ((value: {
-      items: Array<{ index: number; title: string; url: string; dir: string }>;
-      videoQualities: Array<{ label: string; code: number }>;
-      audioQualities: Array<{ label: string; code: number }>;
-      dir?: string;
-    }) => void) | null = null;
+    let resolveParse:
+      | ((value: {
+          items: Array<{
+            index: number;
+            title: string;
+            url: string;
+            dir: string;
+          }>;
+          videoQualities: Array<{ label: string; code: number }>;
+          audioQualities: Array<{ label: string; code: number }>;
+          dir?: string;
+        }) => void)
+      | null = null;
 
     vi.mocked(runtimeBridge.parseTarget).mockImplementation(
-      () => new Promise((resolve) => {
-        resolveParse = resolve;
-      }),
+      () =>
+        new Promise((resolve) => {
+          resolveParse = resolve;
+        }),
     );
 
     const user = userEvent.setup();
@@ -340,8 +362,13 @@ describe('AppShell', () => {
       });
     });
 
-    expect(await screen.findByRole('dialog', { name: '扫码登录' })).toBeInTheDocument();
-    expect(screen.getByAltText('登录二维码')).toHaveAttribute('src', 'data:image/png;base64,abc');
+    expect(
+      await screen.findByRole('dialog', { name: '扫码登录' }),
+    ).toBeInTheDocument();
+    expect(screen.getByAltText('登录二维码')).toHaveAttribute(
+      'src',
+      'data:image/png;base64,abc',
+    );
   });
 
   it('hydrates portable python path from runtime inspection for conda settings', async () => {
@@ -358,7 +385,9 @@ describe('AppShell', () => {
     await user.click(screen.getByRole('button', { name: '设置' }));
     await user.click(await screen.findByRole('button', { name: 'conda' }));
 
-    expect(screen.getByLabelText('Python 可执行文件路径')).toHaveValue('/portable/env/python.exe');
+    expect(screen.getByLabelText('Python 可执行文件路径')).toHaveValue(
+      '/portable/env/python.exe',
+    );
   });
 
   it('cancels auth login when closing the qr dialog and allows restarting', async () => {
@@ -407,8 +436,14 @@ describe('AppShell', () => {
       });
     });
 
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: '扫码登录' })).not.toBeInTheDocument());
-    await waitFor(() => expect(screen.getByRole('button', { name: '登录' })).toBeEnabled());
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', { name: '扫码登录' }),
+      ).not.toBeInTheDocument(),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: '登录' })).toBeEnabled(),
+    );
 
     await user.click(screen.getByRole('button', { name: '登录' }));
     expect(runtimeBridge.startAuthLogin).toHaveBeenCalledTimes(2);

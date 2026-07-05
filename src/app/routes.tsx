@@ -1,20 +1,20 @@
 import type { ReactElement } from 'react';
-import { HomePage } from '../pages/HomePage/HomePage';
+import type { PageId } from '../data/nav';
+import { CommunityPage } from '../pages/CommunityPage/CommunityPage';
 import { ConsolePage } from '../pages/ConsolePage/ConsolePage';
 import { DownloadPage } from '../pages/DownloadPage/DownloadPage';
-import { CommunityPage } from '../pages/CommunityPage/CommunityPage';
-import { TroubleshootingPage } from '../pages/TroubleshootingPage/TroubleshootingPage';
+import { HomePage } from '../pages/HomePage/HomePage';
 import { SettingsPage } from '../pages/SettingsPage/SettingsPage';
+import { TroubleshootingPage } from '../pages/TroubleshootingPage/TroubleshootingPage';
 import { VersionsPage } from '../pages/VersionsPage/VersionsPage';
-import type { PageId } from '../data/nav';
 import type { ConsoleLogEntry } from '../services/launcher/launcher';
 import type {
   DownloadOptions,
   EnvironmentProbe,
   ManagedFolderItem,
   QualityOption,
-  RuntimeInspection,
   RuntimeDriver,
+  RuntimeInspection,
   RuntimeTaskRecord,
   VideoParseGroup,
   VideoParseItem,
@@ -67,7 +67,14 @@ interface RenderPageOptions {
   onStartAuthLogin: () => void;
   onLogoutAuth: () => void;
   onCloseAuthDialog: () => void;
-  onSave: (driver: RuntimeDriver, pythonExePath: string, ffmpegMode: 'system' | 'local', ffmpegExePath: string, noProxy: boolean, downloadDir: string) => void;
+  onSave: (
+    driver: RuntimeDriver,
+    pythonExePath: string,
+    ffmpegMode: 'system' | 'local',
+    ffmpegExePath: string,
+    noProxy: boolean,
+    downloadDir: string,
+  ) => void;
   onUvSync: () => Promise<void>;
   onSetAutoScroll: (next: boolean) => void;
   onSetWrapLines: (next: boolean) => void;

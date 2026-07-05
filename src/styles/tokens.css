@@ -1,5 +1,5 @@
 :root,
-.launcher-root[data-theme='night'] {
+.launcher-root[data-theme="night"] {
   --bg: #15181d;
   --panel: #1c2128;
   --panel-2: #20262e;
@@ -33,8 +33,7 @@
   --run-btn-running-bg-start: #2b88d0;
   --run-btn-running-bg-end: #185f9d;
   --run-btn-running-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    0 14px 30px rgba(24, 95, 157, 0.28);
+    inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 14px 30px rgba(24, 95, 157, 0.28);
   --console-panel-bg: #0f141a;
   --console-panel-border: rgba(255, 255, 255, 0.08);
   --console-panel-text: #e7eef8;
@@ -73,10 +72,10 @@
   --nav-active-border: rgba(74, 144, 226, 0.28);
   --nav-active-inset: rgba(255, 255, 255, 0.03);
   --skel-base: rgba(255, 255, 255, 0.05);
-  --skel-shine: rgba(255, 255, 255, 0.10);
+  --skel-shine: rgba(255, 255, 255, 0.1);
 }
 
-.launcher-root[data-theme='day'] {
+.launcher-root[data-theme="day"] {
   --bg: #edf7f8;
   --panel: #fbfeff;
   --panel-2: #f2fafb;
@@ -87,7 +86,7 @@
   --accent: #3b82f6;
   --accent-2: #2468dc;
   --success: #2f8cf0;
-  --shadow: 0 18px 42px rgba(34, 45, 66, 0.10);
+  --shadow: 0 18px 42px rgba(34, 45, 66, 0.1);
   --radius: 18px;
   --sidebar-w: 84px;
   --shell-bg: #eef8fa;

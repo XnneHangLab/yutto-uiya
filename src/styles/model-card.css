@@ -4,7 +4,11 @@
   justify-content: space-between;
   gap: 16px;
   padding: 20px 22px;
-  background: linear-gradient(180deg, var(--folder-card-bg-start), var(--folder-card-bg-end));
+  background: linear-gradient(
+    180deg,
+    var(--folder-card-bg-start),
+    var(--folder-card-bg-end)
+  );
   border: 1px solid var(--folder-card-border);
   border-radius: 16px;
   box-shadow: var(--folder-card-shadow);
@@ -15,7 +19,11 @@
 }
 
 .model-card:hover {
-  background: linear-gradient(180deg, var(--folder-card-hover-bg-start), var(--folder-card-hover-bg-end));
+  background: linear-gradient(
+    180deg,
+    var(--folder-card-hover-bg-start),
+    var(--folder-card-hover-bg-end)
+  );
   border-color: var(--folder-card-hover-border);
   box-shadow: var(--folder-card-hover-shadow);
 }
@@ -33,7 +41,11 @@
   display: grid;
   place-items: center;
   border-radius: 13px;
-  background: linear-gradient(180deg, var(--icon-panel-bg-start), var(--icon-panel-bg-end));
+  background: linear-gradient(
+    180deg,
+    var(--icon-panel-bg-start),
+    var(--icon-panel-bg-end)
+  );
   border: 1px solid var(--icon-panel-border);
   color: var(--icon-panel-text);
   font-size: 20px;
@@ -145,7 +157,11 @@
 }
 
 .model-card__btn:hover:not(:disabled) {
-  background: linear-gradient(180deg, var(--folder-card-hover-bg-start), var(--folder-card-hover-bg-end));
+  background: linear-gradient(
+    180deg,
+    var(--folder-card-hover-bg-start),
+    var(--folder-card-hover-bg-end)
+  );
   border-color: var(--folder-card-hover-border);
   transform: translateY(-1px);
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
@@ -154,7 +170,11 @@
 .model-card__btn:active:not(:disabled) {
   transform: translateY(0) scale(0.97);
   box-shadow: none;
-  background: linear-gradient(180deg, var(--folder-card-active-bg-start), var(--folder-card-active-bg-end));
+  background: linear-gradient(
+    180deg,
+    var(--folder-card-active-bg-start),
+    var(--folder-card-active-bg-end)
+  );
   border-color: var(--folder-card-active-border);
 }
 

@@ -30,7 +30,11 @@
 .community-group-card {
   width: 220px;
   border-radius: var(--radius);
-  background: linear-gradient(160deg, var(--elevated-card-bg-start), var(--elevated-card-bg-end));
+  background: linear-gradient(
+    160deg,
+    var(--elevated-card-bg-start),
+    var(--elevated-card-bg-end)
+  );
   border: 1px solid var(--elevated-card-border);
   box-shadow: var(--elevated-card-shadow);
   overflow: hidden;
@@ -86,7 +90,11 @@
   width: 100%;
   padding: 14px 18px;
   border-radius: 14px;
-  background: linear-gradient(160deg, var(--elevated-card-bg-start), var(--elevated-card-bg-end));
+  background: linear-gradient(
+    160deg,
+    var(--elevated-card-bg-start),
+    var(--elevated-card-bg-end)
+  );
   border: 1px solid var(--elevated-card-border);
   box-shadow: var(--elevated-card-shadow);
   cursor: pointer;

@@ -27,7 +27,9 @@ export function SettingRow({
 
         <div className={`setting-text${inset ? ' inset' : ''}`}>
           <div className="setting-name">{name}</div>
-          {description ? <div className="setting-desc">{description}</div> : null}
+          {description ? (
+            <div className="setting-desc">{description}</div>
+          ) : null}
         </div>
       </div>
 

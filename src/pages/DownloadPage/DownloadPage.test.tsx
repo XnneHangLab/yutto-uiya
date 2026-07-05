@@ -1,9 +1,9 @@
-import { useState } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import { vi } from 'vitest';
-import { DownloadPage } from './DownloadPage';
 import { DEFAULT_DOWNLOAD_OPTIONS } from '../../services/runtime/runtime';
+import { DownloadPage } from './DownloadPage';
 
 describe('DownloadPage', () => {
   it('renders grouped parse results collapsed by default and expands on demand', async () => {
@@ -72,7 +72,9 @@ describe('DownloadPage', () => {
     const user = userEvent.setup();
 
     function Harness() {
-      const [parseSelected, setParseSelected] = useState<Set<number>>(new Set());
+      const [parseSelected, setParseSelected] = useState<Set<number>>(
+        new Set(),
+      );
 
       return (
         <DownloadPage
@@ -117,11 +119,17 @@ describe('DownloadPage', () => {
 
     render(<Harness />);
 
-    await user.click(screen.getByRole('checkbox', { name: '选择分组 分组合集' }));
+    await user.click(
+      screen.getByRole('checkbox', { name: '选择分组 分组合集' }),
+    );
     await user.click(screen.getByRole('button', { name: '展开分组 分组合集' }));
 
-    expect(screen.getByRole('checkbox', { name: '选择视频 合集视频 1' })).toBeChecked();
-    expect(screen.getByRole('checkbox', { name: '选择视频 合集视频 2' })).toBeChecked();
+    expect(
+      screen.getByRole('checkbox', { name: '选择视频 合集视频 1' }),
+    ).toBeChecked();
+    expect(
+      screen.getByRole('checkbox', { name: '选择视频 合集视频 2' }),
+    ).toBeChecked();
     expect(screen.getByRole('button', { name: '下载所选 (2)' })).toBeEnabled();
   });
 

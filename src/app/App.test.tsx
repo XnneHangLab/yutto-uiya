@@ -12,9 +12,7 @@ describe('App', () => {
     render(<App />);
 
     expect(screen.getByRole('button', { name: '帮助' })).toBeInTheDocument();
-    expect(
-      screen.getByRole('group', { name: '窗口控制' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: '窗口控制' })).toBeInTheDocument();
   });
 
   it('applies day theme from storage to launcher root', () => {
@@ -26,10 +24,7 @@ describe('App', () => {
     const navStyles = getComputedStyle(navHome);
     const rootStyles = getComputedStyle(launcherRoot as Element);
 
-    expect(launcherRoot).toHaveAttribute(
-      'data-theme',
-      'day',
-    );
+    expect(launcherRoot).toHaveAttribute('data-theme', 'day');
     expect(rootStyles.getPropertyValue('--text').trim()).toBe('#182231');
     expect(navStyles.color).toBe('var(--text)');
   });

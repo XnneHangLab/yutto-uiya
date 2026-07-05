@@ -153,7 +153,7 @@
 .models-page__task-progress {
   font-size: 12px;
   color: var(--muted);
-  font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
 }
 
 .models-page__task-console-hint {
@@ -177,7 +177,9 @@
   font-size: 11px;
   cursor: pointer;
   line-height: 1;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .models-page__task-cancel:hover {
@@ -201,8 +203,14 @@
 }
 
 @keyframes indeterminate-slide {
-  0%   { left: -45%; width: 45%; }
-  100% { left: 100%; width: 45%; }
+  0% {
+    left: -45%;
+    width: 45%;
+  }
+  100% {
+    left: 100%;
+    width: 45%;
+  }
 }
 
 .models-page__indeterminate {
@@ -277,7 +285,9 @@
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .download-parse-btn:hover:not(:disabled) {
@@ -331,7 +341,9 @@
   color: var(--muted);
   font-size: 13px;
   cursor: pointer;
-  transition: color 0.15s ease, background 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
 }
 
 .parse-bulk-btn:hover {
@@ -400,7 +412,10 @@
   color: var(--muted);
   font-size: 12px;
   cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
   white-space: nowrap;
 }
 
@@ -447,7 +462,10 @@
   color: var(--muted);
   font-size: 12px;
   cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
   white-space: nowrap;
 }
 
@@ -468,7 +486,10 @@
   color: var(--muted);
   font-size: 12px;
   cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
   white-space: nowrap;
 }
 
@@ -664,7 +685,7 @@
 }
 
 .dl-switch::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 3px;
   left: 3px;
@@ -672,7 +693,9 @@
   height: 16px;
   border-radius: 50%;
   background: #9aa7b8;
-  transition: left 0.2s ease, background 0.2s ease;
+  transition:
+    left 0.2s ease,
+    background 0.2s ease;
 }
 
 .dl-switch--on {
@@ -716,4 +739,6 @@
 .download-options__label,
 .download-options__check,
 .download-options__quality-select,
-.download-options__hint { display: none; }
+.download-options__hint {
+  display: none;
+}

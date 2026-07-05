@@ -1,4 +1,4 @@
-import { createConsoleLog, type ConsoleLogEntry } from '../launcher/launcher';
+import { type ConsoleLogEntry, createConsoleLog } from '../launcher/launcher';
 
 export type RuntimeDriver = 'uv' | 'conda';
 export type EnvironmentProbeStatus =
@@ -176,7 +176,9 @@ const folderIcons: Record<string, string> = {
   logs: '🧾',
 };
 
-export function buildFolderItemsFromPaths(paths: ManagedPath[]): ManagedFolderItem[] {
+export function buildFolderItemsFromPaths(
+  paths: ManagedPath[],
+): ManagedFolderItem[] {
   return paths.map((item) => ({
     key: item.key,
     title: item.label,
@@ -196,8 +198,7 @@ export function applyRuntimeEvent(
   const next = [...current];
   const index = next.findIndex((item) => item.taskId === event.taskId);
   const previous = index === -1 ? null : next[index];
-  const label =
-    previous?.label.trim() || buildRuntimeTaskLabel(event.target);
+  const label = previous?.label.trim() || buildRuntimeTaskLabel(event.target);
   const task: RuntimeTaskRecord = {
     taskId: event.taskId,
     target: event.target,
@@ -292,9 +293,7 @@ function buildRuntimeTaskLabel(target: string) {
 }
 
 function normalizeRuntimeTaskStatus(status: string): DownloadTaskStatus {
-  if (
-    downloadTaskStatuses.includes(status as DownloadTaskStatus)
-  ) {
+  if (downloadTaskStatuses.includes(status as DownloadTaskStatus)) {
     return status as DownloadTaskStatus;
   }
 

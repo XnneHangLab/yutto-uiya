@@ -87,8 +87,8 @@ export function ModelCard({
             blocked
               ? '仅 GPU 环境可下载'
               : !scriptsReady
-              ? '运行环境未就绪'
-              : undefined
+                ? '运行环境未就绪'
+                : undefined
           }
         >
           下载

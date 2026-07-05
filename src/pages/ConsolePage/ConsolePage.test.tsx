@@ -21,7 +21,9 @@ describe('ConsolePage', () => {
 
     expect(screen.getByText('尚无运行日志')).toBeInTheDocument();
     expect(
-      screen.getByText('开始检查环境或下载资源后，这里会显示结构化事件和原始输出'),
+      screen.getByText(
+        '开始检查环境或下载资源后，这里会显示结构化事件和原始输出',
+      ),
     ).toBeInTheDocument();
     expect(screen.getByText('运行驱动 uv')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '全部复制' })).toBeDisabled();

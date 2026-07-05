@@ -4,14 +4,14 @@ import { SettingRow } from '../../components/settings/SettingRow/SettingRow';
 import { SettingsTabs } from '../../components/settings/SettingsTabs/SettingsTabs';
 import {
   aboutInfo,
-  settingsTabs,
   type SettingsTabId,
+  settingsTabs,
 } from '../../data/settings';
+import { pauseHotkey } from '../../services/runtime/bridge';
 import type {
   EnvironmentProbe,
   RuntimeDriver,
 } from '../../services/runtime/runtime';
-import { pauseHotkey } from '../../services/runtime/bridge';
 import '../../styles/settings.css';
 
 interface SettingsPageProps {
@@ -36,7 +36,14 @@ interface SettingsPageProps {
   onStartAuthLogin: () => void;
   onLogoutAuth: () => void;
   onCloseAuthDialog: () => void;
-  onSave: (driver: RuntimeDriver, pythonExePath: string, ffmpegMode: 'system' | 'local', ffmpegExePath: string, noProxy: boolean, downloadDir: string) => void;
+  onSave: (
+    driver: RuntimeDriver,
+    pythonExePath: string,
+    ffmpegMode: 'system' | 'local',
+    ffmpegExePath: string,
+    noProxy: boolean,
+    downloadDir: string,
+  ) => void;
   onUvSync: () => Promise<void>;
   hotkey: string;
   onSetHotkey: (shortcut: string) => Promise<void>;
@@ -72,7 +79,9 @@ export function SettingsPage({
   const [activeTab, setActiveTab] = useState<SettingsTabId>('general');
   const [localDriver, setLocalDriver] = useState<RuntimeDriver>(runtimeDriver);
   const [localPythonExePath, setLocalPythonExePath] = useState(pythonExePath);
-  const [localFfmpegMode, setLocalFfmpegMode] = useState<'system' | 'local'>(ffmpegMode);
+  const [localFfmpegMode, setLocalFfmpegMode] = useState<'system' | 'local'>(
+    ffmpegMode,
+  );
   const [localFfmpegExePath, setLocalFfmpegExePath] = useState(ffmpegExePath);
   const [localNoProxy, setLocalNoProxy] = useState(noProxy);
   const [localDownloadDir, setLocalDownloadDir] = useState(downloadDir);
@@ -90,7 +99,14 @@ export function SettingsPage({
     setLocalFfmpegExePath(ffmpegExePath);
     setLocalNoProxy(noProxy);
     setLocalDownloadDir(downloadDir);
-  }, [runtimeDriver, pythonExePath, ffmpegMode, ffmpegExePath, noProxy, downloadDir]);
+  }, [
+    runtimeDriver,
+    pythonExePath,
+    ffmpegMode,
+    ffmpegExePath,
+    noProxy,
+    downloadDir,
+  ]);
 
   const environmentLabel = environmentProbe
     ? formatEnvironmentStatus(environmentProbe.status)
@@ -191,40 +207,53 @@ export function SettingsPage({
             <div className="env-info-card">
               <div className="env-info-row">
                 <span className="env-info-label">环境状态</span>
-                <span className={`env-info-badge ${envReady ? 'env-info-badge--ready' : 'env-info-badge--warn'}`}>
+                <span
+                  className={`env-info-badge ${envReady ? 'env-info-badge--ready' : 'env-info-badge--warn'}`}
+                >
                   {environmentLabel}
                 </span>
               </div>
               {environmentProbe?.platform ? (
                 <div className="env-info-row">
                   <span className="env-info-label">平台</span>
-                  <span className="env-info-badge">{environmentProbe.platform}</span>
+                  <span className="env-info-badge">
+                    {environmentProbe.platform}
+                  </span>
                 </div>
               ) : null}
               {environmentProbe?.message ? (
                 <div className="env-info-row">
                   <span className="env-info-label">详情</span>
-                  <span className="env-info-value">{environmentProbe.message}</span>
+                  <span className="env-info-value">
+                    {environmentProbe.message}
+                  </span>
                 </div>
               ) : null}
-              {environmentProbe?.issues && environmentProbe.issues.length > 0 ? (
+              {environmentProbe?.issues &&
+              environmentProbe.issues.length > 0 ? (
                 <div className="env-info-row env-info-row--issues">
                   <span className="env-info-label">诊断</span>
                   <ul className="env-issues-list">
                     {environmentProbe.issues.map((issue, idx) => (
-                      <li key={idx} className="env-issue">{issue}</li>
+                      <li key={idx} className="env-issue">
+                        {issue}
+                      </li>
                     ))}
                   </ul>
                 </div>
               ) : null}
               <div className="env-info-row">
                 <span className="env-info-label">运行驱动</span>
-                <span className="env-info-value env-info-mono">{driverDisplayLabel}</span>
+                <span className="env-info-value env-info-mono">
+                  {driverDisplayLabel}
+                </span>
               </div>
               {environmentProbe ? (
                 <div className="env-info-row">
                   <span className="env-info-label">认证状态</span>
-                  <span className={`env-info-badge ${authReady ? 'env-info-badge--ready' : 'env-info-badge--warn'}`}>
+                  <span
+                    className={`env-info-badge ${authReady ? 'env-info-badge--ready' : 'env-info-badge--warn'}`}
+                  >
                     {authLabel}
                   </span>
                 </div>
@@ -232,13 +261,17 @@ export function SettingsPage({
               {environmentProbe?.authMessage ? (
                 <div className="env-info-row">
                   <span className="env-info-label">认证详情</span>
-                  <span className="env-info-value">{environmentProbe.authMessage}</span>
+                  <span className="env-info-value">
+                    {environmentProbe.authMessage}
+                  </span>
                 </div>
               ) : null}
               {environmentProbe?.authSource ? (
                 <div className="env-info-row">
                   <span className="env-info-label">认证来源</span>
-                  <span className="env-info-value env-info-mono">{environmentProbe.authSource}</span>
+                  <span className="env-info-value env-info-mono">
+                    {environmentProbe.authSource}
+                  </span>
                 </div>
               ) : null}
               {environmentProbe ? (
@@ -274,9 +307,17 @@ export function SettingsPage({
                     <button
                       type="button"
                       className="workspace-button"
-                      onClick={() => { void handleUvSync(); }}
-                      disabled={syncing || environmentProbe?.status === 'uv-unavailable'}
-                      title={environmentProbe?.status === 'uv-unavailable' ? '请先安装 uv' : undefined}
+                      onClick={() => {
+                        void handleUvSync();
+                      }}
+                      disabled={
+                        syncing || environmentProbe?.status === 'uv-unavailable'
+                      }
+                      title={
+                        environmentProbe?.status === 'uv-unavailable'
+                          ? '请先安装 uv'
+                          : undefined
+                      }
                     >
                       {syncing ? '同步中…' : 'uv sync'}
                     </button>
@@ -334,7 +375,9 @@ export function SettingsPage({
                     className="proxy-input workspace-input"
                     aria-label="下载目录路径"
                     value={localDownloadDir}
-                    onChange={(event) => setLocalDownloadDir(event.target.value)}
+                    onChange={(event) =>
+                      setLocalDownloadDir(event.target.value)
+                    }
                     placeholder="./downloads"
                   />
                   <button
@@ -381,7 +424,9 @@ export function SettingsPage({
                       className="proxy-input workspace-input"
                       aria-label="Python 可执行文件路径"
                       value={localPythonExePath}
-                      onChange={(event) => setLocalPythonExePath(event.target.value)}
+                      onChange={(event) =>
+                        setLocalPythonExePath(event.target.value)
+                      }
                       placeholder="例：/home/user/miniconda3/envs/tts/bin/python"
                     />
                     <button
@@ -429,7 +474,9 @@ export function SettingsPage({
                       className="proxy-input workspace-input"
                       aria-label="FFmpeg 可执行文件路径"
                       value={localFfmpegExePath}
-                      onChange={(event) => setLocalFfmpegExePath(event.target.value)}
+                      onChange={(event) =>
+                        setLocalFfmpegExePath(event.target.value)
+                      }
                       placeholder="例：C:\tools\ffmpeg\bin\ffmpeg.exe"
                     />
                     <button
@@ -455,7 +502,9 @@ export function SettingsPage({
                     checked={localNoProxy}
                     onChange={(e) => setLocalNoProxy(e.target.checked)}
                   />
-                  <span className="toggle-text">{localNoProxy ? '已禁用' : '自动'}</span>
+                  <span className="toggle-text">
+                    {localNoProxy ? '已禁用' : '自动'}
+                  </span>
                 </label>
               </SettingRow>
             </SettingCard>
@@ -469,7 +518,10 @@ export function SettingsPage({
                 icon="⌨️"
               >
                 <div className="workspace-actions">
-                  <span className="proxy-input workspace-input" style={{ userSelect: 'none', cursor: 'default' }}>
+                  <span
+                    className="proxy-input workspace-input"
+                    style={{ userSelect: 'none', cursor: 'default' }}
+                  >
                     {formatHotkeyDisplay(hotkey)}
                   </span>
                   {recording ? (
@@ -477,9 +529,15 @@ export function SettingsPage({
                       ref={captureRef}
                       tabIndex={0}
                       className="workspace-button"
-                      style={{ outline: 'none', minWidth: 96, textAlign: 'center' }}
+                      style={{
+                        outline: 'none',
+                        minWidth: 96,
+                        textAlign: 'center',
+                      }}
                       onKeyDown={handleCaptureKeyDown}
-                      onBlur={() => { setRecording(false); }}
+                      onBlur={() => {
+                        setRecording(false);
+                      }}
                     >
                       录制中…
                     </div>
@@ -494,7 +552,15 @@ export function SettingsPage({
                   )}
                 </div>
                 {captureError ? (
-                  <p style={{ margin: '4px 0 0', fontSize: 12, color: '#ff9b9b' }}>{captureError}</p>
+                  <p
+                    style={{
+                      margin: '4px 0 0',
+                      fontSize: 12,
+                      color: '#ff9b9b',
+                    }}
+                  >
+                    {captureError}
+                  </p>
                 ) : null}
               </SettingRow>
             </SettingCard>
@@ -503,7 +569,16 @@ export function SettingsPage({
               <button
                 type="button"
                 className="settings-save-button"
-                onClick={() => onSave(localDriver, localPythonExePath, localFfmpegMode, localFfmpegExePath, localNoProxy, localDownloadDir)}
+                onClick={() =>
+                  onSave(
+                    localDriver,
+                    localPythonExePath,
+                    localFfmpegMode,
+                    localFfmpegExePath,
+                    localNoProxy,
+                    localDownloadDir,
+                  )
+                }
               >
                 保存并重新检测
               </button>
@@ -527,18 +602,31 @@ export function SettingsPage({
       </div>
 
       {authDialogOpen ? (
-        <div className="settings-auth-modal" role="dialog" aria-modal="true" aria-label="扫码登录">
+        <div
+          className="settings-auth-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="扫码登录"
+        >
           <div className="settings-auth-modal__panel">
             <div className="settings-auth-modal__title">扫码登录</div>
             <div className="settings-auth-modal__body">
               {authDialogQrDataUrl ? (
                 <div className="settings-auth-modal__qr-shell">
-                  <img className="settings-auth-modal__qr" src={authDialogQrDataUrl} alt="登录二维码" />
+                  <img
+                    className="settings-auth-modal__qr"
+                    src={authDialogQrDataUrl}
+                    alt="登录二维码"
+                  />
                 </div>
               ) : (
-                <div className="settings-auth-modal__placeholder">正在生成二维码…</div>
+                <div className="settings-auth-modal__placeholder">
+                  正在生成二维码…
+                </div>
               )}
-              <p className="settings-auth-modal__status">{authDialogStatus || '正在生成二维码…'}</p>
+              <p className="settings-auth-modal__status">
+                {authDialogStatus || '正在生成二维码…'}
+              </p>
             </div>
             <div className="settings-auth-modal__actions">
               <button

@@ -32,18 +32,24 @@ export function VersionsPage() {
           <div className="versions-current-card__main">
             <p className="versions-current-card__label">当前版本</p>
             <h1>{CURRENT_VERSION.version}</h1>
-            <p className="versions-current-card__summary">{CURRENT_VERSION.summary}</p>
+            <p className="versions-current-card__summary">
+              {CURRENT_VERSION.summary}
+            </p>
           </div>
 
           <div className="versions-current-card__meta">
             <div className="versions-stat-grid">
               <div className="versions-stat-card">
                 <span className="versions-stat-card__label">发布日期</span>
-                <strong className="versions-stat-card__value">{CURRENT_VERSION.date}</strong>
+                <strong className="versions-stat-card__value">
+                  {CURRENT_VERSION.date}
+                </strong>
               </div>
               <div className="versions-stat-card">
                 <span className="versions-stat-card__label">版本状态</span>
-                <strong className="versions-stat-card__value">{CURRENT_VERSION.channel}</strong>
+                <strong className="versions-stat-card__value">
+                  {CURRENT_VERSION.channel}
+                </strong>
               </div>
             </div>
           </div>
@@ -66,8 +72,12 @@ export function VersionsPage() {
               <div className="versions-timeline__content">
                 <div className="versions-timeline__top">
                   <span className="versions-timeline__date">{entry.date}</span>
-                  <span className="versions-timeline__version">{entry.version}</span>
-                  <span className="versions-timeline__badge">{entry.badge}</span>
+                  <span className="versions-timeline__version">
+                    {entry.version}
+                  </span>
+                  <span className="versions-timeline__badge">
+                    {entry.badge}
+                  </span>
                 </div>
                 <p className="versions-timeline__title">{entry.title}</p>
                 {entry.summary ? <p>{entry.summary}</p> : null}

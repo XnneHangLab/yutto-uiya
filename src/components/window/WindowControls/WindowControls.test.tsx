@@ -1,11 +1,11 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { WindowControls } from './WindowControls';
 import {
   closeWindow,
   minimizeWindow,
   toggleMaximizeWindow,
 } from '../../../services/desktop/window';
+import { WindowControls } from './WindowControls';
 
 vi.mock('../../../services/desktop/window', () => ({
   minimizeWindow: vi.fn(async () => undefined),

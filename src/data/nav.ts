@@ -27,12 +27,48 @@ export interface ThemeToggleNavItemData {
 export type NavItemData = PageNavItemData | ThemeToggleNavItemData;
 
 export const navItems: NavItemData[] = [
-  { type: 'page', id: 'home', label: '一键启动', icon: '▶', section: 'primary' },
-  { type: 'page', id: 'settings', label: '设置', icon: '⚙', section: 'primary' },
-  { type: 'page', id: 'troubleshooting', label: '疑难解答', icon: '⌘', section: 'primary' },
-  { type: 'page', id: 'versions', label: '版本管理', icon: '🕘', section: 'primary' },
-  { type: 'page', id: 'models', label: '下载管理', icon: '⬇', section: 'primary' },
-  { type: 'page', id: 'community', label: '联系我', icon: '💬', section: 'secondary' },
+  {
+    type: 'page',
+    id: 'home',
+    label: '一键启动',
+    icon: '▶',
+    section: 'primary',
+  },
+  {
+    type: 'page',
+    id: 'settings',
+    label: '设置',
+    icon: '⚙',
+    section: 'primary',
+  },
+  {
+    type: 'page',
+    id: 'troubleshooting',
+    label: '疑难解答',
+    icon: '⌘',
+    section: 'primary',
+  },
+  {
+    type: 'page',
+    id: 'versions',
+    label: '版本管理',
+    icon: '🕘',
+    section: 'primary',
+  },
+  {
+    type: 'page',
+    id: 'models',
+    label: '下载管理',
+    icon: '⬇',
+    section: 'primary',
+  },
+  {
+    type: 'page',
+    id: 'community',
+    label: '联系我',
+    icon: '💬',
+    section: 'secondary',
+  },
   {
     type: 'action',
     id: 'ideas',
@@ -41,5 +77,11 @@ export const navItems: NavItemData[] = [
     icon: '💡',
     section: 'secondary',
   },
-  { type: 'page', id: 'console', label: '控制台', icon: '⌨', section: 'secondary' },
+  {
+    type: 'page',
+    id: 'console',
+    label: '控制台',
+    icon: '⌨',
+    section: 'secondary',
+  },
 ];

@@ -16,20 +16,24 @@
 
 .home-page .hero::before,
 .home-page .hero::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
 
 .home-page .hero::before {
-  background: url('../assets/home/hero-bg.png') center / cover no-repeat;
+  background: url("../assets/home/hero-bg.png") center / cover no-repeat;
   filter: var(--hero-image-filter);
   transform: scale(1.02);
 }
 
 .home-page .hero::after {
-  background: linear-gradient(180deg, var(--hero-overlay-start), var(--hero-overlay-end));
+  background: linear-gradient(
+    180deg,
+    var(--hero-overlay-start),
+    var(--hero-overlay-end)
+  );
 }
 
 .home-page .hero-copy {
@@ -234,8 +238,12 @@
 }
 
 @keyframes shimmer {
-  0%   { background-position: 200% center; }
-  100% { background-position: -200% center; }
+  0% {
+    background-position: 200% center;
+  }
+  100% {
+    background-position: -200% center;
+  }
 }
 
 @keyframes folder-card-in {
@@ -284,25 +292,53 @@
   border-radius: 4px;
 }
 
-.home-page .folder-card--skeleton:nth-child(2) .skel-block { animation-delay: 0.08s; }
-.home-page .folder-card--skeleton:nth-child(3) .skel-block { animation-delay: 0.16s; }
-.home-page .folder-card--skeleton:nth-child(4) .skel-block { animation-delay: 0.24s; }
-.home-page .folder-card--skeleton:nth-child(5) .skel-block { animation-delay: 0.32s; }
-.home-page .folder-card--skeleton:nth-child(6) .skel-block { animation-delay: 0.40s; }
-.home-page .folder-card--skeleton:nth-child(7) .skel-block { animation-delay: 0.48s; }
-.home-page .folder-card--skeleton:nth-child(8) .skel-block { animation-delay: 0.56s; }
+.home-page .folder-card--skeleton:nth-child(2) .skel-block {
+  animation-delay: 0.08s;
+}
+.home-page .folder-card--skeleton:nth-child(3) .skel-block {
+  animation-delay: 0.16s;
+}
+.home-page .folder-card--skeleton:nth-child(4) .skel-block {
+  animation-delay: 0.24s;
+}
+.home-page .folder-card--skeleton:nth-child(5) .skel-block {
+  animation-delay: 0.32s;
+}
+.home-page .folder-card--skeleton:nth-child(6) .skel-block {
+  animation-delay: 0.4s;
+}
+.home-page .folder-card--skeleton:nth-child(7) .skel-block {
+  animation-delay: 0.48s;
+}
+.home-page .folder-card--skeleton:nth-child(8) .skel-block {
+  animation-delay: 0.56s;
+}
 
 .home-page .folder-grid .folder-card:not(.folder-card--skeleton) {
   animation: folder-card-in 0.26s ease both;
 }
 
-.home-page .folder-grid .folder-card:not(.folder-card--skeleton):nth-child(2) { animation-delay: 30ms; }
-.home-page .folder-grid .folder-card:not(.folder-card--skeleton):nth-child(3) { animation-delay: 60ms; }
-.home-page .folder-grid .folder-card:not(.folder-card--skeleton):nth-child(4) { animation-delay: 90ms; }
-.home-page .folder-grid .folder-card:not(.folder-card--skeleton):nth-child(5) { animation-delay: 120ms; }
-.home-page .folder-grid .folder-card:not(.folder-card--skeleton):nth-child(6) { animation-delay: 150ms; }
-.home-page .folder-grid .folder-card:not(.folder-card--skeleton):nth-child(7) { animation-delay: 180ms; }
-.home-page .folder-grid .folder-card:not(.folder-card--skeleton):nth-child(8) { animation-delay: 210ms; }
+.home-page .folder-grid .folder-card:not(.folder-card--skeleton):nth-child(2) {
+  animation-delay: 30ms;
+}
+.home-page .folder-grid .folder-card:not(.folder-card--skeleton):nth-child(3) {
+  animation-delay: 60ms;
+}
+.home-page .folder-grid .folder-card:not(.folder-card--skeleton):nth-child(4) {
+  animation-delay: 90ms;
+}
+.home-page .folder-grid .folder-card:not(.folder-card--skeleton):nth-child(5) {
+  animation-delay: 120ms;
+}
+.home-page .folder-grid .folder-card:not(.folder-card--skeleton):nth-child(6) {
+  animation-delay: 150ms;
+}
+.home-page .folder-grid .folder-card:not(.folder-card--skeleton):nth-child(7) {
+  animation-delay: 180ms;
+}
+.home-page .folder-grid .folder-card:not(.folder-card--skeleton):nth-child(8) {
+  animation-delay: 210ms;
+}
 
 .home-page .notice {
   min-height: 420px;
@@ -341,13 +377,13 @@
   color: var(--muted);
 }
 
-.home-page .notice-status-chip[data-mode='gpu'] {
+.home-page .notice-status-chip[data-mode="gpu"] {
   color: var(--accent);
   border-color: rgba(63, 163, 255, 0.28);
   background: rgba(63, 163, 255, 0.08);
 }
 
-.home-page .notice-status-chip[data-mode='cpu'] {
+.home-page .notice-status-chip[data-mode="cpu"] {
   color: #a9c5a0;
   border-color: rgba(100, 180, 90, 0.28);
   background: rgba(100, 180, 90, 0.07);
@@ -367,11 +403,11 @@
   flex: none;
 }
 
-.home-page .notice-status-chip[data-mode='gpu'] .notice-status-dot {
+.home-page .notice-status-chip[data-mode="gpu"] .notice-status-dot {
   background: var(--accent);
 }
 
-.home-page .notice-status-chip[data-mode='cpu'] .notice-status-dot {
+.home-page .notice-status-chip[data-mode="cpu"] .notice-status-dot {
   background: #7ec87a;
 }
 
@@ -430,7 +466,7 @@
   outline-offset: 3px;
 }
 
-.home-page .run-btn[data-state='running'] {
+.home-page .run-btn[data-state="running"] {
   background: linear-gradient(
     180deg,
     var(--run-btn-running-bg-start),

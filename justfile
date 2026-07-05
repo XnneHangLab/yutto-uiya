@@ -40,12 +40,15 @@ fmt:
     uv run ruff format python/
     uv run ruff check --fix python/
     cargo fmt --manifest-path src-tauri/Cargo.toml
+    npx @biomejs/biome check --write src/
 
 # 代码检查
 lint:
     uv run pyright python/uiya
     uv run ruff check python/
     cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
+    npx @biomejs/biome check src/
+    npx tsc --noEmit
 
 # ── CI ────────────────────────────────────────────────────────────────────────
 
@@ -70,3 +73,8 @@ ci-lint-rust:
 # CI: Rust 格式检查
 ci-fmt-check-rust:
     cargo fmt --manifest-path src-tauri/Cargo.toml --check
+
+# CI: TypeScript lint + format
+ci-lint-ts:
+    npx @biomejs/biome check src/
+    npx tsc --noEmit

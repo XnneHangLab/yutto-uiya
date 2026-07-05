@@ -14,7 +14,8 @@ const MODEL_SPECS: ModelSpec[] = [
   {
     key: 'genie-base',
     title: 'Genie-TTS 基础资源',
-    description: 'XnneHangLab 自研语音合成引擎所需的基础模型包，支持 CPU 与 GPU 环境。',
+    description:
+      'XnneHangLab 自研语音合成引擎所需的基础模型包，支持 CPU 与 GPU 环境。',
     icon: '🧠',
     tags: ['CPU', 'GPU'],
     requiresGpu: false,
@@ -22,7 +23,8 @@ const MODEL_SPECS: ModelSpec[] = [
   {
     key: 'luming-genie-tts-v2-pro-plus',
     title: '路鸣 Genie-TTS v2 Pro+',
-    description: '路鸣角色 Genie-TTS 角色模型包，CPU 推理，需配合 Genie-TTS 基础资源使用。',
+    description:
+      '路鸣角色 Genie-TTS 角色模型包，CPU 推理，需配合 Genie-TTS 基础资源使用。',
     icon: '🎤',
     tags: ['CPU'],
     requiresGpu: false,
@@ -30,7 +32,8 @@ const MODEL_SPECS: ModelSpec[] = [
   {
     key: 'gsv-lite',
     title: 'GSV-Lite 数据包',
-    description: '包含 HuBERT、Roberta、G2P 及 SV 共四项子资源，仅 GPU 环境可用。',
+    description:
+      '包含 HuBERT、Roberta、G2P 及 SV 共四项子资源，仅 GPU 环境可用。',
     icon: '🎙',
     tags: ['GPU'],
     requiresGpu: true,
@@ -113,7 +116,9 @@ export function ModelsPage({
         <h1>模型管理</h1>
         <p>按需下载运行时所需的模型资源，下载任务自动进入串行队列。</p>
         {!scriptsReady ? (
-          <p className="models-page__header-warn">运行环境未就绪，暂时无法执行下载。</p>
+          <p className="models-page__header-warn">
+            运行环境未就绪，暂时无法执行下载。
+          </p>
         ) : null}
       </header>
 

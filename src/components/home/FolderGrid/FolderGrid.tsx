@@ -21,7 +21,11 @@ export function FolderGrid({ items, onOpen }: FolderGridProps) {
   return (
     <div className="folder-grid">
       {placeholderFolders.map((item) => (
-        <div key={item.key} className="folder-card folder-card--skeleton" aria-hidden="true">
+        <div
+          key={item.key}
+          className="folder-card folder-card--skeleton"
+          aria-hidden="true"
+        >
           <span className="folder-left">
             <span className="folder-icon skel-block" />
             <span className="folder-text">

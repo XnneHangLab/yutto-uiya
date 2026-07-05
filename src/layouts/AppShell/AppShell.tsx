@@ -1,23 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
+import { renderPage } from '../../app/routes';
 import { Sidebar } from '../../components/navigation/Sidebar/Sidebar';
 import { Topbar } from '../../components/window/Topbar/Topbar';
 import { navItems, type PageId } from '../../data/nav';
-import { renderPage } from '../../app/routes';
 import {
+  type ConsoleLogEntry,
   createConsoleLog,
   formatConsoleExport,
-  type ConsoleLogEntry,
 } from '../../services/launcher/launcher';
 import {
-  startAuthLogin,
   cancelAuthLogin,
-  chooseWorkspaceRoot,
   cancelTask,
+  chooseWorkspaceRoot,
   enqueueDownload,
   exportConsoleLogs,
+  getHotkey,
   inspectRuntime,
   listDownloadTasks,
   listManagedFolders,
+  logoutAuth,
   openManagedPath,
   openTaskSaveDir,
   parseTarget,
@@ -25,27 +26,26 @@ import {
   pickFfmpegPath,
   pickPythonPath,
   probeEnvironment,
-  logoutAuth,
+  setHotkey as setHotkeyApi,
   setRuntimeDriver as setRuntimeDriverApi,
+  startAuthLogin,
   subscribeRuntimeEvents,
   useRepoWorkspaceRoot,
-  getHotkey,
-  setHotkey as setHotkeyApi,
   uvSync,
 } from '../../services/runtime/bridge';
 import {
-  applyRuntimeEvent,
   applyParseRuntimeEvent,
+  applyRuntimeEvent,
   buildFolderItemsFromPaths,
   collectParseItems,
   createConsoleLogFromRuntimeEvent,
   DEFAULT_DOWNLOAD_OPTIONS,
-  getQueueSummary,
-  isAuthRuntimeEvent,
-  isParseRuntimeEvent,
-  isEnvironmentReady,
   type DownloadOptions,
   type EnvironmentProbe,
+  getQueueSummary,
+  isAuthRuntimeEvent,
+  isEnvironmentReady,
+  isParseRuntimeEvent,
   type ManagedFolderItem,
   type QualityOption,
   type RuntimeDriver,
@@ -56,9 +56,9 @@ import {
 } from '../../services/runtime/runtime';
 import {
   readStoredTheme,
+  type ThemeMode,
   toggleThemeMode,
   writeStoredTheme,
-  type ThemeMode,
 } from '../../services/theme/theme';
 
 function toErrorMessage(error: unknown) {
@@ -77,8 +77,11 @@ function normalizeParseGroups(groups: VideoParseGroup[]): VideoParseGroup[] {
 
 export function AppShell() {
   const [activePage, setActivePage] = useState<PageId>('home');
-  const [theme, setTheme] = useState<ThemeMode>(() => readStoredTheme() ?? 'night');
-  const [environmentProbe, setEnvironmentProbe] = useState<EnvironmentProbe | null>(null);
+  const [theme, setTheme] = useState<ThemeMode>(
+    () => readStoredTheme() ?? 'night',
+  );
+  const [environmentProbe, setEnvironmentProbe] =
+    useState<EnvironmentProbe | null>(null);
   const [inspection, setInspection] = useState<RuntimeInspection | null>(null);
   const [tasks, setTasks] = useState<RuntimeTaskRecord[]>([]);
   const [folders, setFolders] = useState<ManagedFolderItem[]>([]);
@@ -97,9 +100,15 @@ export function AppShell() {
   const [parseSelected, setParseSelected] = useState<Set<number>>(new Set());
   const [downloadUrl, setDownloadUrl] = useState('');
   const [parseDirOverride, setParseDirOverride] = useState('');
-  const [parseVideoQualities, setParseVideoQualities] = useState<QualityOption[]>([]);
-  const [parseAudioQualities, setParseAudioQualities] = useState<QualityOption[]>([]);
-  const [downloadOptions, setDownloadOptions] = useState<DownloadOptions>(DEFAULT_DOWNLOAD_OPTIONS);
+  const [parseVideoQualities, setParseVideoQualities] = useState<
+    QualityOption[]
+  >([]);
+  const [parseAudioQualities, setParseAudioQualities] = useState<
+    QualityOption[]
+  >([]);
+  const [downloadOptions, setDownloadOptions] = useState<DownloadOptions>(
+    DEFAULT_DOWNLOAD_OPTIONS,
+  );
   const [authBusy, setAuthBusy] = useState(false);
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [authDialogStatus, setAuthDialogStatus] = useState('');
@@ -134,7 +143,10 @@ export function AppShell() {
     } catch (error) {
       setLogs((current) => [
         ...current,
-        createConsoleLog('stderr', `刷新环境状态失败: ${toErrorMessage(error)}`),
+        createConsoleLog(
+          'stderr',
+          `刷新环境状态失败: ${toErrorMessage(error)}`,
+        ),
       ]);
     }
   }
@@ -160,7 +172,10 @@ export function AppShell() {
         setRuntimeDriver(nextInspection.runtimeDriver);
         setPythonExePath(nextInspection.pythonPath ?? '');
         setFolders(buildFolderItemsFromPaths(paths));
-        if (nextInspection.ffmpegPath && nextInspection.ffmpegPath !== 'ffmpeg') {
+        if (
+          nextInspection.ffmpegPath &&
+          nextInspection.ffmpegPath !== 'ffmpeg'
+        ) {
           setFfmpegMode('local');
           setFfmpegExePath(nextInspection.ffmpegPath);
         } else {
@@ -168,14 +183,19 @@ export function AppShell() {
           setFfmpegExePath('');
         }
         setNoProxy(nextInspection.noProxy ?? false);
-        setDownloadDirSetting(nextInspection.downloadDirSetting ?? './downloads');
+        setDownloadDirSetting(
+          nextInspection.downloadDirSetting ?? './downloads',
+        );
       } catch (error) {
         if (disposed) {
           return;
         }
         setLogs((current) => [
           ...current,
-          createConsoleLog('stderr', `刷新资源状态失败: ${toErrorMessage(error)}`),
+          createConsoleLog(
+            'stderr',
+            `刷新资源状态失败: ${toErrorMessage(error)}`,
+          ),
         ]);
       }
     }
@@ -184,12 +204,16 @@ export function AppShell() {
       try {
         // Populate folder cards immediately from Rust state — no Python subprocess needed
         listManagedFolders()
-          .then((paths) => { if (!disposed) setFolders(buildFolderItemsFromPaths(paths)); })
+          .then((paths) => {
+            if (!disposed) setFolders(buildFolderItemsFromPaths(paths));
+          })
           .catch(() => {});
 
         // Load saved hotkey config
         getHotkey()
-          .then((h) => { if (!disposed) setHotkeyState(h); })
+          .then((h) => {
+            if (!disposed) setHotkeyState(h);
+          })
           .catch(() => {});
 
         const [nextProbe, nextTasks] = await Promise.all([
@@ -214,7 +238,10 @@ export function AppShell() {
         }
         setLogs((current) => [
           ...current,
-          createConsoleLog('stderr', `初始化运行时失败: ${toErrorMessage(error)}`),
+          createConsoleLog(
+            'stderr',
+            `初始化运行时失败: ${toErrorMessage(error)}`,
+          ),
         ]);
       }
     })();
@@ -243,8 +270,8 @@ export function AppShell() {
               setAuthDialogQrDataUrl('');
               void refreshEnvironmentStatus();
             } else if (
-              event.event === 'auth.login.failed'
-              || event.event === 'auth.login.cancelled'
+              event.event === 'auth.login.failed' ||
+              event.event === 'auth.login.cancelled'
             ) {
               setAuthBusy(false);
               if (event.event === 'auth.login.cancelled') {
@@ -257,12 +284,18 @@ export function AppShell() {
             void refreshEnvironmentStatus();
           }
 
-          setLogs((current) => [...current, createConsoleLogFromRuntimeEvent(event)]);
+          setLogs((current) => [
+            ...current,
+            createConsoleLogFromRuntimeEvent(event),
+          ]);
           return;
         }
 
         if (isParseRuntimeEvent(event)) {
-          if (parsingTargetRef.current && event.target === parsingTargetRef.current) {
+          if (
+            parsingTargetRef.current &&
+            event.target === parsingTargetRef.current
+          ) {
             setParseItems((current) => applyParseRuntimeEvent(current, event));
 
             if (event.event === 'parse.started') {
@@ -279,24 +312,40 @@ export function AppShell() {
             }
           }
 
-          setLogs((current) => [...current, createConsoleLogFromRuntimeEvent(event)]);
+          setLogs((current) => [
+            ...current,
+            createConsoleLogFromRuntimeEvent(event),
+          ]);
           return;
         }
 
-        if (event.event === 'download.completed' || event.event === 'download.failed') {
+        if (
+          event.event === 'download.completed' ||
+          event.event === 'download.failed'
+        ) {
           void refreshInspectionSnapshot();
         }
         setTasks((current) => applyRuntimeEvent(current, event));
-        setLogs((current) => [...current, createConsoleLogFromRuntimeEvent(event)]);
+        setLogs((current) => [
+          ...current,
+          createConsoleLogFromRuntimeEvent(event),
+        ]);
       },
       (line) => {
         if (line.includes('\r')) {
           // Progress-style line: keep only the last segment after \r (in-place overwrite)
-          const visible = line.split('\r').filter((s) => s.trim()).pop() ?? line;
+          const visible =
+            line
+              .split('\r')
+              .filter((s) => s.trim())
+              .pop() ?? line;
           setLogs((current) => {
             const last = current[current.length - 1];
             if (last?.kind === 'progress') {
-              return [...current.slice(0, -1), createConsoleLog('progress', visible)];
+              return [
+                ...current.slice(0, -1),
+                createConsoleLog('progress', visible),
+              ];
             }
             return [...current, createConsoleLog('progress', visible)];
           });
@@ -318,7 +367,10 @@ export function AppShell() {
         }
         setLogs((current) => [
           ...current,
-          createConsoleLog('stderr', `订阅运行时事件失败: ${toErrorMessage(error)}`),
+          createConsoleLog(
+            'stderr',
+            `订阅运行时事件失败: ${toErrorMessage(error)}`,
+          ),
         ]);
       });
 
@@ -328,7 +380,11 @@ export function AppShell() {
     };
   }, []);
 
-  async function handleDownloadBilibili(url: string, label?: string, itemDir?: string) {
+  async function handleDownloadBilibili(
+    url: string,
+    label?: string,
+    itemDir?: string,
+  ) {
     if (!isEnvironmentReady(environmentProbe)) {
       setLogs((current) => [
         ...current,
@@ -338,7 +394,12 @@ export function AppShell() {
     }
 
     try {
-      const task = await enqueueDownload(url, downloadOptions, label, itemDir || parseDirOverride || undefined);
+      const task = await enqueueDownload(
+        url,
+        downloadOptions,
+        label,
+        itemDir || parseDirOverride || undefined,
+      );
       setTasks((current) => {
         const next = current.filter((item) => item.taskId !== task.taskId);
         next.push(task);
@@ -352,7 +413,10 @@ export function AppShell() {
     } catch (error) {
       setLogs((current) => [
         ...current,
-        createConsoleLog('stderr', `创建下载任务失败: ${toErrorMessage(error)}`),
+        createConsoleLog(
+          'stderr',
+          `创建下载任务失败: ${toErrorMessage(error)}`,
+        ),
       ]);
     }
   }
@@ -376,11 +440,17 @@ export function AppShell() {
       setParseDirOverride(result.dir ?? '');
       setParseVideoQualities(result.videoQualities);
       if (result.videoQualities.length > 0) {
-        setDownloadOptions((prev) => ({ ...prev, videoQuality: result.videoQualities[0].code }));
+        setDownloadOptions((prev) => ({
+          ...prev,
+          videoQuality: result.videoQualities[0].code,
+        }));
       }
       setParseAudioQualities(result.audioQualities);
       if (result.audioQualities.length > 0) {
-        setDownloadOptions((prev) => ({ ...prev, audioQuality: result.audioQualities[0].code }));
+        setDownloadOptions((prev) => ({
+          ...prev,
+          audioQuality: result.audioQualities[0].code,
+        }));
       }
       return result.items;
     } catch (error) {
@@ -443,7 +513,10 @@ export function AppShell() {
     } catch (error) {
       setLogs((current) => [
         ...current,
-        createConsoleLog('stderr', `切换工作目录失败: ${toErrorMessage(error)}`),
+        createConsoleLog(
+          'stderr',
+          `切换工作目录失败: ${toErrorMessage(error)}`,
+        ),
       ]);
     }
   }
@@ -455,7 +528,10 @@ export function AppShell() {
     } catch (error) {
       setLogs((current) => [
         ...current,
-        createConsoleLog('stderr', `恢复默认工作目录失败: ${toErrorMessage(error)}`),
+        createConsoleLog(
+          'stderr',
+          `恢复默认工作目录失败: ${toErrorMessage(error)}`,
+        ),
       ]);
     }
   }
@@ -536,7 +612,10 @@ export function AppShell() {
     } catch (error) {
       setLogs((current) => [
         ...current,
-        createConsoleLog('stderr', `选择 Python 路径失败: ${toErrorMessage(error)}`),
+        createConsoleLog(
+          'stderr',
+          `选择 Python 路径失败: ${toErrorMessage(error)}`,
+        ),
       ]);
       return null;
     }
@@ -548,7 +627,10 @@ export function AppShell() {
     } catch (error) {
       setLogs((current) => [
         ...current,
-        createConsoleLog('stderr', `选择下载目录失败: ${toErrorMessage(error)}`),
+        createConsoleLog(
+          'stderr',
+          `选择下载目录失败: ${toErrorMessage(error)}`,
+        ),
       ]);
       return null;
     }
@@ -560,7 +642,10 @@ export function AppShell() {
     } catch (error) {
       setLogs((current) => [
         ...current,
-        createConsoleLog('stderr', `选择 FFmpeg 路径失败: ${toErrorMessage(error)}`),
+        createConsoleLog(
+          'stderr',
+          `选择 FFmpeg 路径失败: ${toErrorMessage(error)}`,
+        ),
       ]);
       return null;
     }
@@ -581,7 +666,13 @@ export function AppShell() {
   ) {
     const ffmpegPath = nextFfmpegMode === 'local' ? nextFfmpegExePath : null;
     try {
-      const nextProbe = await setRuntimeDriverApi(driver, exePath || null, ffmpegPath, nextNoProxy, nextDownloadDir || null);
+      const nextProbe = await setRuntimeDriverApi(
+        driver,
+        exePath || null,
+        ffmpegPath,
+        nextNoProxy,
+        nextDownloadDir || null,
+      );
       setRuntimeDriver(driver);
       setPythonExePath(exePath);
       setFfmpegMode(nextFfmpegMode);
@@ -688,8 +779,7 @@ export function AppShell() {
               runtimeDriver,
               scriptsReady,
               workspaceLocked,
-              workspaceRoot:
-                environmentProbe?.workspaceRoot ?? '',
+              workspaceRoot: environmentProbe?.workspaceRoot ?? '',
               environmentProbe,
               onChooseWorkspaceRoot: handleChooseWorkspaceRoot,
               onUseRepoWorkspaceRoot: handleUseRepoWorkspaceRoot,

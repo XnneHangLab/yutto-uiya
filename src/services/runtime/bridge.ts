@@ -27,7 +27,13 @@ export function inspectRuntime() {
   return invoke<RuntimeInspection>('inspect_runtime');
 }
 
-export function enqueueDownload(target: string, options: DownloadOptions, label?: string, dirOverride?: string, selectIndex?: number) {
+export function enqueueDownload(
+  target: string,
+  options: DownloadOptions,
+  label?: string,
+  dirOverride?: string,
+  selectIndex?: number,
+) {
   return invoke<RuntimeTaskRecord>('enqueue_download', {
     target,
     label: label ?? null,
@@ -63,8 +69,20 @@ export function exportConsoleLogs(contents: string) {
   return invoke<string>('export_console_logs', { contents });
 }
 
-export function setRuntimeDriver(driver: string, pythonPath: string | null, ffmpegPath: string | null, noProxy: boolean, downloadDir: string | null) {
-  return invoke<EnvironmentProbe>('set_runtime_driver', { driver, pythonPath, ffmpegPath, noProxy, downloadDir });
+export function setRuntimeDriver(
+  driver: string,
+  pythonPath: string | null,
+  ffmpegPath: string | null,
+  noProxy: boolean,
+  downloadDir: string | null,
+) {
+  return invoke<EnvironmentProbe>('set_runtime_driver', {
+    driver,
+    pythonPath,
+    ffmpegPath,
+    noProxy,
+    downloadDir,
+  });
 }
 
 export function uvSync() {
@@ -138,9 +156,12 @@ export async function subscribeRuntimeEvents(
   const unlistenCallbacks: Array<() => void> = [];
 
   try {
-    const unlistenEvent = await listen<RuntimeEvent>('runtime:event', (event) => {
-      onEvent(event.payload);
-    });
+    const unlistenEvent = await listen<RuntimeEvent>(
+      'runtime:event',
+      (event) => {
+        onEvent(event.payload);
+      },
+    );
     unlistenCallbacks.push(unlistenEvent);
 
     const unlistenRaw = await listen<string>('runtime:raw-log', (event) => {
