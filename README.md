@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <a href="https://yutto.xnnehang.top/guide/intro">📖 文档</a> ·
+  <a href="https://yutto.xnnehang.top">📖 文档</a> ·
   <a href="https://www.bilibili.com/video/BV1yRdBBsEGZ/">🎬 视频教程</a> ·
   <a href="https://github.com/XnneHangLab/yutto-uiya/releases">📥 下载</a>
 </p>
@@ -53,7 +53,7 @@
 | 方式 | 链接 |
 |---|---|
 | 🎬 视频教程 | [Bilibili — 完整使用教程](https://www.bilibili.com/video/BV1yRdBBsEGZ/) |
-| 📖 文档站 | [yutto.xnnehang.top](https://yutto.xnnehang.top/guide/intro) |
+| 📖 文档站 | [yutto.xnnehang.top](https://yutto.xnnehang.top) |
 | 🔧 常见问题 | [FAQ](https://yutto.xnnehang.top/troubleshooting/ffmpeg-not-found) |
 
 ## 🛠️ 技术栈
