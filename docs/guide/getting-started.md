@@ -2,7 +2,7 @@
 
 ## 📥 下载安装
 
-前往 [GitHub Releases](https://github.com/MrXnneHang/yutto-uiya/releases) 下载最新版一键包。
+前往 [GitHub Releases](https://github.com/XnneHangLab/yutto-uiya/releases) 下载最新版一键包。
 
 解压后双击 `yutto-uiya.exe` 即可运行~
 

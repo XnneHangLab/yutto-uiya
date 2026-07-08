@@ -9,7 +9,7 @@ export default defineConfig({
   head: [["link", { rel: "icon", href: "/favicon.ico" }]],
 
   themeConfig: {
-    logo: "/logo-full.jpg",
+    logo: "/icon.png",
 
     nav: [
       { text: "🏠 首页", link: "/" },
@@ -103,7 +103,7 @@ export default defineConfig({
     },
 
     socialLinks: [
-      { icon: "github", link: "https://github.com/MrXnneHang/yutto-uiya" },
+      { icon: "github", link: "https://github.com/XnneHangLab/yutto-uiya" },
     ],
 
     outline: { level: "deep", label: "📑 目录" },

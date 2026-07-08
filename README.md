@@ -20,7 +20,7 @@
 <p align="center">
   <a href="https://yutto.xnnehang.top/guide/intro">📖 文档</a> ·
   <a href="https://www.bilibili.com/video/BV1yRdBBsEGZ/">🎬 视频教程</a> ·
-  <a href="https://github.com/MrXnneHang/yutto-uiya/releases">📥 下载</a>
+  <a href="https://github.com/XnneHangLab/yutto-uiya/releases">📥 下载</a>
 </p>
 
 ---
