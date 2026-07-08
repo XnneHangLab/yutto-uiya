@@ -4,7 +4,7 @@
 
 遇到问题或者想聊聊？欢迎加入 QQ 群~
 
-![QQ 群二维码](/qq_group.png)
+<img src="/qq_group.png" alt="QQ 群二维码" style="width: 240px;" />
 
 ## 🎬 Bilibili
 
