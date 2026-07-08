@@ -1,5 +1,9 @@
 # 🚀 快速开始
 
+::: tip 🎬 视频教程
+更喜欢看视频？可以直接看 [完整使用教程](https://www.bilibili.com/video/BV1yRdBBsEGZ/)~
+:::
+
 ## 📥 下载安装
 
 前往 [GitHub Releases](https://github.com/XnneHangLab/yutto-uiya/releases) 下载最新版一键包。
