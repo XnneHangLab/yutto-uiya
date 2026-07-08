@@ -50,6 +50,20 @@ lint:
     npx @biomejs/biome check src/
     npx tsc --noEmit
 
+# ── 文档 ─────────────────────────────────────────────────────────────────────
+
+# 启动文档开发服务器
+docs-dev:
+    cd docs && pnpm dev
+
+# 构建文档
+docs-build:
+    cd docs && pnpm build
+
+# 清理文档缓存和构建产物
+docs-clean:
+    rm -rf docs/.vitepress/cache docs/.vitepress/dist
+
 # ── CI ────────────────────────────────────────────────────────────────────────
 
 # CI: 安装依赖
