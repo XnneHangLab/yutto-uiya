@@ -2,7 +2,7 @@
 
 感谢你对 **绘心 yutto-uiya** 的关注！欢迎任何形式的贡献~
 
-你可以提出功能需求，或者反馈 Bug 到 [Issue](https://github.com/XnneHangLab/yutto-uiya/issues)。如果你无法访问 GitHub，也可以加入 [QQ 群](https://yutto.xnnehang.top/qq_group.png) 来反馈。下面我们会讲解如何直接进行代码贡献。
+你可以提出功能需求，或者反馈 Bug 到 [Issue](https://github.com/XnneHangLab/yutto-uiya/issues)。如果你无法访问 GitHub，也可以加入 [QQ 群](/guide/communication.html#qq-%E7%BE%A4) 来反馈。下面我们会讲解如何直接进行代码贡献。
 
 ## 📋 开始之前
 
