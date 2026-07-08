@@ -92,8 +92,12 @@ Example: `:sparkles: feat: add download resource selectors and audio quality opt
 ## Key Conventions
 
 - Language: UI text in Chinese, code/comments in English
-- Branching: `tauri-dev` is the main branch; create feature branches from it; always pull latest before branching
+- Branching: `dev` is the main branch; create feature branches from it; always pull latest before branching
+- GitHub org: `XnneHangLab/yutto-uiya` (not `MrXnneHang`)
 - Python: 3.11+, uv for deps, pyright strict, ruff lint
 - Rust: Tauri 2, no unsafe, tests at module bottom `#[cfg(test)] mod tests`
 - Frontend: React 18, no state library, state centralized in `AppShell.tsx`
 - Config persistence: Rust writes `runtime.json` (fast startup load), Python writes `uiya.toml` (full config)
+- PRs: must follow the template in `.github/PULL_REQUEST_TEMPLATE.md`
+
+See [gotcha.md](gotcha.md) for common mistakes and things easy to get wrong.
