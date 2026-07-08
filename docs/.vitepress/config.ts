@@ -67,7 +67,7 @@ export default defineConfig({
       ],
       "/troubleshooting/": [
         {
-          text: "📖 指南",
+          text: "📖 开始",
           items: [
             { text: "🎬 项目介绍", link: "/guide/intro" },
             { text: "🚀 快速开始", link: "/guide/getting-started" },
