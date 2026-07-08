@@ -26,7 +26,7 @@ features:
   - icon: 🎵
     title: 多格式支持
     details: 视频 / 音频 / 封面自由组合，支持 m4a / mp3 / flac / wav
-  - icon: 🔑
-    title: 大会员画质
-    details: 扫码登录，解锁 1080P / 4K 高画质内容
+  - icon: 📱
+    title: 扫码登录
+    details: 手机扫码登录 B 站账号，无需手动填写 Cookie
 ---
