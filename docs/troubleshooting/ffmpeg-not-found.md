@@ -10,7 +10,7 @@ ffmpeg 不可用: [Errno 2] No such file or directory: 'ffmpeg'
 
 设置页面环境检测也提示 `ffmpeg 返回非零退出码`。
 
-![ffmpeg 检测失败示例](assets/ffmpeg-not-found.png)
+<!-- TODO: 添加 ffmpeg-not-found.png 截图 -->
 
 ## 环境
 
