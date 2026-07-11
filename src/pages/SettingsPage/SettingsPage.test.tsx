@@ -41,6 +41,8 @@ describe('SettingsPage', () => {
         ffmpegExePath=""
         onChooseFfmpegExe={onChooseFfmpegExe}
         noProxy={false}
+        fetchWorkers={8}
+        downloadDir=""
         authBusy={false}
         authDialogOpen={false}
         authDialogStatus=""
@@ -81,8 +83,10 @@ describe('SettingsPage', () => {
     await user.click(screen.getByRole('button', { name: '重置为应用目录' }));
     expect(onUseRepoWorkspaceRoot).toHaveBeenCalledTimes(1);
 
+    expect(screen.getByLabelText('解析并发数')).toHaveValue(8);
+
     await user.click(screen.getByRole('button', { name: '保存并重新检测' }));
-    expect(onSave).toHaveBeenCalledWith('uv', '', 'system', '', false);
+    expect(onSave).toHaveBeenCalledWith('uv', '', 'system', '', false, '', 8);
 
     await user.click(screen.getByRole('tab', { name: '关于' }));
     expect(screen.getByRole('tabpanel', { name: '关于' })).toHaveAttribute(
@@ -121,6 +125,7 @@ describe('SettingsPage', () => {
         ffmpegExePath=""
         onChooseFfmpegExe={vi.fn().mockResolvedValue(null)}
         noProxy={false}
+        fetchWorkers={8}
         authBusy={false}
         authDialogOpen={false}
         authDialogStatus=""
@@ -157,6 +162,7 @@ describe('SettingsPage', () => {
         ffmpegExePath=""
         onChooseFfmpegExe={vi.fn().mockResolvedValue(null)}
         noProxy={false}
+        fetchWorkers={8}
         authBusy={false}
         authDialogOpen={false}
         authDialogStatus=""
@@ -222,6 +228,7 @@ describe('SettingsPage', () => {
         ffmpegExePath=""
         onChooseFfmpegExe={vi.fn().mockResolvedValue(null)}
         noProxy={false}
+        fetchWorkers={8}
         authBusy={false}
         authDialogOpen={false}
         authDialogStatus=""
@@ -273,6 +280,7 @@ describe('SettingsPage', () => {
         ffmpegExePath=""
         onChooseFfmpegExe={vi.fn().mockResolvedValue(null)}
         noProxy={false}
+        fetchWorkers={8}
         authBusy
         authDialogOpen
         authDialogStatus="请使用哔哩哔哩 App 扫码登录"

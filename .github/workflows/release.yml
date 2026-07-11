@@ -150,7 +150,7 @@ jobs:
           ./env/bin/python -m pip install --no-cache-dir \
             "pydantic>=2.10.6" \
             "tomli_w>=1.2.0" \
-            "uiya-yutto==0.0.5" \
+            "uiya-yutto==0.1.0" \
             "httpx[http2,socks]>=0.28.1" \
             "natsort>=8.4.0"
 
@@ -269,7 +269,7 @@ jobs:
           .\env\python.exe -m pip install --no-cache-dir `
             "pydantic>=2.10.6" `
             "tomli_w>=1.2.0" `
-            "uiya-yutto==0.0.5" `
+            "uiya-yutto==0.1.0" `
             "httpx[http2,socks]>=0.28.1" `
             "natsort>=8.4.0"
 

@@ -484,6 +484,7 @@ def cmd_inspect_runtime() -> None:
         "sessData": bool(settings.SESS_DATA),
         "ffmpegPath": settings.ffmpeg_path,
         "noProxy": settings.no_proxy,
+        "fetchWorkers": settings.fetch_workers,
     }
     print(json.dumps({"kind": "payload", "payload": payload}, ensure_ascii=False), flush=True)
 
@@ -547,6 +548,7 @@ def cmd_download(
             dl_dir = dl_dir / dir_override
         basic = YuttoBasicSetting(
             num_workers=8,
+            fetch_workers=settings.fetch_workers,
             video_quality=video_quality,
             audio_quality=audio_quality,
             sessdata=settings.SESS_DATA,
@@ -737,6 +739,7 @@ def cmd_parse(target: str) -> None:
     try:
         basic = YuttoBasicSetting(
             num_workers=8,
+            fetch_workers=settings.fetch_workers,
             video_quality=127,
             audio_quality=30280,
             sessdata=settings.SESS_DATA,
@@ -1001,7 +1004,12 @@ def cmd_fetch_cover(url: str) -> None:
         emit_payload({"error": "封面图片加载失败"})
 
 
-def cmd_save_settings(ffmpeg_path: str, no_proxy: bool, download_dir: str | None = None) -> None:
+def cmd_save_settings(
+    ffmpeg_path: str,
+    no_proxy: bool,
+    download_dir: str | None = None,
+    fetch_workers: int | None = None,
+) -> None:
     """
     Persist updated settings to uiya.toml.
     """
@@ -1013,6 +1021,8 @@ def cmd_save_settings(ffmpeg_path: str, no_proxy: bool, download_dir: str | None
         settings.no_proxy = no_proxy
         if download_dir is not None:
             settings.download_dir = download_dir
+        if fetch_workers is not None:
+            settings.fetch_workers = max(1, fetch_workers)
         write_settings_file("uiya.toml", settings)
     except Exception as exc:
         print(
@@ -1243,6 +1253,7 @@ def main() -> None:
     save_parser.add_argument("--ffmpeg-path", default="ffmpeg")
     save_parser.add_argument("--no-proxy", default="false")
     save_parser.add_argument("--download-dir", default=None)
+    save_parser.add_argument("--fetch-workers", type=int, default=None)
 
     subparsers.add_parser("auth-login")
     subparsers.add_parser("auth-logout")
@@ -1272,7 +1283,7 @@ def main() -> None:
     elif args.command == "fetch-cover":
         cmd_fetch_cover(args.url)
     elif args.command == "save-settings":
-        cmd_save_settings(args.ffmpeg_path, args.no_proxy.lower() == "true", args.download_dir)
+        cmd_save_settings(args.ffmpeg_path, args.no_proxy.lower() == "true", args.download_dir, args.fetch_workers)
     elif args.command == "auth-login":
         cmd_auth_login()
     elif args.command == "auth-logout":

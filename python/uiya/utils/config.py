@@ -31,6 +31,7 @@ class UiyaSetting(BaseModel):
     debug_mode: Annotated[DebugMode, Field(default="close", title="调试模式")]
     ffmpeg_path: Annotated[str, Field(default="ffmpeg", title="FFmpeg 路径")]
     no_proxy: Annotated[bool, Field(default=False, title="禁用代理")]
+    fetch_workers: Annotated[int, Field(default=8, ge=1, title="批量解析并发数")]
 
     def get_zh_option_list(self, key: UiyaSettingsTitle) -> list[str]:
         """获取中文配置项列表"""

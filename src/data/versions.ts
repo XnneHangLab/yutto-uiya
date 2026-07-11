@@ -7,17 +7,29 @@ export interface VersionEntry {
 }
 
 export const CURRENT_VERSION = {
-  version: 'v2.0.2',
-  date: '2026-07-05',
+  version: 'v2.1.0',
+  date: '2026-07-11',
   channel: '稳定版',
-  summary: '下载目录可配置、疑难解答页面、音频格式选择',
+  summary: '批量解析并发提速、解析并发数设置、文档站点',
 };
 
 export const VERSION_TIMELINE: VersionEntry[] = [
   {
+    date: '2026-07-11',
+    version: 'v2.1.0',
+    badge: '当前',
+    title: '批量解析提速',
+    highlights: [
+      '内核升级至 uiya-yutto 0.1.0，合集/收藏夹批量解析并发执行，等待时间大幅缩短',
+      '新增「解析并发数」设置项（默认 8，可调 1-32）',
+      '批量解析时单个视频失败不再中断整体任务',
+      'VitePress 文档站点上线',
+    ],
+  },
+  {
     date: '2026-07-05',
     version: 'v2.0.2',
-    badge: '当前',
+    badge: '',
     title: '下载目录可配置与疑难解答',
     highlights: [
       '下载目录可独立配置，不再绑定根目录',

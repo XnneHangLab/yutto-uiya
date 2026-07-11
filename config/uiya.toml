@@ -8,3 +8,4 @@ custom_proxy_pool = false
 debug_mode = "close"
 ffmpeg_path = "ffmpeg"
 no_proxy = false
+fetch_workers = 8

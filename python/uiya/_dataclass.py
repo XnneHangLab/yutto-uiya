@@ -44,6 +44,7 @@ audio_quality_mapping: dict[AudioQuality, int] = {
 
 class YuttoBasicSetting(BaseModel):
     num_workers: Annotated[int, Field(8, gt=0)]
+    fetch_workers: Annotated[int, Field(8, gt=0)]
     video_quality: Annotated[int, Field(127)]
     audio_quality: Annotated[int, Field(30251)]
     sessdata: Annotated[str, Field("")]
@@ -144,6 +145,7 @@ class CommandGenerator:
         # =================== BASIC SETTING
         BasicSetting = YuttoBasicSetting(
             num_workers=8,
+            fetch_workers=self.uiya_setting.fetch_workers,
             video_quality=video_quality_mapping[self.video_quality],
             audio_quality=audio_quality_mapping[self.audio_quality],
             sessdata=self.uiya_setting.SESS_DATA,

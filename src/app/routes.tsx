@@ -85,6 +85,7 @@ interface RenderPageOptions {
   onChooseFfmpegExe: () => Promise<string | null>;
   onDetectFfmpeg: () => Promise<string[]>;
   noProxy: boolean;
+  fetchWorkers: number;
   downloadDir: string;
   onChooseDownloadDir: () => Promise<string | null>;
   authBusy: boolean;
@@ -101,6 +102,7 @@ interface RenderPageOptions {
     ffmpegExePath: string,
     noProxy: boolean,
     downloadDir: string,
+    fetchWorkers: number,
   ) => void;
   onUvSync: () => Promise<void>;
   onSetAutoScroll: (next: boolean) => void;
@@ -149,6 +151,7 @@ function renderLazyPage(
           onChooseFfmpegExe={options.onChooseFfmpegExe}
           onDetectFfmpeg={options.onDetectFfmpeg}
           noProxy={options.noProxy}
+          fetchWorkers={options.fetchWorkers}
           downloadDir={options.downloadDir}
           onChooseDownloadDir={options.onChooseDownloadDir}
           authBusy={options.authBusy}

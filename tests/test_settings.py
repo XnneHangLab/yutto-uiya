@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import get_args
 
 import pytest
+from pydantic import ValidationError
 
 from uiya.utils.config import (
     UiyaSetting,
@@ -11,7 +12,6 @@ from uiya.utils.config import (
     load_settings_file,
     resolve_download_dir,
 )
-
 
 
 class TestSettings:
@@ -28,6 +28,15 @@ class TestSettings:
         """测试获取索引"""
         index = self.settings.get_index("vip_strict")
         assert get_args(VipStrict)[index] == self.settings.vip_strict
+
+    def test_fetch_workers_defaults_to_eight(self):
+        """fetch_workers 缺省时默认为 8"""
+        assert UiyaSetting().fetch_workers == 8
+
+    def test_fetch_workers_rejects_zero(self):
+        """fetch_workers 不允许小于 1"""
+        with pytest.raises(ValidationError):
+            UiyaSetting(fetch_workers=0)
 
     def test_resolve_download_dir_uses_workspace_root_for_relative_paths(
         self,

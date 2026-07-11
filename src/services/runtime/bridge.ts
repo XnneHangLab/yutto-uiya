@@ -76,6 +76,7 @@ export function setRuntimeDriver(
   ffmpegPath: string | null,
   noProxy: boolean,
   downloadDir: string | null,
+  fetchWorkers: number,
 ) {
   return invoke<EnvironmentProbe>('set_runtime_driver', {
     driver,
@@ -83,6 +84,7 @@ export function setRuntimeDriver(
     ffmpegPath,
     noProxy,
     downloadDir,
+    fetchWorkers,
   });
 }
 
