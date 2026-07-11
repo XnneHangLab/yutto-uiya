@@ -7,9 +7,9 @@ import sys
 from uiya.cli import (
     _assign_parse_group_dirs,
     _assign_parse_item_dirs,
-    _build_yutto_command,
     _build_parse_dir_title_candidates,
     _build_qr_data_url,
+    _build_yutto_command,
     _find_existing_dirs_by_titles,
     _infer_collection_dir_from_candidate_dirs,
     _infer_collection_dir_from_new_dirs,

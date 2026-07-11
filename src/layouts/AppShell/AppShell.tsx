@@ -95,6 +95,7 @@ export function AppShell() {
   const [ffmpegMode, setFfmpegMode] = useState<'system' | 'local'>('system');
   const [ffmpegExePath, setFfmpegExePath] = useState('');
   const [noProxy, setNoProxy] = useState(false);
+  const [fetchWorkers, setFetchWorkers] = useState(8);
   const [downloadDirSetting, setDownloadDirSetting] = useState('./downloads');
   const [parseItems, setParseItems] = useState<VideoParseItem[]>([]);
   const [parseGroups, setParseGroups] = useState<VideoParseGroup[]>([]);
@@ -140,6 +141,7 @@ export function AppShell() {
         setFfmpegExePath(nextInspection.ffmpegPath ?? '');
       }
       setNoProxy(nextInspection.noProxy ?? false);
+      setFetchWorkers(nextInspection.fetchWorkers ?? 8);
       setDownloadDirSetting(nextInspection.downloadDirSetting ?? './downloads');
     } catch (error) {
       setLogs((current) => [
@@ -181,6 +183,7 @@ export function AppShell() {
           setFfmpegExePath(nextInspection.ffmpegPath ?? '');
         }
         setNoProxy(nextInspection.noProxy ?? false);
+        setFetchWorkers(nextInspection.fetchWorkers ?? 8);
         setDownloadDirSetting(
           nextInspection.downloadDirSetting ?? './downloads',
         );
@@ -499,6 +502,7 @@ export function AppShell() {
       setFfmpegExePath(nextInspection.ffmpegPath ?? '');
     }
     setNoProxy(nextInspection.noProxy ?? false);
+    setFetchWorkers(nextInspection.fetchWorkers ?? 8);
   }
 
   async function handleChooseWorkspaceRoot() {
@@ -669,6 +673,7 @@ export function AppShell() {
     nextFfmpegExePath: string,
     nextNoProxy: boolean,
     nextDownloadDir: string,
+    nextFetchWorkers: number,
   ) {
     const ffmpegPath = nextFfmpegMode === 'local' ? nextFfmpegExePath : null;
     try {
@@ -678,12 +683,14 @@ export function AppShell() {
         ffmpegPath,
         nextNoProxy,
         nextDownloadDir || null,
+        nextFetchWorkers,
       );
       setRuntimeDriver(driver);
       setPythonExePath(exePath);
       setFfmpegMode(nextFfmpegMode);
       setFfmpegExePath(nextFfmpegExePath);
       setNoProxy(nextNoProxy);
+      setFetchWorkers(nextFetchWorkers);
       setDownloadDirSetting(nextDownloadDir || './downloads');
       if (nextProbe) {
         setEnvironmentProbe(nextProbe);
@@ -804,6 +811,7 @@ export function AppShell() {
               onChooseFfmpegExe: handleChooseFfmpegExe,
               onDetectFfmpeg: handleDetectFfmpeg,
               noProxy,
+              fetchWorkers,
               downloadDir: downloadDirSetting,
               onChooseDownloadDir: handleChooseDownloadDir,
               authBusy,

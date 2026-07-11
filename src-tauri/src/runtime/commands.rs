@@ -646,6 +646,7 @@ pub fn build_runtime_state() -> Result<RuntimeState, String> {
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn set_runtime_driver(
     app: AppHandle,
     state: State<'_, RuntimeState>,
@@ -654,6 +655,7 @@ pub async fn set_runtime_driver(
     ffmpeg_path: Option<String>,
     no_proxy: Option<bool>,
     download_dir: Option<String>,
+    fetch_workers: Option<u32>,
 ) -> Result<serde_json::Value, String> {
     let driver_config = match driver.as_str() {
         "uv" => RuntimeDriverConfig::Uv,
@@ -675,6 +677,8 @@ pub async fn set_runtime_driver(
 
     let resolved_no_proxy = no_proxy.unwrap_or(false);
 
+    let resolved_fetch_workers = fetch_workers.unwrap_or(8).max(1);
+
     let next_download_dir = download_dir
         .map(|d| d.trim().to_string())
         .filter(|d| !d.is_empty())
@@ -694,6 +698,7 @@ pub async fn set_runtime_driver(
             &ffmpeg_for_round_trip,
             resolved_no_proxy,
             &download_dir_for_round_trip,
+            resolved_fetch_workers,
         )?;
         let probe = run_probe_command(
             &repo_root,

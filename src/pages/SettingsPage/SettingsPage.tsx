@@ -28,6 +28,7 @@ interface SettingsPageProps {
   onChooseFfmpegExe: () => Promise<string | null>;
   onDetectFfmpeg: () => Promise<string[]>;
   noProxy: boolean;
+  fetchWorkers: number;
   downloadDir: string;
   onChooseDownloadDir: () => Promise<string | null>;
   authBusy: boolean;
@@ -44,6 +45,7 @@ interface SettingsPageProps {
     ffmpegExePath: string,
     noProxy: boolean,
     downloadDir: string,
+    fetchWorkers: number,
   ) => void;
   onUvSync: () => Promise<void>;
   hotkey: string;
@@ -64,6 +66,7 @@ export function SettingsPage({
   onChooseFfmpegExe,
   onDetectFfmpeg,
   noProxy,
+  fetchWorkers,
   downloadDir,
   onChooseDownloadDir,
   authBusy,
@@ -86,6 +89,7 @@ export function SettingsPage({
   );
   const [localFfmpegExePath, setLocalFfmpegExePath] = useState(ffmpegExePath);
   const [localNoProxy, setLocalNoProxy] = useState(noProxy);
+  const [localFetchWorkers, setLocalFetchWorkers] = useState(fetchWorkers);
   const [localDownloadDir, setLocalDownloadDir] = useState(downloadDir);
   const [syncing, setSyncing] = useState(false);
 
@@ -100,6 +104,7 @@ export function SettingsPage({
     setLocalFfmpegMode(ffmpegMode);
     setLocalFfmpegExePath(ffmpegExePath);
     setLocalNoProxy(noProxy);
+    setLocalFetchWorkers(fetchWorkers);
     setLocalDownloadDir(downloadDir);
   }, [
     runtimeDriver,
@@ -107,6 +112,7 @@ export function SettingsPage({
     ffmpegMode,
     ffmpegExePath,
     noProxy,
+    fetchWorkers,
     downloadDir,
   ]);
 
@@ -535,6 +541,31 @@ export function SettingsPage({
                   </span>
                 </label>
               </SettingRow>
+
+              <SettingRow
+                name="解析并发数"
+                description="批量解析视频列表时同时进行的数量，数值越大解析越快，默认 8"
+                icon="⚡"
+              >
+                <div className="workspace-actions">
+                  <input
+                    type="number"
+                    className="proxy-input workspace-input"
+                    aria-label="解析并发数"
+                    value={localFetchWorkers}
+                    min={1}
+                    max={32}
+                    onChange={(e) => {
+                      const next = Number.parseInt(e.target.value, 10);
+                      setLocalFetchWorkers(
+                        Number.isNaN(next)
+                          ? 8
+                          : Math.max(1, Math.min(32, next)),
+                      );
+                    }}
+                  />
+                </div>
+              </SettingRow>
             </SettingCard>
 
             <div className="group-title">快捷键</div>
@@ -605,6 +636,7 @@ export function SettingsPage({
                     localFfmpegExePath,
                     localNoProxy,
                     localDownloadDir,
+                    localFetchWorkers,
                   )
                 }
               >

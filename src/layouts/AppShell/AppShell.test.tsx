@@ -33,6 +33,7 @@ const { readyProbe, defaultInspection, defaultManagedFolders } = vi.hoisted(
       sessData: false,
       ffmpegPath: 'ffmpeg',
       noProxy: false,
+      fetchWorkers: 8,
       runtimeDriver: 'uv',
       pythonPath: '',
       appRoot: '/repo',

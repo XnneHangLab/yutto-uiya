@@ -284,7 +284,9 @@ pub fn run_save_settings_command(
     ffmpeg_path: &str,
     no_proxy: bool,
     download_dir: &str,
+    fetch_workers: u32,
 ) -> Result<(), String> {
+    let fetch_workers_arg = fetch_workers.to_string();
     let output = build_python_command_for_driver(
         repo_root,
         workspace_root,
@@ -299,6 +301,8 @@ pub fn run_save_settings_command(
             if no_proxy { "true" } else { "false" },
             "--download-dir",
             download_dir,
+            "--fetch-workers",
+            fetch_workers_arg.as_str(),
         ],
     )
     .output()
