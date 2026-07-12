@@ -1,0 +1,51 @@
+# yutto-uiya serve 迁移计划（feat/serve-pipeline）
+
+目标：**废弃「yutto CLI 子进程 + Rust 抓 Logger 日志」的旧管线**，改为常驻 `yutto serve`（JSON-RPC over WebSocket）驱动真正的 parse → 可视化勾选 → download 流程。
+
+本文件只是计划，不含实现。实现与上游 yutto 的 resolve PR（yutto 仓库本地分支 `feat/resolve-verb`：`resolve.start` / `item_listed` / `ResolvedItem`）同步进行，两边 PR 同时开发、互相验证出 serve 与前端的最佳实践。
+
+## 前置条件
+
+- [ ] 上游 yutto-dev/yutto#748 合并（core / runtime / server + `EpisodeData` info/data 拆分已包含）
+- [ ] resolve verb PR 提交并合并（本地已就绪，含端到端参考客户端 `D:\lab\yuttos\verify_resolve_rpc.py`）
+
+## 阶段 1：server 生命周期（Rust）
+
+- 新增 Tauri 命令 `serve_start` / `serve_stop`：复用现有 uv 启动机制拉起
+  `yutto serve --download-root <resolve_download_dir(uiya.toml)> --allow-origin <tauri 与 dev origin>`；
+  `YUTTO_SERVER_TOKEN` 由 Rust 生成并注入子进程环境，命令返回 `{url, token}` 给前端。
+- 持有子进程句柄，应用退出时终止；server 的 stdout 继续接入现有控制台日志页
+  （raw-log 通道保留——「Rust 抓日志」只剩这一个展示用途，不再承担数据传输）。
+
+## 阶段 2：协议客户端（TS）
+
+- 新增 `src/services/yutto/rpc.ts`：webview 内原生 WebSocket + JSON-RPC 2.0
+  （`server.authenticate` → 请求/通知分流；参考 verify_resolve_rpc.py 的 Python 实现）。
+- 适配层把 `task.event` 翻译成现有 `RuntimeEvent` 形状：
+  `item_listed` → `parse.item`（`VideoParseItem`）、`progress` → `download.file_progress`、
+  runtime `state` → `download.started/completed/failed`。**reducers 与页面零改动**。
+
+## 阶段 3：解析管线替换
+
+- `parseUrl()` 改为 `resolve.start` + 订阅 `item_listed`：
+  `VideoParseItem{title, url(原子URL), dir=planned_path 的父目录, cover=cover_url, ...}`。
+- 删除：fork 的 `--skip-download` 调用、`_ParseContext` 正则扫日志、`ast.literal_eval`
+  描述文件行、下载目录快照 diff 启发式。
+- 清晰度选项改为静态清单（yutto 下载端本就自动降级），删除 label→code 映射表。
+
+## 阶段 4：下载管线替换
+
+- 勾选后逐条 `download.start`：
+  `{source:{url: 原子URL}, resources/stream ← DownloadOptions, output:{directory: planned_path 父目录}}`。
+- 队列页数据源换成 `task.list` / `task.subscribe`；产物路径来自 `ItemResult.artifacts`
+  （删除 rglob 猜产物）。
+- 已知设计点（与上游 resolve PR 一起定最佳实践）：批量解析的 planned_path 与单集下载
+  实际文件名可能有模板差异（batch 模板 vs 单集 `{auto}` 模板）；wire 路径分隔符跟随
+  server 所在 OS，客户端需归一化。
+
+## 阶段 5：清理
+
+- 删除 `python/uiya/cli.py` 的 `parse` / `download` 命令，解除对 fork `uiya-yutto` 的依赖，
+  改为依赖上游 yutto（`--skip-download`、日志扫描相关代码全部退役）。
+- 暂留：`auth-login`（import 方式 + auth 文件互操作，等上游 `auth.*` RPC）、
+  `fetch-cover`（webview 防盗链取图是前端职责）、wav 转码、`inspect-runtime` / 设置。
