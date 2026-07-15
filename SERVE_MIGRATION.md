@@ -9,6 +9,14 @@
 - [ ] 上游 yutto-dev/yutto#748 合并（core / runtime / server + `EpisodeData` info/data 拆分已包含）
 - [ ] resolve verb PR 提交并合并（本地已就绪，含端到端参考客户端 `D:\lab\yuttos\verify_resolve_rpc.py`）
 
+## 分支结构
+
+- 母分支：`feat/serve-pipeline`（本分支）——各阶段分支完成后 PR 汇入这里，
+  全部阶段合完后母分支整体 PR 进 `dev`。
+- 阶段分支：从母分支切出，命名 `feat/serve-phase-<N>-<主题>`
+  （如阶段 1 → `feat/serve-phase-1-lifecycle`）。
+- 当前策略：只建本地分支，**不 push、不开 PR**——时机由用户另行决定。
+
 ## 阶段 1：server 生命周期（Rust）
 
 设计原则：**用户不需要知道 server 的存在**。exe 打开即自动拉起 serve、关闭即随之退出；
