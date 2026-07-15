@@ -11,11 +11,34 @@
 
 ## 阶段 1：server 生命周期（Rust）
 
-- 新增 Tauri 命令 `serve_start` / `serve_stop`：复用现有 uv 启动机制拉起
-  `yutto serve --download-root <resolve_download_dir(uiya.toml)> --allow-origin <tauri 与 dev origin>`；
+设计原则：**用户不需要知道 server 的存在**。exe 打开即自动拉起 serve、关闭即随之退出；
+serve 在 UI 里只是侧边栏的一个环境项（状态 + 地址），像 uv sync / 登录一样可一键重启。
+
+- 新增 Tauri 命令 `serve_start` / `serve_stop`；**应用启动时（环境检查链之后）自动调用
+  `serve_start`**，复用现有 uv 启动机制拉起
+  `yutto serve --port 0 --download-root <resolve_download_dir(uiya.toml)> --allow-origin <tauri 与 dev origin>`；
   `YUTTO_SERVER_TOKEN` 由 Rust 生成并注入子进程环境，命令返回 `{url, token}` 给前端。
-- 持有子进程句柄，应用退出时终止；server 的 stdout 继续接入现有控制台日志页
-  （raw-log 通道保留——「Rust 抓日志」只剩这一个展示用途，不再承担数据传输）。
+- 端口与多开：`--port 0` 由 OS 分配空闲端口（默认 11223 固定端口会让第二个实例绑定失败），
+  server 会把实际端口打印为「yutto server 正在监听 ws://…」（stdout），Rust 解析这一行
+  拿到真实地址——bootstrap 阶段唯一一次日志解析。多开采用**一对一**：每个 uiya 实例
+  独占自己的 serve，无端口冲突、无发现协议、无归属歧义、exe 升级后无新旧版本混用；
+  代价约 60MB 内存/实例。已知非回归：两个实例往同一目录下载同一视频仍可能文件冲突，
+  与今天开两个 CLI 行为相同。
+- 退出即杀（双保险）：
+  - 优雅路径：Tauri 退出事件 → `serve_stop` → 现有 `kill_process`
+    （Windows `taskkill /T /F` 杀整棵进程树）；
+  - 崩溃兜底：Windows Job Object（kill-on-close）——uiya 崩溃或被任务管理器强杀时
+    由 OS 自动回收 serve，不留孤儿进程，且无需改动 yutto 侧。
+- 环境项 UI：侧边栏新增 serve 字段，状态机
+  `starting / running(ws://…) / crashed(退出码) / restarting`；重启按钮复用
+  uv sync / 登录 的交互模式，行为 = `serve_stop` + `serve_start`。注意重启后端口与
+  token 都是新的，前端必须用 `serve_start` 返回的新 `{url, token}` 重新握手；
+  有任务进行中时重启前 UI 需提示。崩溃**暂不自动重启**：红色 crashed 状态 + 重启按钮
+  即恢复路径，自动重启（带退避）等有真实崩溃数据再考虑。
+- server 的 stdout 继续接入现有控制台日志页（raw-log 通道保留——「Rust 抓日志」只剩
+  展示 + bootstrap 地址解析两个用途，不再承担数据传输）。
+- 附注：设置里修改下载目录**不需要**重启 serve——阶段 4 的每个 `download.start` 都带
+  `output.directory`，`--download-root` 只是缺省值。
 
 ## 阶段 2：协议客户端（TS）
 
