@@ -24,3 +24,7 @@ log = "0.4"
 tauri = { version = "2.10.3", features = [] }
 tauri-plugin-log = "2"
 tauri-plugin-global-shortcut = "2"
+getrandom = "0.2"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+win32job = "2"

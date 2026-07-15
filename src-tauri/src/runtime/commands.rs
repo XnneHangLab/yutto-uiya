@@ -253,6 +253,7 @@ pub async fn enqueue_download(
             active_auth: state.active_auth.clone(),
             hotkey: state.hotkey.clone(),
             download_dir: state.download_dir.clone(),
+            serve: state.serve.clone(),
         };
 
         tauri::async_runtime::spawn_blocking(move || {
@@ -396,6 +397,26 @@ pub async fn logout_auth(app: AppHandle, state: State<'_, RuntimeState>) -> Resu
 pub async fn uv_sync(app: AppHandle, state: State<'_, RuntimeState>) -> Result<(), String> {
     let repo_root = state.repo_root.clone();
     run_blocking_runtime_action(move || run_uv_sync_command(&repo_root, &app)).await
+}
+
+#[tauri::command]
+pub async fn serve_start(
+    app: AppHandle,
+    state: State<'_, RuntimeState>,
+) -> Result<super::serve::ServeInfo, String> {
+    let state = state.inner().clone();
+    run_blocking_runtime_action(move || super::serve::start_serve(&app, &state)).await
+}
+
+#[tauri::command]
+pub async fn serve_stop(app: AppHandle, state: State<'_, RuntimeState>) -> Result<(), String> {
+    let state = state.inner().clone();
+    run_blocking_runtime_action(move || super::serve::stop_serve(&app, &state)).await
+}
+
+#[tauri::command]
+pub fn serve_status(state: State<'_, RuntimeState>) -> super::serve::ServeStatusPayload {
+    super::serve::current_status(&state)
 }
 
 #[tauri::command]

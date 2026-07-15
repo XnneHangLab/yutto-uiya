@@ -924,6 +924,7 @@ pub fn drain_download_queue(app: AppHandle, state: RuntimeState) {
                 active_auth: state.active_auth.clone(),
                 hotkey: state.hotkey.clone(),
                 download_dir: state.download_dir.clone(),
+                serve: state.serve.clone(),
             },
             task.task_id.clone(),
             task.target.clone(),
@@ -1250,7 +1251,7 @@ fn runtime_event_from_python_payload(
     }
 }
 
-fn emit_raw_log(app: &AppHandle, line: &str) {
+pub(crate) fn emit_raw_log(app: &AppHandle, line: &str) {
     let _ = app.emit("runtime:raw-log", line);
 }
 
