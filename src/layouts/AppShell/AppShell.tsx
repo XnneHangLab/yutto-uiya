@@ -475,6 +475,30 @@ export function AppShell() {
   }
 
   /**
+   * Console entry for a parse event, or null for lifecycle noise. The serve
+   * already streams yutto's own Logger lines through runtime:raw-log, so the
+   * console only gets short milestone lines instead of one URL-prefixed line
+   * per wire event.
+   */
+  function consoleEntryForParseEvent(event: RuntimeEvent) {
+    switch (event.event) {
+      case 'parse.started':
+        return createConsoleLog('system', `[解析] 开始解析 ${event.target}`);
+      case 'parse.item':
+        return createConsoleLog('system', `[解析] ${event.message}`);
+      case 'parse.completed':
+        return createConsoleLog('system', '[解析] 解析完成');
+      case 'parse.failed':
+        return createConsoleLog('stderr', `[解析] ${event.message}`);
+      case 'parse.cancelled':
+        return createConsoleLog('system', '[解析] 已取消');
+      default:
+        // queued / stage / file_progress 等中间态不进控制台。
+        return null;
+    }
+  }
+
+  /**
    * Shared by the Tauri runtime:event subscription and the in-process
    * resolveParseTarget stream — both deliver parse.* RuntimeEvents.
    */
@@ -496,7 +520,10 @@ export function AppShell() {
       }
     }
 
-    setLogs((current) => [...current, createConsoleLogFromRuntimeEvent(event)]);
+    const entry = consoleEntryForParseEvent(event);
+    if (entry) {
+      setLogs((current) => [...current, entry]);
+    }
   }
 
   async function handleParseTarget(url: string): Promise<VideoParseItem[]> {
