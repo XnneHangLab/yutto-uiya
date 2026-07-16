@@ -277,6 +277,50 @@ describe('resolveParseTarget', () => {
     expect(String(await guarded)).toContain('视频不存在');
   });
 
+  it('maps network options onto the wire request', async () => {
+    const socket = new FakeSocket();
+    const parsePromise = resolveParseTarget({
+      serve: { url: 'ws://127.0.0.1:0', token: 'tok' },
+      target: TARGET,
+      network: { proxy: 'no', fetchWorkers: 32 },
+      socketFactory: () => socket,
+    });
+    const guarded = parsePromise.catch(() => undefined);
+
+    socket.open();
+    await flush();
+    socket.receive({
+      jsonrpc: '2.0',
+      id: socket.lastRequest().id,
+      result: { authenticated: true },
+    });
+    await flush();
+    socket.receive({
+      jsonrpc: '2.0',
+      id: socket.lastRequest().id,
+      result: {
+        name: 'yutto',
+        version: '2.2.0',
+        protocol_version: 1,
+        capabilities: ['resolve.start'],
+      },
+    });
+    await flush();
+
+    const request = socket.lastRequest();
+    expect(request.method).toBe('resolve.start');
+    expect(request.params).toEqual({
+      request: {
+        source: { url: TARGET },
+        scope: { batch: true },
+        // fetch workers clamp to the server policy ceiling
+        network: { proxy: 'no', fetch_workers: 16 },
+      },
+    });
+    socket.serverClose(1000);
+    await guarded;
+  });
+
   it('rejects when the server lacks the resolve.start capability', async () => {
     const { guarded } = await startParse({
       capabilities: ['download.start'],

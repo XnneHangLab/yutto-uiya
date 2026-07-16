@@ -534,6 +534,15 @@ export function AppShell() {
       ]);
       return [];
     }
+    if (environmentProbe?.authState !== 'authenticated') {
+      setLogs((current) => [
+        ...current,
+        createConsoleLog(
+          'stderr',
+          '[解析] 当前未登录 B 站，解析容易被风控拒绝；可在 设置 → 认证操作 扫码登录',
+        ),
+      ]);
+    }
     try {
       // startServe is idempotent: it returns the running server's info or
       // boots one first — which also revives a crashed serve before parsing.
@@ -543,6 +552,8 @@ export function AppShell() {
       const result = await resolveParseTarget({
         serve: serveInfo,
         target: url,
+        // 与旧管线的 --proxy / --fetch-workers 行为对齐。
+        network: { proxy: noProxy ? 'no' : 'auto', fetchWorkers },
         onEvent: processParseRuntimeEvent,
       });
       const nextGroups = normalizeParseGroups(result.groups ?? []);

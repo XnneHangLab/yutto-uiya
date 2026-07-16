@@ -20,6 +20,7 @@ import {
 } from './adapter';
 import { AUDIO_QUALITY_OPTIONS, VIDEO_QUALITY_OPTIONS } from './quality';
 import {
+  type DownloadRequestPayload,
   type RpcSocketFactory,
   type TaskEventPayload,
   type TaskState,
@@ -29,6 +30,13 @@ import {
 export interface ResolveParseOptions {
   serve: { url: string; token: string };
   target: string;
+  /**
+   * Maps uiya's 网络设置 onto the request (the old pipeline passed these as
+   * yutto CLI flags). Omitted fields fall back to server defaults — note the
+   * wire default for proxy is "auto" (system proxy), so 不使用代理 users must
+   * pass proxy: 'no' or every request may die with ConnectError.
+   */
+  network?: { proxy?: string; fetchWorkers?: number };
   /** Receives translated parse.* RuntimeEvents as the task progresses. */
   onEvent?: (event: RuntimeEvent) => void;
   /** Test hook forwarded to YuttoRpcClient.connect. */
@@ -60,10 +68,28 @@ export async function resolveParseTarget(
       );
     }
 
-    const snapshot = await client.resolveStart({
+    const request: DownloadRequestPayload = {
       source: { url: options.target },
       scope: { batch: true },
-    });
+    };
+    if (options.network) {
+      const network: Record<string, unknown> = {};
+      if (options.network.proxy) {
+        network.proxy = options.network.proxy;
+      }
+      if (options.network.fetchWorkers) {
+        // ServerPolicy caps fetch workers (default max 16); clamp so a large
+        // uiya setting degrades instead of rejecting the request.
+        network.fetch_workers = Math.min(
+          Math.max(1, Math.floor(options.network.fetchWorkers)),
+          16,
+        );
+      }
+      if (Object.keys(network).length > 0) {
+        request.network = network;
+      }
+    }
+    const snapshot = await client.resolveStart(request);
     const taskId = snapshot.task_id;
     const outputDirectory = outputDirectoryFromSnapshot(snapshot);
     const translate = createTaskEventTranslator({
