@@ -16,6 +16,7 @@ import {
   enqueueDownload,
   exportConsoleLogs,
   getHotkey,
+  getServeStatus,
   inspectRuntime,
   listDownloadTasks,
   listManagedFolders,
@@ -30,7 +31,10 @@ import {
   setHotkey as setHotkeyApi,
   setRuntimeDriver as setRuntimeDriverApi,
   startAuthLogin,
+  startServe,
+  stopServe,
   subscribeRuntimeEvents,
+  subscribeServeStatus,
   useRepoWorkspaceRoot,
   uvSync,
 } from '../../services/runtime/bridge';
@@ -52,6 +56,7 @@ import {
   type RuntimeDriver,
   type RuntimeInspection,
   type RuntimeTaskRecord,
+  type ServeStatus,
   type VideoParseGroup,
   type VideoParseItem,
 } from '../../services/runtime/runtime';
@@ -115,7 +120,52 @@ export function AppShell() {
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [authDialogStatus, setAuthDialogStatus] = useState('');
   const [authDialogQrDataUrl, setAuthDialogQrDataUrl] = useState('');
+  const [serveStatus, setServeStatus] = useState<ServeStatus | null>(null);
+  const [serveBusy, setServeBusy] = useState(false);
   const parsingTargetRef = useRef<string | null>(null);
+  // Kept for the phase-2 RPC client (server.authenticate).
+  const serveTokenRef = useRef<string | null>(null);
+  // Auto-start happens once per app session; crashes never auto-restart —
+  // the sidebar reload button is the recovery path.
+  const serveAutoStartRef = useRef(false);
+
+  async function autoStartServe() {
+    if (serveAutoStartRef.current) {
+      return;
+    }
+    serveAutoStartRef.current = true;
+    try {
+      const info = await startServe();
+      serveTokenRef.current = info.token;
+    } catch (error) {
+      setLogs((current) => [
+        ...current,
+        createConsoleLog(
+          'stderr',
+          `yutto server 启动失败: ${toErrorMessage(error)}`,
+        ),
+      ]);
+    }
+  }
+
+  async function handleServeReload() {
+    setServeBusy(true);
+    try {
+      await stopServe();
+      const info = await startServe();
+      serveTokenRef.current = info.token;
+    } catch (error) {
+      setLogs((current) => [
+        ...current,
+        createConsoleLog(
+          'stderr',
+          `yutto server 重启失败: ${toErrorMessage(error)}`,
+        ),
+      ]);
+    } finally {
+      setServeBusy(false);
+    }
+  }
 
   async function refreshEnvironmentStatus() {
     try {
@@ -143,6 +193,7 @@ export function AppShell() {
       setNoProxy(nextInspection.noProxy ?? false);
       setFetchWorkers(nextInspection.fetchWorkers ?? 8);
       setDownloadDirSetting(nextInspection.downloadDirSetting ?? './downloads');
+      void autoStartServe();
     } catch (error) {
       setLogs((current) => [
         ...current,
@@ -161,6 +212,7 @@ export function AppShell() {
   useEffect(() => {
     let disposed = false;
     let unsubscribe = () => {};
+    let unsubscribeServe = () => {};
 
     async function refreshInspectionSnapshot() {
       try {
@@ -233,6 +285,7 @@ export function AppShell() {
         }
 
         await refreshInspectionSnapshot();
+        void autoStartServe();
       } catch (error) {
         if (disposed) {
           return;
@@ -375,9 +428,30 @@ export function AppShell() {
         ]);
       });
 
+    void getServeStatus()
+      .then((status) => {
+        if (!disposed) {
+          setServeStatus(status);
+        }
+      })
+      .catch(() => {});
+
+    void subscribeServeStatus((status) => {
+      setServeStatus(status);
+    })
+      .then((cleanup) => {
+        if (disposed) {
+          cleanup();
+          return;
+        }
+        unsubscribeServe = cleanup;
+      })
+      .catch(() => {});
+
     return () => {
       disposed = true;
       unsubscribe();
+      unsubscribeServe();
     };
   }, []);
 
@@ -823,6 +897,9 @@ export function AppShell() {
               onCloseAuthDialog: handleCloseAuthDialog,
               onSave: handleSaveSettings,
               onUvSync: handleUvSync,
+              serveStatus,
+              serveBusy,
+              onServeReload: handleServeReload,
               onSetAutoScroll: setAutoScroll,
               onSetWrapLines: setWrapLines,
               onClearLogs: handleClearLogs,

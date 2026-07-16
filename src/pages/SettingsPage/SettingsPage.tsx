@@ -11,6 +11,7 @@ import { pauseHotkey } from '../../services/runtime/bridge';
 import type {
   EnvironmentProbe,
   RuntimeDriver,
+  ServeStatus,
 } from '../../services/runtime/runtime';
 import '../../styles/settings.css';
 
@@ -48,6 +49,9 @@ interface SettingsPageProps {
     fetchWorkers: number,
   ) => void;
   onUvSync: () => Promise<void>;
+  serveStatus: ServeStatus | null;
+  serveBusy: boolean;
+  onServeReload: () => Promise<void>;
   hotkey: string;
   onSetHotkey: (shortcut: string) => Promise<void>;
 }
@@ -78,6 +82,9 @@ export function SettingsPage({
   onCloseAuthDialog,
   onSave,
   onUvSync,
+  serveStatus,
+  serveBusy,
+  onServeReload,
   hotkey,
   onSetHotkey,
 }: SettingsPageProps) {
@@ -129,6 +136,24 @@ export function SettingsPage({
 
   const driverDisplayLabel =
     localDriver === 'conda' ? 'conda / 直接 Python' : 'uv';
+
+  const serveState = serveStatus?.status ?? 'stopped';
+  const serveLabel =
+    serveState === 'running'
+      ? '运行中'
+      : serveState === 'starting'
+        ? '启动中…'
+        : serveState === 'crashed'
+          ? serveStatus?.exitCode != null
+            ? `已崩溃（退出码 ${serveStatus.exitCode}）`
+            : '已崩溃'
+          : '未启动';
+  const serveBadgeClass =
+    serveState === 'running'
+      ? 'env-info-badge--ready'
+      : serveState === 'crashed'
+        ? 'env-info-badge--warn'
+        : '';
 
   async function handleBrowsePythonExe() {
     const picked = await onChoosePythonExe();
@@ -338,6 +363,33 @@ export function SettingsPage({
                   </div>
                 </div>
               ) : null}
+              <div className="env-info-row">
+                <span className="env-info-label">yutto server</span>
+                <span
+                  className={`env-info-badge ${serveBadgeClass}`}
+                  title={serveStatus?.message ?? undefined}
+                >
+                  {serveLabel}
+                </span>
+                {serveState === 'running' && serveStatus?.url ? (
+                  <span className="env-info-value env-info-mono">
+                    {serveStatus.url}
+                  </span>
+                ) : null}
+                <div className="workspace-actions">
+                  <button
+                    type="button"
+                    className="workspace-button"
+                    onClick={() => {
+                      void onServeReload();
+                    }}
+                    disabled={serveBusy || !envReady}
+                    title={envReady ? undefined : '环境未就绪'}
+                  >
+                    {serveBusy ? '重启中…' : '重启'}
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div className="group-title">环境配置</div>

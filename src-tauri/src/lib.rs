@@ -70,9 +70,18 @@ pub fn run() {
             runtime::commands::set_hotkey,
             runtime::commands::pause_hotkey,
             runtime::commands::uv_sync,
+            runtime::commands::serve_start,
+            runtime::commands::serve_stop,
+            runtime::commands::serve_status,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
 
-    app.run(|_app_handle, _event| {});
+    app.run(|app_handle, event| {
+        // Graceful half of "退出即杀"; the Windows Job Object covers crashes.
+        if let tauri::RunEvent::Exit = event {
+            let state = app_handle.state::<RuntimeState>();
+            runtime::serve::shutdown_serve_on_exit(&state);
+        }
+    });
 }

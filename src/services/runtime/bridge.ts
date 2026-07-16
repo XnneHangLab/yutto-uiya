@@ -7,6 +7,8 @@ import type {
   RuntimeEvent,
   RuntimeInspection,
   RuntimeTaskRecord,
+  ServeInfo,
+  ServeStatus,
   VideoMeta,
   VideoParseResult,
 } from './runtime';
@@ -90,6 +92,18 @@ export function setRuntimeDriver(
 
 export function uvSync() {
   return invoke<void>('uv_sync');
+}
+
+export function startServe() {
+  return invoke<ServeInfo>('serve_start');
+}
+
+export function stopServe() {
+  return invoke<void>('serve_stop');
+}
+
+export function getServeStatus() {
+  return invoke<ServeStatus>('serve_status');
 }
 
 export function pickPythonPath() {
@@ -183,4 +197,10 @@ export async function subscribeRuntimeEvents(
   return () => {
     unlistenCallbacks.forEach((cleanup) => cleanup());
   };
+}
+
+export function subscribeServeStatus(onStatus: (status: ServeStatus) => void) {
+  return listen<ServeStatus>('runtime:serve-status', (event) => {
+    onStatus(event.payload);
+  });
 }

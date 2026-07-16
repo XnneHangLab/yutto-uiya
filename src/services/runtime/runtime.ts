@@ -287,6 +287,21 @@ export function getQueueSummary(tasks: RuntimeTaskRecord[]) {
   };
 }
 
+export type ServeStatusKind = 'stopped' | 'starting' | 'running' | 'crashed';
+
+export interface ServeStatus {
+  status: ServeStatusKind;
+  url: string | null;
+  pid: number | null;
+  exitCode: number | null;
+  message: string | null;
+}
+
+export interface ServeInfo {
+  url: string;
+  token: string;
+}
+
 export function isEnvironmentReady(probe: EnvironmentProbe | null) {
   return probe?.status === 'ready';
 }

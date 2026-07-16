@@ -13,6 +13,7 @@ pub enum RuntimeDriverConfig {
 }
 
 use super::models::{RuntimeTaskRecord, TaskStatus};
+use super::serve::ServeProcess;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct QueuedTask {
@@ -210,6 +211,8 @@ pub struct RuntimeState {
     pub hotkey: Arc<Mutex<String>>,
     /// Download directory — relative (resolved against workspace_root) or absolute.
     pub download_dir: Arc<Mutex<String>>,
+    /// Managed `yutto serve` child (one per uiya instance).
+    pub(crate) serve: Arc<Mutex<ServeProcess>>,
 }
 
 impl RuntimeState {
@@ -225,6 +228,7 @@ impl RuntimeState {
             active_auth: Arc::new(Mutex::new(None)),
             hotkey: Arc::new(Mutex::new(DEFAULT_HOTKEY.to_string())),
             download_dir: Arc::new(Mutex::new(DEFAULT_DOWNLOAD_DIR.to_string())),
+            serve: Arc::new(Mutex::new(ServeProcess::default())),
         }
     }
 

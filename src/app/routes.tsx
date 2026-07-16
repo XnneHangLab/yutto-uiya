@@ -42,6 +42,7 @@ import type {
   RuntimeDriver,
   RuntimeInspection,
   RuntimeTaskRecord,
+  ServeStatus,
   VideoParseGroup,
   VideoParseItem,
 } from '../services/runtime/runtime';
@@ -105,6 +106,9 @@ interface RenderPageOptions {
     fetchWorkers: number,
   ) => void;
   onUvSync: () => Promise<void>;
+  serveStatus: ServeStatus | null;
+  serveBusy: boolean;
+  onServeReload: () => Promise<void>;
   onSetAutoScroll: (next: boolean) => void;
   onSetWrapLines: (next: boolean) => void;
   onClearLogs: () => void;
@@ -163,6 +167,9 @@ function renderLazyPage(
           onCloseAuthDialog={options.onCloseAuthDialog}
           onSave={options.onSave}
           onUvSync={options.onUvSync}
+          serveStatus={options.serveStatus}
+          serveBusy={options.serveBusy}
+          onServeReload={options.onServeReload}
           hotkey={options.hotkey}
           onSetHotkey={options.onSetHotkey}
         />
