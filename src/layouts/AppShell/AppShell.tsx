@@ -61,13 +61,13 @@ import {
   type VideoParseGroup,
   type VideoParseItem,
 } from '../../services/runtime/runtime';
-import { resolveParseTarget } from '../../services/yutto/parse';
 import {
   readStoredTheme,
   type ThemeMode,
   toggleThemeMode,
   writeStoredTheme,
 } from '../../services/theme/theme';
+import { resolveParseTarget } from '../../services/yutto/parse';
 
 function toErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);

@@ -895,6 +895,9 @@ pub fn read_system_proxy() -> Option<String> {
 /// Normalize the WinINET ProxyServer value into a proxy URL yutto accepts
 /// (http/https/socks5 schemes). Handles both the plain `host:port` form and
 /// the per-protocol `http=...;https=...;socks=...` form.
+// Only the Windows branch of read_system_proxy calls this, but the parsing is
+// pure string logic — keep it compiled (and unit-tested) on every platform.
+#[cfg_attr(not(target_os = "windows"), allow(dead_code))]
 pub fn parse_windows_proxy_server(server: &str) -> Option<String> {
     let server = server.trim();
     if server.is_empty() {
