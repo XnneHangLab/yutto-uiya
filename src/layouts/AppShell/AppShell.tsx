@@ -17,13 +17,13 @@ import {
   exportConsoleLogs,
   getHotkey,
   getServeStatus,
+  getSystemProxy,
   inspectRuntime,
   listDownloadTasks,
   listManagedFolders,
   logoutAuth,
   openManagedPath,
   openTaskSaveDir,
-  parseTarget,
   pickDownloadDir,
   pickFfmpegPath,
   pickPythonPath,
@@ -54,6 +54,7 @@ import {
   type ManagedFolderItem,
   type QualityOption,
   type RuntimeDriver,
+  type RuntimeEvent,
   type RuntimeInspection,
   type RuntimeTaskRecord,
   type ServeStatus,
@@ -66,6 +67,7 @@ import {
   toggleThemeMode,
   writeStoredTheme,
 } from '../../services/theme/theme';
+import { resolveParseTarget } from '../../services/yutto/parse';
 
 function toErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
@@ -346,30 +348,7 @@ export function AppShell() {
         }
 
         if (isParseRuntimeEvent(event)) {
-          if (
-            parsingTargetRef.current &&
-            event.target === parsingTargetRef.current
-          ) {
-            setParseItems((current) => applyParseRuntimeEvent(current, event));
-
-            if (event.event === 'parse.started') {
-              setParseSelected(new Set());
-              setParseGroups([]);
-              setParseDirOverride('');
-              setParseVideoQualities([]);
-            } else if (event.event === 'parse.item' && event.parseItem) {
-              setParseSelected((current) => {
-                const next = new Set(current);
-                next.add(event.parseItem!.index);
-                return next;
-              });
-            }
-          }
-
-          setLogs((current) => [
-            ...current,
-            createConsoleLogFromRuntimeEvent(event),
-          ]);
+          processParseRuntimeEvent(event);
           return;
         }
 
@@ -496,6 +475,58 @@ export function AppShell() {
     }
   }
 
+  /**
+   * Console entry for a parse event, or null for lifecycle noise. The serve
+   * already streams yutto's own Logger lines through runtime:raw-log, so the
+   * console only gets short milestone lines instead of one URL-prefixed line
+   * per wire event.
+   */
+  function consoleEntryForParseEvent(event: RuntimeEvent) {
+    switch (event.event) {
+      case 'parse.started':
+        return createConsoleLog('system', `[解析] 开始解析 ${event.target}`);
+      case 'parse.item':
+        return createConsoleLog('system', `[解析] ${event.message}`);
+      case 'parse.completed':
+        return createConsoleLog('system', '[解析] 解析完成');
+      case 'parse.failed':
+        return createConsoleLog('stderr', `[解析] ${event.message}`);
+      case 'parse.cancelled':
+        return createConsoleLog('system', '[解析] 已取消');
+      default:
+        // queued / stage / file_progress 等中间态不进控制台。
+        return null;
+    }
+  }
+
+  /**
+   * Shared by the Tauri runtime:event subscription and the in-process
+   * resolveParseTarget stream — both deliver parse.* RuntimeEvents.
+   */
+  function processParseRuntimeEvent(event: RuntimeEvent) {
+    if (parsingTargetRef.current && event.target === parsingTargetRef.current) {
+      setParseItems((current) => applyParseRuntimeEvent(current, event));
+
+      if (event.event === 'parse.started') {
+        setParseSelected(new Set());
+        setParseGroups([]);
+        setParseDirOverride('');
+        setParseVideoQualities([]);
+      } else if (event.event === 'parse.item' && event.parseItem) {
+        setParseSelected((current) => {
+          const next = new Set(current);
+          next.add(event.parseItem!.index);
+          return next;
+        });
+      }
+    }
+
+    const entry = consoleEntryForParseEvent(event);
+    if (entry) {
+      setLogs((current) => [...current, entry]);
+    }
+  }
+
   async function handleParseTarget(url: string): Promise<VideoParseItem[]> {
     if (!isEnvironmentReady(environmentProbe)) {
       setLogs((current) => [
@@ -504,9 +535,44 @@ export function AppShell() {
       ]);
       return [];
     }
+    if (environmentProbe?.authState !== 'authenticated') {
+      setLogs((current) => [
+        ...current,
+        createConsoleLog(
+          'stderr',
+          '[解析] 当前未登录 B 站，解析容易被风控拒绝；可在 设置 → 认证操作 扫码登录',
+        ),
+      ]);
+    }
     try {
+      // startServe is idempotent: it returns the running server's info or
+      // boots one first — which also revives a crashed serve before parsing.
+      const serveInfo = await startServe();
+      serveTokenRef.current = serveInfo.token;
+      // uiya owns the proxy decision: 直连, or the LIVE Windows system proxy
+      // (read per parse, so toggling the proxy client applies immediately).
+      // Never 'auto' — environment variables are launch-time snapshots and
+      // must not silently decide the route.
+      let proxy = 'no';
+      if (!noProxy) {
+        proxy = (await getSystemProxy().catch(() => null)) ?? 'no';
+      }
+      setLogs((current) => [
+        ...current,
+        createConsoleLog(
+          'system',
+          proxy === 'no'
+            ? '[解析] 网络：直连'
+            : `[解析] 网络：系统代理 ${proxy}`,
+        ),
+      ]);
       parsingTargetRef.current = url;
-      const result = await parseTarget(url);
+      const result = await resolveParseTarget({
+        serve: serveInfo,
+        target: url,
+        network: { proxy, fetchWorkers },
+        onEvent: processParseRuntimeEvent,
+      });
       const nextGroups = normalizeParseGroups(result.groups ?? []);
       const nextItems = collectParseItems(result.items, nextGroups);
       setParseItems(result.items);
@@ -529,10 +595,22 @@ export function AppShell() {
       }
       return result.items;
     } catch (error) {
-      setLogs((current) => [
-        ...current,
-        createConsoleLog('stderr', `解析失败: ${toErrorMessage(error)}`),
-      ]);
+      const message = toErrorMessage(error);
+      setLogs((current) => {
+        const next = [
+          ...current,
+          createConsoleLog('stderr', `解析失败: ${message}`),
+        ];
+        if (message.includes('ConnectError') && !noProxy) {
+          next.push(
+            createConsoleLog(
+              'stderr',
+              '[解析] 连接失败：若系统代理不可用，可在 设置 → 网络 勾选「不使用代理」改为直连后重试',
+            ),
+          );
+        }
+        return next;
+      });
       return [];
     } finally {
       if (parsingTargetRef.current === url) {

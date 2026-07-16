@@ -165,25 +165,56 @@ function translateState(
   }
 }
 
-function translateItemListed(
-  context: TaskEventAdapterContext,
-  event: TaskEventPayload,
+/**
+ * Build a VideoParseItem from a wire item shape ({url, name, title,
+ * cover_url, planned_path, ...}) — shared by the live item_listed translation
+ * and by rebuilding the final list from ResolveResult.items.
+ */
+export function wireItemToParseItem(
+  data: Record<string, unknown>,
   index: number,
-): RuntimeEvent[] {
-  const data = event.data;
-  const title = String(data.name ?? data.title ?? '');
+  outputDirectory?: string,
+): VideoParseItem {
+  // Grouped items (合集/多P) display their episode name; standalone videos
+  // display the video title — the wire `name` of a single video is often the
+  // raw uploaded filename (e.g. lv_0_xxx / mmexport_xxx), useless in lists.
+  const grouped =
+    typeof data.display_group === 'string' && data.display_group !== '';
+  const displayTitle = grouped
+    ? (data.name ?? data.title)
+    : (data.title ?? data.name);
   const item: VideoParseItem = {
     index,
-    title,
+    title: String(displayTitle ?? ''),
     url: String(data.url ?? ''),
     dir: relativeParentDir(
       typeof data.planned_path === 'string' ? data.planned_path : '',
-      context.outputDirectory,
+      outputDirectory,
     ),
   };
   if (typeof data.cover_url === 'string' && data.cover_url) {
     item.cover = data.cover_url;
   }
+  if (typeof data.uploader === 'string' && data.uploader) {
+    item.uploader = data.uploader;
+  }
+  if (typeof data.description === 'string' && data.description) {
+    item.description = data.description;
+  }
+  if (Array.isArray(data.tags) && data.tags.length > 0) {
+    item.tags = data.tags.filter(
+      (tag): tag is string => typeof tag === 'string',
+    );
+  }
+  return item;
+}
+
+function translateItemListed(
+  context: TaskEventAdapterContext,
+  event: TaskEventPayload,
+  index: number,
+): RuntimeEvent[] {
+  const item = wireItemToParseItem(event.data, index, context.outputDirectory);
   return [
     {
       ...baseEvent(
@@ -191,7 +222,7 @@ function translateItemListed(
         event,
         'parse.item',
         'preparing',
-        `解析到 ${title}`,
+        `解析到 ${item.title}`,
       ),
       parseItem: item,
     },

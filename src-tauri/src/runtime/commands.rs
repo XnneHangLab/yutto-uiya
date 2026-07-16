@@ -6,10 +6,10 @@ use std::os::windows::process::CommandExt;
 
 use super::process::{
     drain_download_queue, ensure_environment_ready, kill_process, open_path, open_url,
-    pick_download_dir, pick_ffmpeg_path, pick_python_path, pick_workspace_root,
+    pick_download_dir, pick_ffmpeg_path, pick_python_path, pick_workspace_root, read_system_proxy,
     resolve_managed_path, run_auth_login_command, run_auth_logout_command, run_fetch_cover_command,
-    run_fetch_meta_command, run_inspect_command, run_parse_command, run_probe_command,
-    run_save_settings_command, run_uv_sync_command, write_console_log,
+    run_fetch_meta_command, run_inspect_command, run_probe_command, run_save_settings_command,
+    run_uv_sync_command, write_console_log,
 };
 use super::state::{
     read_saved_download_dir, read_saved_driver_config, read_saved_hotkey,
@@ -110,30 +110,6 @@ pub async fn probe_environment(
     run_blocking_runtime_action(move || {
         let probe = run_probe_command(&repo_root, &workspace_root, &driver, &ffmpeg_path, &app)?;
         serde_json::to_value(probe).map_err(|error| error.to_string())
-    })
-    .await
-}
-
-#[tauri::command]
-pub async fn parse_target(
-    app: AppHandle,
-    state: State<'_, RuntimeState>,
-    target: String,
-) -> Result<serde_json::Value, String> {
-    let repo_root = state.repo_root.clone();
-    let workspace_root = state.current_workspace_root();
-    let driver = state.current_driver_config();
-    let ffmpeg_path = state.current_ffmpeg_path();
-    run_blocking_runtime_action(move || {
-        let result = run_parse_command(
-            &repo_root,
-            &workspace_root,
-            &driver,
-            &target,
-            &ffmpeg_path,
-            &app,
-        )?;
-        serde_json::to_value(result).map_err(|error| error.to_string())
     })
     .await
 }
@@ -307,7 +283,6 @@ pub async fn start_auth_login(
                     percent: None,
                     downloaded: None,
                     total: None,
-                    parse_item: None,
                     auth_qr_data_url: None,
                 },
             );
@@ -331,7 +306,6 @@ pub async fn start_auth_login(
                     percent: None,
                     downloaded: None,
                     total: None,
-                    parse_item: None,
                     auth_qr_data_url: None,
                 },
             );
@@ -385,7 +359,6 @@ pub async fn logout_auth(app: AppHandle, state: State<'_, RuntimeState>) -> Resu
             percent: None,
             downloaded: None,
             total: None,
-            parse_item: None,
             auth_qr_data_url: None,
         },
     );
@@ -417,6 +390,11 @@ pub async fn serve_stop(app: AppHandle, state: State<'_, RuntimeState>) -> Resul
 #[tauri::command]
 pub fn serve_status(state: State<'_, RuntimeState>) -> super::serve::ServeStatusPayload {
     super::serve::current_status(&state)
+}
+
+#[tauri::command]
+pub fn get_system_proxy() -> Option<String> {
+    read_system_proxy()
 }
 
 #[tauri::command]
@@ -459,7 +437,6 @@ pub fn cancel_task(
                 percent: None,
                 downloaded: None,
                 total: None,
-                parse_item: None,
                 auth_qr_data_url: None,
             },
         );
@@ -504,7 +481,6 @@ pub fn cancel_task(
                     percent: None,
                     downloaded: None,
                     total: None,
-                    parse_item: None,
                     auth_qr_data_url: None,
                 },
             );

@@ -59,7 +59,6 @@ pub fn run() {
             runtime::commands::pick_ffmpeg_path_command,
             runtime::commands::detect_ffmpeg_path,
             runtime::commands::pick_download_dir_command,
-            runtime::commands::parse_target,
             runtime::commands::fetch_video_meta,
             runtime::commands::fetch_cover_image,
             runtime::commands::cancel_task,
@@ -73,6 +72,7 @@ pub fn run() {
             runtime::commands::serve_start,
             runtime::commands::serve_stop,
             runtime::commands::serve_status,
+            runtime::commands::get_system_proxy,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

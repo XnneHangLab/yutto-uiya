@@ -10,7 +10,6 @@ import type {
   ServeInfo,
   ServeStatus,
   VideoMeta,
-  VideoParseResult,
 } from './runtime';
 
 export function probeEnvironment() {
@@ -106,6 +105,11 @@ export function getServeStatus() {
   return invoke<ServeStatus>('serve_status');
 }
 
+/** Live Windows system proxy (WinINET), or null when disabled/unsupported. */
+export function getSystemProxy() {
+  return invoke<string | null>('get_system_proxy');
+}
+
 export function pickPythonPath() {
   return invoke<string | null>('pick_python_path_command');
 }
@@ -136,10 +140,6 @@ export function cancelAuthLogin() {
 
 export function logoutAuth() {
   return invoke<string>('logout_auth');
-}
-
-export function parseTarget(target: string) {
-  return invoke<VideoParseResult>('parse_target', { target });
 }
 
 export function openPath(path: string) {
