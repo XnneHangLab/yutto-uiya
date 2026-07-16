@@ -561,7 +561,9 @@ export function AppShell() {
         ...current,
         createConsoleLog(
           'system',
-          proxy === 'no' ? '[解析] 网络：直连' : `[解析] 网络：系统代理 ${proxy}`,
+          proxy === 'no'
+            ? '[解析] 网络：直连'
+            : `[解析] 网络：系统代理 ${proxy}`,
         ),
       ]);
       parsingTargetRef.current = url;
