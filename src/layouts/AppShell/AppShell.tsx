@@ -578,10 +578,25 @@ export function AppShell() {
       }
       return result.items;
     } catch (error) {
-      setLogs((current) => [
-        ...current,
-        createConsoleLog('stderr', `解析失败: ${toErrorMessage(error)}`),
-      ]);
+      const message = toErrorMessage(error);
+      setLogs((current) => {
+        const next = [
+          ...current,
+          createConsoleLog('stderr', `解析失败: ${message}`),
+        ];
+        if (message.includes('ConnectError') && !noProxy) {
+          // verify=False + 环境变量代理（如终端里的 HTTP_PROXY）会让所有请求
+          // 直接 ConnectError；勾选 不使用代理 走直连即可绕开。
+          next.push(
+            createConsoleLog(
+              'stderr',
+              '[解析] 连接失败通常由系统/终端代理引起（HTTP_PROXY 等）；' +
+                '可在 设置 → 网络 勾选「不使用代理」后重试',
+            ),
+          );
+        }
+        return next;
+      });
       return [];
     } finally {
       if (parsingTargetRef.current === url) {
