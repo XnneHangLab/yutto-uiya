@@ -107,6 +107,31 @@ describe('createTaskEventTranslator (resolve tasks)', () => {
     expect(event.parseItem).toMatchObject({ title: '真实的视频标题' });
   });
 
+  it('carries uploader, description and tags from the wire item', () => {
+    const translate = createTaskEventTranslator(context);
+    const [event] = translate(
+      wireEvent({
+        seq: 10,
+        kind: 'item_listed',
+        data: {
+          url: 'https://www.bilibili.com/video/BV1zz',
+          name: 'EP01',
+          title: '标题',
+          planned_path: '/dl/root/标题.mp4',
+          display_group: null,
+          uploader: '某UP主',
+          description: '这是视频简介',
+          tags: ['音乐', '翻唱', 42],
+        },
+      }),
+    );
+    expect(event.parseItem).toMatchObject({
+      uploader: '某UP主',
+      description: '这是视频简介',
+      tags: ['音乐', '翻唱'],
+    });
+  });
+
   it('drops duplicated seqs from the replay/live overlap', () => {
     const translate = createTaskEventTranslator(context);
     const event = wireEvent({ seq: 5, data: { to: 'running' } });

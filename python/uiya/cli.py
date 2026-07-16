@@ -68,8 +68,23 @@ def _build_yutto_command(
     return command
 
 
-def _fetch_image_as_data_url(url: str) -> str:
-    """Download an image with Bilibili referer and return a base64 data URL."""
+def _load_no_proxy_setting() -> bool:
+    """uiya.toml 的 不使用代理 开关；读取失败时按未开启处理。"""
+    try:
+        from uiya.utils.config import UiyaSetting, load_settings_file
+
+        settings = load_settings_file("uiya.toml", UiyaSetting)
+        return bool(getattr(settings, "no_proxy", False))
+    except Exception:
+        return False
+
+
+def _fetch_image_as_data_url(url: str, no_proxy: bool = False) -> str:
+    """Download an image with Bilibili referer and return a base64 data URL.
+
+    no_proxy 时强制直连（绕过环境变量与系统注册表代理），与解析/下载的
+    不使用代理 行为保持一致。
+    """
     try:
         req = urllib.request.Request(
             url,
@@ -78,7 +93,10 @@ def _fetch_image_as_data_url(url: str) -> str:
                 "Referer": "https://www.bilibili.com",
             },
         )
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        opener = (
+            urllib.request.build_opener(urllib.request.ProxyHandler({})) if no_proxy else urllib.request.build_opener()
+        )
+        with opener.open(req, timeout=10) as resp:
             img_bytes = resp.read()
             mime = resp.headers.get_content_type() or "image/jpeg"
         return f"data:{mime};base64,{base64.b64encode(img_bytes).decode()}"
@@ -357,6 +375,7 @@ def cmd_fetch_meta(url: str) -> None:
     def emit_payload(payload: dict[str, Any]) -> None:
         print(json.dumps({"kind": "payload", "payload": payload}, ensure_ascii=False), flush=True)
 
+    trust_env = not _load_no_proxy_setting()
     bvid_m = re.search(r"(BV[1-9A-HJ-NP-Za-km-z]{10})", url)
     if not bvid_m:
         emit_payload({"error": "无法从 URL 中提取 BV 号"})
@@ -364,7 +383,7 @@ def cmd_fetch_meta(url: str) -> None:
     bvid = bvid_m.group(1)
     api_url = f"https://api.bilibili.com/x/web-interface/view?bvid={bvid}"
     try:
-        with httpx.Client(timeout=10, http2=True, headers=_headers) as client:
+        with httpx.Client(timeout=10, http2=True, headers=_headers, trust_env=trust_env) as client:
             data = client.get(api_url).raise_for_status().json()
     except Exception as exc:
         emit_payload({"error": f"请求失败: {exc}"})
@@ -381,7 +400,7 @@ def cmd_fetch_meta(url: str) -> None:
     pic_url = d.get("pic", "")
     if pic_url:
         try:
-            with httpx.Client(timeout=10, http2=True, headers=_headers) as client:
+            with httpx.Client(timeout=10, http2=True, headers=_headers, trust_env=trust_env) as client:
                 img_resp = client.get(pic_url).raise_for_status()
                 img_bytes = img_resp.content
                 mime = img_resp.headers.get("content-type", "image/jpeg").split(";")[0]
@@ -412,7 +431,7 @@ def cmd_fetch_cover(url: str) -> None:
     def emit_payload(payload: dict[str, Any]) -> None:
         print(json.dumps({"kind": "payload", "payload": payload}, ensure_ascii=False), flush=True)
 
-    data_url = _fetch_image_as_data_url(url)
+    data_url = _fetch_image_as_data_url(url, no_proxy=_load_no_proxy_setting())
     if data_url:
         emit_payload({"dataUrl": data_url})
     else:

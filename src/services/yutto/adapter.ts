@@ -195,6 +195,17 @@ export function wireItemToParseItem(
   if (typeof data.cover_url === 'string' && data.cover_url) {
     item.cover = data.cover_url;
   }
+  if (typeof data.uploader === 'string' && data.uploader) {
+    item.uploader = data.uploader;
+  }
+  if (typeof data.description === 'string' && data.description) {
+    item.description = data.description;
+  }
+  if (Array.isArray(data.tags) && data.tags.length > 0) {
+    item.tags = data.tags.filter(
+      (tag): tag is string => typeof tag === 'string',
+    );
+  }
   return item;
 }
 
