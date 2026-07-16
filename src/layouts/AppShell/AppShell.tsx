@@ -23,7 +23,6 @@ import {
   logoutAuth,
   openManagedPath,
   openTaskSaveDir,
-  parseTarget,
   pickDownloadDir,
   pickFfmpegPath,
   pickPythonPath,
@@ -54,12 +53,14 @@ import {
   type ManagedFolderItem,
   type QualityOption,
   type RuntimeDriver,
+  type RuntimeEvent,
   type RuntimeInspection,
   type RuntimeTaskRecord,
   type ServeStatus,
   type VideoParseGroup,
   type VideoParseItem,
 } from '../../services/runtime/runtime';
+import { resolveParseTarget } from '../../services/yutto/parse';
 import {
   readStoredTheme,
   type ThemeMode,
@@ -346,30 +347,7 @@ export function AppShell() {
         }
 
         if (isParseRuntimeEvent(event)) {
-          if (
-            parsingTargetRef.current &&
-            event.target === parsingTargetRef.current
-          ) {
-            setParseItems((current) => applyParseRuntimeEvent(current, event));
-
-            if (event.event === 'parse.started') {
-              setParseSelected(new Set());
-              setParseGroups([]);
-              setParseDirOverride('');
-              setParseVideoQualities([]);
-            } else if (event.event === 'parse.item' && event.parseItem) {
-              setParseSelected((current) => {
-                const next = new Set(current);
-                next.add(event.parseItem!.index);
-                return next;
-              });
-            }
-          }
-
-          setLogs((current) => [
-            ...current,
-            createConsoleLogFromRuntimeEvent(event),
-          ]);
+          processParseRuntimeEvent(event);
           return;
         }
 
@@ -496,6 +474,31 @@ export function AppShell() {
     }
   }
 
+  /**
+   * Shared by the Tauri runtime:event subscription and the in-process
+   * resolveParseTarget stream — both deliver parse.* RuntimeEvents.
+   */
+  function processParseRuntimeEvent(event: RuntimeEvent) {
+    if (parsingTargetRef.current && event.target === parsingTargetRef.current) {
+      setParseItems((current) => applyParseRuntimeEvent(current, event));
+
+      if (event.event === 'parse.started') {
+        setParseSelected(new Set());
+        setParseGroups([]);
+        setParseDirOverride('');
+        setParseVideoQualities([]);
+      } else if (event.event === 'parse.item' && event.parseItem) {
+        setParseSelected((current) => {
+          const next = new Set(current);
+          next.add(event.parseItem!.index);
+          return next;
+        });
+      }
+    }
+
+    setLogs((current) => [...current, createConsoleLogFromRuntimeEvent(event)]);
+  }
+
   async function handleParseTarget(url: string): Promise<VideoParseItem[]> {
     if (!isEnvironmentReady(environmentProbe)) {
       setLogs((current) => [
@@ -505,8 +508,16 @@ export function AppShell() {
       return [];
     }
     try {
+      // startServe is idempotent: it returns the running server's info or
+      // boots one first — which also revives a crashed serve before parsing.
+      const serveInfo = await startServe();
+      serveTokenRef.current = serveInfo.token;
       parsingTargetRef.current = url;
-      const result = await parseTarget(url);
+      const result = await resolveParseTarget({
+        serve: serveInfo,
+        target: url,
+        onEvent: processParseRuntimeEvent,
+      });
       const nextGroups = normalizeParseGroups(result.groups ?? []);
       const nextItems = collectParseItems(result.items, nextGroups);
       setParseItems(result.items);

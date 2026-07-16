@@ -10,7 +10,6 @@ import type {
   ServeInfo,
   ServeStatus,
   VideoMeta,
-  VideoParseResult,
 } from './runtime';
 
 export function probeEnvironment() {
@@ -136,10 +135,6 @@ export function cancelAuthLogin() {
 
 export function logoutAuth() {
   return invoke<string>('logout_auth');
-}
-
-export function parseTarget(target: string) {
-  return invoke<VideoParseResult>('parse_target', { target });
 }
 
 export function openPath(path: string) {
