@@ -72,6 +72,7 @@ pub fn run() {
             runtime::commands::serve_start,
             runtime::commands::serve_stop,
             runtime::commands::serve_status,
+            runtime::commands::get_system_proxy,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

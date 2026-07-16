@@ -17,6 +17,7 @@ import {
   exportConsoleLogs,
   getHotkey,
   getServeStatus,
+  getSystemProxy,
   inspectRuntime,
   listDownloadTasks,
   listManagedFolders,
@@ -548,12 +549,26 @@ export function AppShell() {
       // boots one first — which also revives a crashed serve before parsing.
       const serveInfo = await startServe();
       serveTokenRef.current = serveInfo.token;
+      // uiya owns the proxy decision: 直连, or the LIVE Windows system proxy
+      // (read per parse, so toggling the proxy client applies immediately).
+      // Never 'auto' — environment variables are launch-time snapshots and
+      // must not silently decide the route.
+      let proxy = 'no';
+      if (!noProxy) {
+        proxy = (await getSystemProxy().catch(() => null)) ?? 'no';
+      }
+      setLogs((current) => [
+        ...current,
+        createConsoleLog(
+          'system',
+          proxy === 'no' ? '[解析] 网络：直连' : `[解析] 网络：系统代理 ${proxy}`,
+        ),
+      ]);
       parsingTargetRef.current = url;
       const result = await resolveParseTarget({
         serve: serveInfo,
         target: url,
-        // 与旧管线的 --proxy / --fetch-workers 行为对齐。
-        network: { proxy: noProxy ? 'no' : 'auto', fetchWorkers },
+        network: { proxy, fetchWorkers },
         onEvent: processParseRuntimeEvent,
       });
       const nextGroups = normalizeParseGroups(result.groups ?? []);
@@ -585,13 +600,10 @@ export function AppShell() {
           createConsoleLog('stderr', `解析失败: ${message}`),
         ];
         if (message.includes('ConnectError') && !noProxy) {
-          // verify=False + 环境变量代理（如终端里的 HTTP_PROXY）会让所有请求
-          // 直接 ConnectError；勾选 不使用代理 走直连即可绕开。
           next.push(
             createConsoleLog(
               'stderr',
-              '[解析] 连接失败通常由系统/终端代理引起（HTTP_PROXY 等）；' +
-                '可在 设置 → 网络 勾选「不使用代理」后重试',
+              '[解析] 连接失败：若系统代理不可用，可在 设置 → 网络 勾选「不使用代理」改为直连后重试',
             ),
           );
         }

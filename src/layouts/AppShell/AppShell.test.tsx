@@ -89,6 +89,7 @@ vi.mock('../../services/runtime/bridge', async () => {
       message: null,
     }),
     subscribeServeStatus: vi.fn().mockResolvedValue(() => {}),
+    getSystemProxy: vi.fn().mockResolvedValue(null),
     startAuthLogin: vi.fn().mockResolvedValue(undefined),
     cancelAuthLogin: vi.fn().mockResolvedValue(undefined),
     logoutAuth: vi.fn().mockResolvedValue('已退出登录'),

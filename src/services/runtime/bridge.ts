@@ -105,6 +105,11 @@ export function getServeStatus() {
   return invoke<ServeStatus>('serve_status');
 }
 
+/** Live Windows system proxy (WinINET), or null when disabled/unsupported. */
+export function getSystemProxy() {
+  return invoke<string | null>('get_system_proxy');
+}
+
 export function pickPythonPath() {
   return invoke<string | null>('pick_python_path_command');
 }

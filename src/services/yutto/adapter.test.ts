@@ -89,6 +89,24 @@ describe('createTaskEventTranslator (resolve tasks)', () => {
     expect(second[0].parseItem).toMatchObject({ index: 2, dir: '' });
   });
 
+  it('prefers the video title over the raw page name for standalone items', () => {
+    const translate = createTaskEventTranslator(context);
+    const [event] = translate(
+      wireEvent({
+        seq: 9,
+        kind: 'item_listed',
+        data: {
+          url: 'https://www.bilibili.com/video/BV1yy',
+          name: 'lv_0_20251013182016',
+          title: '真实的视频标题',
+          planned_path: '/dl/root/真实的视频标题.mp4',
+          display_group: null,
+        },
+      }),
+    );
+    expect(event.parseItem).toMatchObject({ title: '真实的视频标题' });
+  });
+
   it('drops duplicated seqs from the replay/live overlap', () => {
     const translate = createTaskEventTranslator(context);
     const event = wireEvent({ seq: 5, data: { to: 'running' } });

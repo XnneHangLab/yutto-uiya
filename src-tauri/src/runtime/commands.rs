@@ -6,7 +6,7 @@ use std::os::windows::process::CommandExt;
 
 use super::process::{
     drain_download_queue, ensure_environment_ready, kill_process, open_path, open_url,
-    pick_download_dir, pick_ffmpeg_path, pick_python_path, pick_workspace_root,
+    pick_download_dir, pick_ffmpeg_path, pick_python_path, pick_workspace_root, read_system_proxy,
     resolve_managed_path, run_auth_login_command, run_auth_logout_command, run_fetch_cover_command,
     run_fetch_meta_command, run_inspect_command, run_probe_command, run_save_settings_command,
     run_uv_sync_command, write_console_log,
@@ -390,6 +390,11 @@ pub async fn serve_stop(app: AppHandle, state: State<'_, RuntimeState>) -> Resul
 #[tauri::command]
 pub fn serve_status(state: State<'_, RuntimeState>) -> super::serve::ServeStatusPayload {
     super::serve::current_status(&state)
+}
+
+#[tauri::command]
+pub fn get_system_proxy() -> Option<String> {
+    read_system_proxy()
 }
 
 #[tauri::command]

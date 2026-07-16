@@ -852,6 +852,81 @@ pub fn drain_download_queue(app: AppHandle, state: RuntimeState) {
     }
 }
 
+/// Windows system proxy (WinINET, what browsers follow), or None when
+/// disabled/absent. Read live per call so toggling the proxy client's
+/// "system proxy" switch takes effect immediately — unlike environment
+/// variables, which are frozen at process launch.
+pub fn read_system_proxy() -> Option<String> {
+    #[cfg(target_os = "windows")]
+    {
+        let query = |value: &str| -> Option<String> {
+            let output = new_background_command("reg")
+                .args([
+                    "query",
+                    r"HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings",
+                    "/v",
+                    value,
+                ])
+                .output()
+                .ok()?;
+            String::from_utf8_lossy(&output.stdout)
+                .lines()
+                .find_map(|line| {
+                    let mut parts = line.split_whitespace();
+                    if parts.next() != Some(value) {
+                        return None;
+                    }
+                    parts.next(); // REG_DWORD / REG_SZ
+                    parts.next().map(str::to_string)
+                })
+        };
+        let enabled = query("ProxyEnable")?;
+        if enabled != "0x1" {
+            return None;
+        }
+        parse_windows_proxy_server(&query("ProxyServer")?)
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        None
+    }
+}
+
+/// Normalize the WinINET ProxyServer value into a proxy URL yutto accepts
+/// (http/https/socks5 schemes). Handles both the plain `host:port` form and
+/// the per-protocol `http=...;https=...;socks=...` form.
+pub fn parse_windows_proxy_server(server: &str) -> Option<String> {
+    let server = server.trim();
+    if server.is_empty() {
+        return None;
+    }
+    if !server.contains('=') {
+        return Some(normalize_proxy_url(server, "http"));
+    }
+    let mut by_protocol = std::collections::HashMap::new();
+    for entry in server.split(';') {
+        if let Some((protocol, address)) = entry.split_once('=') {
+            by_protocol.insert(protocol.trim().to_ascii_lowercase(), address.trim());
+        }
+    }
+    for (protocol, scheme) in [("https", "http"), ("http", "http"), ("socks", "socks5")] {
+        if let Some(address) = by_protocol.get(protocol) {
+            if !address.is_empty() {
+                return Some(normalize_proxy_url(address, scheme));
+            }
+        }
+    }
+    None
+}
+
+fn normalize_proxy_url(address: &str, default_scheme: &str) -> String {
+    if address.contains("://") {
+        address.to_string()
+    } else {
+        format!("{default_scheme}://{address}")
+    }
+}
+
 /// Kill the process with the given PID. On Windows, kills the whole process tree.
 pub fn kill_process(pid: u32) {
     #[cfg(target_os = "windows")]
@@ -1536,9 +1611,45 @@ mod tests {
 
     use super::{
         build_direct_python_command, build_terminal_failure_event, build_uv_python_command,
-        build_windows_open_command, managed_path_from_payload, runtime_event_from_python_payload,
-        EnvironmentProbePayload, ENVIRONMENT_PROBE_SCRIPT,
+        build_windows_open_command, managed_path_from_payload, parse_windows_proxy_server,
+        runtime_event_from_python_payload, EnvironmentProbePayload, ENVIRONMENT_PROBE_SCRIPT,
     };
+
+    #[test]
+    fn parse_windows_proxy_server_plain_host_port() {
+        assert_eq!(
+            parse_windows_proxy_server("127.0.0.1:7890"),
+            Some("http://127.0.0.1:7890".to_string())
+        );
+    }
+
+    #[test]
+    fn parse_windows_proxy_server_per_protocol_prefers_https() {
+        assert_eq!(
+            parse_windows_proxy_server(
+                "http=127.0.0.1:7890;https=127.0.0.1:7891;socks=127.0.0.1:7892"
+            ),
+            Some("http://127.0.0.1:7891".to_string())
+        );
+    }
+
+    #[test]
+    fn parse_windows_proxy_server_socks_only_maps_to_socks5() {
+        assert_eq!(
+            parse_windows_proxy_server("socks=127.0.0.1:7892"),
+            Some("socks5://127.0.0.1:7892".to_string())
+        );
+    }
+
+    #[test]
+    fn parse_windows_proxy_server_keeps_existing_scheme_and_rejects_empty() {
+        assert_eq!(
+            parse_windows_proxy_server("socks5://127.0.0.1:1080"),
+            Some("socks5://127.0.0.1:1080".to_string())
+        );
+        assert_eq!(parse_windows_proxy_server("  "), None);
+        assert_eq!(parse_windows_proxy_server("ftp=127.0.0.1:2121"), None);
+    }
 
     #[test]
     fn build_uv_python_command_always_includes_no_sync() {
