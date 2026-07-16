@@ -140,7 +140,7 @@ fn assign_kill_on_close_job(child: &std::process::Child) -> Result<win32job::Job
         .query_extended_limit_info()
         .map_err(|error| error.to_string())?;
     info.limit_kill_on_job_close();
-    job.set_extended_limit_info(&mut info)
+    job.set_extended_limit_info(&info)
         .map_err(|error| error.to_string())?;
     job.assign_process(child.as_raw_handle() as _)
         .map_err(|error| error.to_string())?;
@@ -225,7 +225,12 @@ pub fn start_serve(app: &AppHandle, state: &RuntimeState) -> Result<ServeInfo, S
     let mut child = match command.spawn() {
         Ok(child) => child,
         Err(error) => {
-            return fail_start(app, state, generation, format!("启动 yutto server 失败: {error}"));
+            return fail_start(
+                app,
+                state,
+                generation,
+                format!("启动 yutto server 失败: {error}"),
+            );
         }
     };
     let pid = child.id();
@@ -240,7 +245,10 @@ pub fn start_serve(app: &AppHandle, state: &RuntimeState) -> Result<ServeInfo, S
                 }
             }
             Err(error) => {
-                emit_raw_log(app, &format!("[serve] Job Object 绑定失败（崩溃兜底不可用）: {error}"));
+                emit_raw_log(
+                    app,
+                    &format!("[serve] Job Object 绑定失败（崩溃兜底不可用）: {error}"),
+                );
             }
         }
     }
