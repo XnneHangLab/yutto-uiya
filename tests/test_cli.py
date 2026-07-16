@@ -1,12 +1,8 @@
 from __future__ import annotations
 
 import base64
-import sys
 
-from uiya.cli import (
-    _build_qr_data_url,
-    _build_yutto_command,
-)
+from uiya.cli import _build_qr_data_url
 
 
 def test_build_qr_data_url_generates_png_with_alpha_channel():
@@ -24,13 +20,3 @@ def test_build_qr_data_url_uses_tight_png_dimensions():
     height = int.from_bytes(raw[20:24], "big")
 
     assert width == height == 216
-
-
-def test_build_yutto_command_uses_current_python_for_download():
-    command = _build_yutto_command(
-        "https://example.com/video",
-        select_index=2,
-    )
-
-    assert command[:4] == [sys.executable, "-m", "yutto", "https://example.com/video"]
-    assert ["-b", "-p", "2"] == command[5:8]

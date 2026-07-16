@@ -4,11 +4,31 @@ import { vi } from 'vitest';
 import App from '../../app/App';
 import * as runtimeBridge from '../../services/runtime/bridge';
 import type { RuntimeEvent } from '../../services/runtime/runtime';
+import { startDownload } from '../../services/yutto/download';
 import { resolveParseTarget } from '../../services/yutto/parse';
 
 vi.mock('../../services/yutto/parse', () => ({
   resolveParseTarget: vi.fn(),
 }));
+
+vi.mock('../../services/yutto/download', () => ({
+  startDownload: vi.fn(),
+  cancelDownload: vi.fn(),
+}));
+
+function queuedRecord(taskId: string, target: string, label: string) {
+  return {
+    taskId,
+    target,
+    label,
+    status: 'queued' as const,
+    message: '已进入下载队列',
+    progressCurrent: 0,
+    progressTotal: 3,
+    updatedAt: '1712300000',
+    saveDir: '',
+  };
+}
 
 const runtimeListeners = new Set<(event: RuntimeEvent) => void>();
 const rawLogListeners = new Set<(line: string) => void>();
@@ -63,17 +83,7 @@ vi.mock('../../services/runtime/bridge', async () => {
     useRepoWorkspaceRoot: vi.fn().mockResolvedValue(readyProbe),
     inspectRuntime: vi.fn().mockResolvedValue(defaultInspection),
     listManagedFolders: vi.fn().mockResolvedValue(defaultManagedFolders),
-    listDownloadTasks: vi.fn().mockResolvedValue([]),
-    enqueueDownload: vi.fn().mockResolvedValue({
-      taskId: 'task-1',
-      target: 'https://www.bilibili.com/video/BV1xx411c7mD',
-      label: 'https://www.bilibili.com/video/BV1xx411c7mD',
-      status: 'queued',
-      message: '已进入下载队列',
-      progressCurrent: 0,
-      progressTotal: 3,
-      updatedAt: '1712300000',
-    }),
+    convertWavAudio: vi.fn().mockResolvedValue(undefined),
     openManagedPath: vi.fn().mockResolvedValue(undefined),
     openPath: vi.fn().mockResolvedValue(undefined),
     exportConsoleLogs: vi.fn().mockResolvedValue('/repo/logs/launcher.log'),
@@ -169,13 +179,23 @@ describe('AppShell', () => {
 
     // Parsed item appears; click 下载所选
     await screen.findAllByText('测试视频');
+    vi.mocked(startDownload).mockResolvedValue(
+      queuedRecord(
+        'task-1',
+        'https://www.bilibili.com/video/BV1xx411c7mD',
+        '测试视频',
+      ),
+    );
     await user.click(screen.getByRole('button', { name: /下载所选/ }));
 
-    expect(runtimeBridge.enqueueDownload).toHaveBeenCalledWith(
-      'https://www.bilibili.com/video/BV1xx411c7mD',
-      expect.any(Object),
-      '测试视频',
-      undefined,
+    await waitFor(() =>
+      expect(startDownload).toHaveBeenCalledWith(
+        expect.objectContaining({
+          target: 'https://www.bilibili.com/video/BV1xx411c7mD',
+          label: '测试视频',
+          dir: '',
+        }),
+      ),
     );
 
     // Task should appear in queue
@@ -221,24 +241,33 @@ describe('AppShell', () => {
     await user.type(urlInput, 'https://www.bilibili.com/video/BV1xx411c7mD');
 
     await user.click(screen.getByRole('button', { name: '解析' }));
+    vi.mocked(startDownload).mockImplementation((args) =>
+      Promise.resolve(
+        queuedRecord(`task-${args.label}`, args.target, args.label),
+      ),
+    );
     await user.click(
       await screen.findByRole('button', { name: '展开分组 合集' }),
     );
     await user.click(screen.getByRole('button', { name: '下载所选 (2)' }));
 
-    expect(runtimeBridge.enqueueDownload).toHaveBeenNthCalledWith(
-      1,
-      'https://www.bilibili.com/video/BV1xx411c7mD?p=1',
-      expect.any(Object),
-      '合集视频 1',
-      '合集目录',
+    await waitFor(() =>
+      expect(startDownload).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          target: 'https://www.bilibili.com/video/BV1xx411c7mD?p=1',
+          label: '合集视频 1',
+          dir: '合集目录',
+        }),
+      ),
     );
-    expect(runtimeBridge.enqueueDownload).toHaveBeenNthCalledWith(
+    expect(startDownload).toHaveBeenNthCalledWith(
       2,
-      'https://www.bilibili.com/video/BV1xx411c7mD?p=2',
-      expect.any(Object),
-      '合集视频 2',
-      '合集目录',
+      expect.objectContaining({
+        target: 'https://www.bilibili.com/video/BV1xx411c7mD?p=2',
+        label: '合集视频 2',
+        dir: '合集目录',
+      }),
     );
   });
 

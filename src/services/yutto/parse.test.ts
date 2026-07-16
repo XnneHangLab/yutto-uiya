@@ -1,4 +1,5 @@
 import type { RuntimeEvent } from '../runtime/runtime';
+import { resetRpcConnection } from './connection';
 import { FakeSocket, flush } from './fake-socket';
 import { resolveParseTarget } from './parse';
 import { AUDIO_QUALITY_OPTIONS, VIDEO_QUALITY_OPTIONS } from './quality';
@@ -123,6 +124,10 @@ async function answerTaskGet(socket: FakeSocket, snapshot: unknown) {
 }
 
 describe('resolveParseTarget', () => {
+  beforeEach(() => {
+    resetRpcConnection();
+  });
+
   it('streams parse events and rebuilds items/groups from the final result', async () => {
     const { socket, events, parsePromise } = await startParse();
     await answerResolveStart(socket);

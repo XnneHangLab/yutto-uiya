@@ -10,16 +10,14 @@ import {
 } from '../../services/launcher/launcher';
 import {
   cancelAuthLogin,
-  cancelTask,
   chooseWorkspaceRoot,
+  convertWavAudio,
   detectFfmpegPath,
-  enqueueDownload,
   exportConsoleLogs,
   getHotkey,
   getServeStatus,
   getSystemProxy,
   inspectRuntime,
-  listDownloadTasks,
   listManagedFolders,
   logoutAuth,
   openManagedPath,
@@ -67,7 +65,13 @@ import {
   toggleThemeMode,
   writeStoredTheme,
 } from '../../services/theme/theme';
+import {
+  cancelDownload,
+  type DownloadCompletion,
+  startDownload,
+} from '../../services/yutto/download';
 import { resolveParseTarget } from '../../services/yutto/parse';
+import type { NetworkPreferences } from '../../services/yutto/requests';
 
 function toErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
@@ -271,15 +275,14 @@ export function AppShell() {
           })
           .catch(() => {});
 
-        const [nextProbe, nextTasks] = await Promise.all([
-          probeEnvironment(),
-          listDownloadTasks(),
-        ]);
+        // Download tasks live in the serve now, and the serve is born with
+        // this app instance — a fresh session always starts with an empty
+        // queue, so there is nothing to restore here.
+        const nextProbe = await probeEnvironment();
         if (disposed) {
           return;
         }
         setEnvironmentProbe(nextProbe);
-        setTasks(nextTasks);
 
         if (!isEnvironmentReady(nextProbe)) {
           setInspection(null);
@@ -434,6 +437,84 @@ export function AppShell() {
     };
   }, []);
 
+  /**
+   * uiya owns the proxy decision: 直连, or the LIVE Windows system proxy
+   * (read per operation so toggling the proxy client applies immediately).
+   * Never 'auto' — environment variables are launch-time snapshots and must
+   * not silently decide the route.
+   */
+  async function resolveNetworkPreferences(): Promise<NetworkPreferences> {
+    let proxy = 'no';
+    if (!noProxy) {
+      proxy = (await getSystemProxy().catch(() => null)) ?? 'no';
+    }
+    return { proxy, fetchWorkers };
+  }
+
+  function consoleEntryForDownloadEvent(event: RuntimeEvent) {
+    switch (event.event) {
+      case 'download.started':
+        return createConsoleLog('system', `[下载] 开始：${event.target}`);
+      case 'download.converting':
+        return createConsoleLog('system', `[下载] ${event.message}`);
+      case 'download.completed':
+        return createConsoleLog('system', `[下载] 完成：${event.target}`);
+      case 'download.failed':
+        return createConsoleLog('stderr', `[下载] 失败：${event.message}`);
+      case 'download.cancelled':
+        return createConsoleLog('system', '[下载] 已取消');
+      default:
+        // queued/file_progress 等中间态不进控制台，serve 原始输出足够详细。
+        return null;
+    }
+  }
+
+  function processDownloadRuntimeEvent(event: RuntimeEvent) {
+    // 队列行沿用三段式进度，字节级 file_progress 只在控制台原始输出里看。
+    if (event.event !== 'download.file_progress') {
+      setTasks((current) => applyRuntimeEvent(current, event));
+    }
+    const entry = consoleEntryForDownloadEvent(event);
+    if (entry) {
+      setLogs((current) => [...current, entry]);
+    }
+    if (
+      event.event === 'download.completed' ||
+      event.event === 'download.failed'
+    ) {
+      void refreshEnvironmentStatus();
+    }
+  }
+
+  async function handleDownloadCompleted(completion: DownloadCompletion) {
+    if (!completion.needsWavConvert) {
+      return;
+    }
+    const finish = (name: string, status: string, message: string) => {
+      processDownloadRuntimeEvent({
+        event: name,
+        taskId: completion.taskId,
+        target: completion.target,
+        status,
+        message,
+        progressCurrent: status === 'completed' ? 3 : 2,
+        progressTotal: 3,
+        progressUnit: 'stage',
+        timestamp: new Date().toISOString(),
+      });
+    };
+    try {
+      await convertWavAudio(completion.saveDir);
+      finish('download.completed', 'completed', '下载完成（已转码 wav）');
+    } catch (error) {
+      finish(
+        'download.failed',
+        'failed',
+        `wav 转码失败: ${toErrorMessage(error)}`,
+      );
+    }
+  }
+
   async function handleDownloadBilibili(
     url: string,
     label?: string,
@@ -448,20 +529,29 @@ export function AppShell() {
     }
 
     try {
-      const task = await enqueueDownload(
-        url,
-        downloadOptions,
-        label,
-        itemDir || parseDirOverride || undefined,
-      );
+      // startServe is idempotent: it returns the running server's info or
+      // boots one first; the server task service does the queueing.
+      const serveInfo = await startServe();
+      serveTokenRef.current = serveInfo.token;
+      const network = await resolveNetworkPreferences();
+      const record = await startDownload({
+        serve: serveInfo,
+        target: url,
+        label: label || url,
+        dir: itemDir || parseDirOverride || '',
+        options: downloadOptions,
+        network,
+        onEvent: processDownloadRuntimeEvent,
+        onCompleted: handleDownloadCompleted,
+      });
       setTasks((current) => {
-        const next = current.filter((item) => item.taskId !== task.taskId);
-        next.push(task);
+        const next = current.filter((item) => item.taskId !== record.taskId);
+        next.push(record);
         return next;
       });
       setLogs((current) => [
         ...current,
-        createConsoleLog('system', `下载任务已添加: ${task.label}`),
+        createConsoleLog('system', `下载任务已添加: ${record.label}`),
       ]);
       setActivePage('models');
     } catch (error) {
@@ -549,28 +639,21 @@ export function AppShell() {
       // boots one first — which also revives a crashed serve before parsing.
       const serveInfo = await startServe();
       serveTokenRef.current = serveInfo.token;
-      // uiya owns the proxy decision: 直连, or the LIVE Windows system proxy
-      // (read per parse, so toggling the proxy client applies immediately).
-      // Never 'auto' — environment variables are launch-time snapshots and
-      // must not silently decide the route.
-      let proxy = 'no';
-      if (!noProxy) {
-        proxy = (await getSystemProxy().catch(() => null)) ?? 'no';
-      }
+      const network = await resolveNetworkPreferences();
       setLogs((current) => [
         ...current,
         createConsoleLog(
           'system',
-          proxy === 'no'
+          network.proxy === 'no'
             ? '[解析] 网络：直连'
-            : `[解析] 网络：系统代理 ${proxy}`,
+            : `[解析] 网络：系统代理 ${network.proxy}`,
         ),
       ]);
       parsingTargetRef.current = url;
       const result = await resolveParseTarget({
         serve: serveInfo,
         target: url,
-        network: { proxy, fetchWorkers },
+        network,
         onEvent: processParseRuntimeEvent,
       });
       const nextGroups = normalizeParseGroups(result.groups ?? []);
@@ -897,7 +980,12 @@ export function AppShell() {
 
   async function handleCancelTask(taskId: string) {
     try {
-      await cancelTask(taskId);
+      const serveUrl = serveStatus?.url;
+      const token = serveTokenRef.current;
+      if (!serveUrl || !token) {
+        throw new Error('yutto server 未运行');
+      }
+      await cancelDownload({ url: serveUrl, token }, taskId);
     } catch (error) {
       setLogs((current) => [
         ...current,

@@ -32,42 +32,6 @@ _BILIBILI_HEADERS = {
 }
 
 
-def _build_yutto_command(
-    target: str,
-    *,
-    config_path: str | None = None,
-    ffmpeg_path: str = "",
-    debug: bool = False,
-    no_proxy: bool = False,
-    proxy_pool: str = "",
-    select_index: int | None = None,
-    output_dir: str | None = None,
-    audio_format: str | None = None,
-) -> list[str]:
-    command: list[str] = [sys.executable, "-m", "yutto", target, "--no-color"]
-
-    if select_index is not None:
-        command += ["-b", "-p", str(select_index)]
-
-    if output_dir:
-        command += ["--dir", output_dir]
-    if config_path:
-        command += ["--config", config_path]
-    if ffmpeg_path and ffmpeg_path != "ffmpeg":
-        command += ["--ffmpeg-path", ffmpeg_path]
-    if debug:
-        command.append("--debug")
-    if no_proxy:
-        command += ["--proxy", "no"]
-    elif proxy_pool:
-        command += ["--proxy", proxy_pool]
-
-    if audio_format and audio_format not in ("infer", "wav"):
-        command += ["--output-format-audio-only", audio_format]
-
-    return command
-
-
 def _load_no_proxy_setting() -> bool:
     """uiya.toml 的 不使用代理 开关；读取失败时按未开启处理。"""
     try:
@@ -153,176 +117,6 @@ def cmd_inspect_runtime() -> None:
     print(json.dumps({"kind": "payload", "payload": payload}, ensure_ascii=False), flush=True)
 
 
-def cmd_download(
-    target: str,
-    require_video: bool = True,
-    require_audio: bool = True,
-    require_cover: bool = False,
-    require_subtitle: bool = False,
-    require_danmaku: bool = False,
-    video_quality: int = 127,
-    audio_quality: int = 30280,
-    select_index: int | None = None,
-    dir_override: str | None = None,
-    audio_format: str | None = None,
-) -> None:
-    """
-    Build and run a yutto download job for *target* (a BiliBili URL).
-
-    Structured JSON PythonEnvelope events are emitted to stdout so the Rust
-    layer can forward them as Tauri events.  Raw yutto output lines (non-JSON)
-    are also written to stdout so Rust passes them through as runtime:raw-log.
-    """
-    from uiya._dataclass import YuttoBasicSetting, YuttoResourceSettings, YuttoSettings
-    from uiya.utils.config import (
-        UiyaSetting,
-        load_settings_file,
-        resolve_download_dir,
-        search_for_settings_file,
-        write_settings_file,
-    )
-
-    def emit_event(payload: dict[str, Any]) -> None:
-        print(json.dumps({"kind": "event", "payload": payload}, ensure_ascii=False), flush=True)
-
-    def fail(message: str, current: int = 0) -> NoReturn:
-        emit_event(
-            {
-                "event": "download.failed",
-                "target": target,
-                "status": "failed",
-                "message": message,
-                "progressCurrent": current,
-                "progressTotal": 3,
-                "progressUnit": "stage",
-            }
-        )
-        sys.exit(1)
-
-    # ── 1. load uiya.toml ────────────────────────────────────────────────
-    try:
-        settings = load_settings_file("uiya.toml", UiyaSetting)
-    except Exception as exc:
-        fail(f"配置加载失败: {exc}")
-
-    # ── 2. write a fresh yutto.toml with runtime-resolved values ─────────
-    try:
-        dl_dir = resolve_download_dir(settings)
-        if dir_override:
-            dl_dir = dl_dir / dir_override
-        basic = YuttoBasicSetting(
-            num_workers=8,
-            fetch_workers=settings.fetch_workers,
-            video_quality=video_quality,
-            audio_quality=audio_quality,
-            sessdata=settings.SESS_DATA,
-            vip_strict=settings.vip_strict == "open",
-            login_strict=settings.login_strict == "open",
-            dir=str(dl_dir),
-        )
-        resource = YuttoResourceSettings(
-            require_video=require_video,
-            require_audio=require_audio,
-            require_danmaku=require_danmaku,
-            require_subtitle=require_subtitle,
-            require_metadata=False,
-            require_cover=require_cover,
-            save_cover=require_cover,
-        )
-        yutto_cfg = YuttoSettings(basic=basic, resource=resource)
-        write_settings_file("yutto.toml", yutto_cfg)
-        yutto_toml = search_for_settings_file("yutto.toml")
-    except Exception as exc:
-        fail(f"配置写入失败: {exc}")
-
-    # ── 3. assemble yutto command ─────────────────────────────────────────
-    _env_ffmpeg = os.environ.get("UIYA_FFMPEG_PATH", "").strip()
-    ffmpeg_path = (_env_ffmpeg if _env_ffmpeg and _env_ffmpeg != "ffmpeg" else (settings.ffmpeg_path or "")).strip()
-    command = _build_yutto_command(
-        target,
-        config_path=str(yutto_toml) if yutto_toml else None,
-        ffmpeg_path=ffmpeg_path,
-        debug=settings.debug_mode == "open",
-        no_proxy=settings.no_proxy,
-        proxy_pool=settings.proxy_pool if settings.custom_proxy_pool else "",
-        select_index=select_index,
-        audio_format=audio_format,
-    )
-
-    # ── 4. spawn and stream ───────────────────────────────────────────────
-    emit_event(
-        {
-            "event": "download.started",
-            "target": target,
-            "status": "downloading",
-            "message": "开始下载",
-            "progressCurrent": 1,
-            "progressTotal": 3,
-            "progressUnit": "stage",
-        }
-    )
-
-    try:
-        proc = subprocess.Popen(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            # Binary mode: universal-newlines off, \r preserved for progress detection
-        )
-    except Exception as exc:
-        fail(f"启动下载进程失败: {exc}", current=1)
-
-    assert proc.stdout is not None
-    # Read in small chunks instead of line-by-line so that yutto's \r-delimited
-    # progress frames reach Rust in real time (the \n-split iterator blocks until
-    # the whole line—including all \r overwrites—is flushed by yutto at the end).
-    _buf = b""
-    while True:
-        _chunk = proc.stdout.read(256)
-        if not _chunk:
-            break
-        _buf += _chunk
-        # Emit every \r- or \n-terminated segment immediately.
-        while True:
-            _r = _buf.find(b"\r")
-            _n = _buf.find(b"\n")
-            if _r == -1 and _n == -1:
-                break
-            if _r == -1 or (_n != -1 and _n < _r):
-                _idx, _is_cr = _n, False
-            else:
-                _idx, _is_cr = _r, True
-            _seg = _buf[:_idx]
-            _buf = _buf[_idx + 1 :]
-            _visible = _seg.decode("utf-8", errors="replace")
-            if _visible.strip():
-                _term = b"\r\n" if _is_cr else b"\n"
-                sys.stdout.buffer.write(_visible.encode("utf-8") + _term)
-                sys.stdout.buffer.flush()
-    if _buf.strip():
-        sys.stdout.buffer.write(_buf + b"\n")
-        sys.stdout.buffer.flush()
-
-    returncode = proc.wait()
-
-    if returncode == 0:
-        if audio_format == "wav":
-            _convert_audio_to_wav(dl_dir, ffmpeg_path or "ffmpeg", emit_event)
-        emit_event(
-            {
-                "event": "download.completed",
-                "target": target,
-                "status": "completed",
-                "message": "下载完成",
-                "progressCurrent": 3,
-                "progressTotal": 3,
-                "progressUnit": "stage",
-            }
-        )
-    else:
-        fail(f"下载失败，退出码 {returncode}", current=3)
-
-
 def _convert_audio_to_wav(
     download_dir: pathlib.Path,
     ffmpeg_cmd: str,
@@ -354,6 +148,34 @@ def _convert_audio_to_wav(
                 src.unlink()
             except Exception as exc:
                 print(f"[warn] 转码失败 {src.name}: {exc}", flush=True)
+
+
+def cmd_convert_wav(directory: str | None) -> None:
+    """
+    Convert downloaded m4a/aac files under a downloads-root-relative
+    directory to wav. The serve pipeline has no wav wire format; the app
+    calls this after a download task completes.
+    """
+    from uiya.utils.config import UiyaSetting, load_settings_file, resolve_download_dir
+
+    def emit_event(payload: dict[str, Any]) -> None:
+        print(json.dumps({"kind": "event", "payload": payload}, ensure_ascii=False), flush=True)
+
+    settings = load_settings_file("uiya.toml", UiyaSetting)
+    target_dir = resolve_download_dir(settings)
+    if directory:
+        target_dir = target_dir / directory
+    if not target_dir.exists():
+        print(
+            json.dumps({"kind": "payload", "payload": {"ok": False, "error": "目录不存在"}}, ensure_ascii=False),
+            flush=True,
+        )
+        raise SystemExit(1)
+
+    env_ffmpeg = (os.environ.get("UIYA_FFMPEG_PATH") or "").strip()
+    ffmpeg_cmd = env_ffmpeg or (getattr(settings, "ffmpeg_path", "") or "ffmpeg")
+    _convert_audio_to_wav(target_dir, ffmpeg_cmd, emit_event)
+    print(json.dumps({"kind": "payload", "payload": {"ok": True}}, ensure_ascii=False), flush=True)
 
 
 def cmd_fetch_meta(url: str) -> None:
@@ -661,18 +483,8 @@ def main() -> None:
 
     subparsers.add_parser("inspect-runtime")
 
-    dl_parser = subparsers.add_parser("download")
-    dl_parser.add_argument("target")
-    dl_parser.add_argument("--require-video", default="true")
-    dl_parser.add_argument("--require-audio", default="true")
-    dl_parser.add_argument("--require-cover", default="false")
-    dl_parser.add_argument("--require-subtitle", default="false")
-    dl_parser.add_argument("--require-danmaku", default="false")
-    dl_parser.add_argument("--video-quality", type=int, default=127)
-    dl_parser.add_argument("--audio-quality", type=int, default=30280)
-    dl_parser.add_argument("--select-index", type=int, default=None)
-    dl_parser.add_argument("--dir-override", default=None)
-    dl_parser.add_argument("--audio-format", default=None)
+    convert_wav_parser = subparsers.add_parser("convert-wav")
+    convert_wav_parser.add_argument("--dir", default=None)
 
     fetch_meta_parser = subparsers.add_parser("fetch-meta")
     fetch_meta_parser.add_argument("url")
@@ -693,20 +505,8 @@ def main() -> None:
 
     if args.command == "inspect-runtime":
         cmd_inspect_runtime()
-    elif args.command == "download":
-        cmd_download(
-            args.target,
-            require_video=args.require_video.lower() == "true",
-            require_audio=args.require_audio.lower() == "true",
-            require_cover=args.require_cover.lower() == "true",
-            require_subtitle=args.require_subtitle.lower() == "true",
-            require_danmaku=args.require_danmaku.lower() == "true",
-            video_quality=args.video_quality,
-            audio_quality=args.audio_quality,
-            select_index=args.select_index,
-            dir_override=args.dir_override,
-            audio_format=args.audio_format,
-        )
+    elif args.command == "convert-wav":
+        cmd_convert_wav(args.dir)
     elif args.command == "fetch-meta":
         cmd_fetch_meta(args.url)
     elif args.command == "fetch-cover":

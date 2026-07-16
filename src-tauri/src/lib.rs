@@ -46,8 +46,6 @@ pub fn run() {
             runtime::commands::choose_workspace_root,
             runtime::commands::use_repo_workspace_root,
             runtime::commands::inspect_runtime,
-            runtime::commands::enqueue_download,
-            runtime::commands::list_download_tasks,
             runtime::commands::list_managed_folders,
             runtime::commands::open_managed_path,
             runtime::commands::open_task_save_dir,
@@ -61,7 +59,6 @@ pub fn run() {
             runtime::commands::pick_download_dir_command,
             runtime::commands::fetch_video_meta,
             runtime::commands::fetch_cover_image,
-            runtime::commands::cancel_task,
             runtime::commands::start_auth_login,
             runtime::commands::cancel_auth_login,
             runtime::commands::logout_auth,
@@ -73,6 +70,7 @@ pub fn run() {
             runtime::commands::serve_stop,
             runtime::commands::serve_status,
             runtime::commands::get_system_proxy,
+            runtime::commands::convert_wav_audio,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
