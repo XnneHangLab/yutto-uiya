@@ -457,6 +457,43 @@ describe('AppShell', () => {
     });
   });
 
+  it('shows the interruption warning in settings while a parse is running', async () => {
+    type ParseResolution = Awaited<ReturnType<typeof resolveParseTarget>>;
+    let resolveParse: ((value: ParseResolution) => void) | null = null;
+    vi.mocked(resolveParseTarget).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveParse = resolve;
+        }),
+    );
+    const warnText = '正在解析/下载，保存会重启 serve 并中断当前任务';
+
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: '下载管理' }));
+    const urlInput = await screen.findByLabelText('Bilibili 视频链接');
+    await user.type(urlInput, 'https://www.bilibili.com/video/BV1xx411c7mD');
+    await user.click(screen.getByRole('button', { name: '解析' }));
+
+    // Parse still running — settings must warn that saving cuts it.
+    await user.click(screen.getByRole('button', { name: '设置' }));
+    expect(await screen.findByText(warnText)).toBeInTheDocument();
+
+    act(() => {
+      resolveParse?.({
+        dir: '',
+        items: [],
+        videoQualities: [],
+        audioQualities: [],
+        groups: [],
+      });
+    });
+    await waitFor(() =>
+      expect(screen.queryByText(warnText)).not.toBeInTheDocument(),
+    );
+  });
+
   it('cancels auth login when closing the qr dialog and allows restarting', async () => {
     const user = userEvent.setup();
     vi.mocked(runtimeBridge.probeEnvironment).mockResolvedValue({

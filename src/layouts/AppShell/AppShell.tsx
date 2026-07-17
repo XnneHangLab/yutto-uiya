@@ -107,6 +107,8 @@ export function AppShell() {
   const [ffmpegExePath, setFfmpegExePath] = useState('');
   const [noProxy, setNoProxy] = useState(false);
   const [fetchWorkers, setFetchWorkers] = useState(8);
+  // 有解析在跑（下载看 tasks 队列）——设置页据此提示「保存会中断任务」。
+  const [parseBusy, setParseBusy] = useState(false);
   const [downloadDirSetting, setDownloadDirSetting] = useState('./downloads');
   const [parseItems, setParseItems] = useState<VideoParseItem[]>([]);
   const [parseGroups, setParseGroups] = useState<VideoParseGroup[]>([]);
@@ -635,6 +637,7 @@ export function AppShell() {
       ]);
     }
     try {
+      setParseBusy(true);
       // startServe is idempotent: it returns the running server's info or
       // boots one first — which also revives a crashed serve before parsing.
       const serveInfo = await startServe();
@@ -696,6 +699,7 @@ export function AppShell() {
       });
       return [];
     } finally {
+      setParseBusy(false);
       if (parsingTargetRef.current === url) {
         parsingTargetRef.current = null;
       }
@@ -1000,6 +1004,7 @@ export function AppShell() {
   const latestMessage = environmentProbe?.message ?? '正在读取运行时信息';
   const scriptsReady = isEnvironmentReady(environmentProbe);
   const workspaceLocked = getQueueSummary(tasks).queueLength > 0;
+  const jobsActive = workspaceLocked || parseBusy;
 
   return (
     <div className="launcher-root" data-theme={theme}>
@@ -1043,6 +1048,7 @@ export function AppShell() {
               runtimeDriver,
               scriptsReady,
               workspaceLocked,
+              jobsActive,
               workspaceRoot: environmentProbe?.workspaceRoot ?? '',
               environmentProbe,
               onChooseWorkspaceRoot: handleChooseWorkspaceRoot,

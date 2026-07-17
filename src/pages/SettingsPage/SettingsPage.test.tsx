@@ -201,6 +201,46 @@ describe('SettingsPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('warns next to save while jobs are active, without blocking the button', () => {
+    const baseProps = {
+      workspaceRoot: '/repo',
+      workspaceLocked: false,
+      environmentProbe: null,
+      onChooseWorkspaceRoot: () => undefined,
+      onUseRepoWorkspaceRoot: () => undefined,
+      runtimeDriver: 'uv' as const,
+      pythonExePath: '',
+      onChoosePythonExe: vi.fn().mockResolvedValue(null),
+      ffmpegMode: 'system' as const,
+      ffmpegExePath: '',
+      onChooseFfmpegExe: vi.fn().mockResolvedValue(null),
+      noProxy: false,
+      fetchWorkers: 8,
+      authBusy: false,
+      authDialogOpen: false,
+      authDialogStatus: '',
+      authDialogQrDataUrl: '',
+      onStartAuthLogin: () => undefined,
+      onLogoutAuth: () => undefined,
+      onCloseAuthDialog: () => undefined,
+      onSave: vi.fn(),
+      hotkey: 'Ctrl+Shift+Space',
+      onSetHotkey: async () => {},
+    };
+    const warnText = '正在解析/下载，保存会重启 serve 并中断当前任务';
+
+    const { rerender } = render(<SettingsPage {...baseProps} jobsActive />);
+
+    expect(screen.getByText(warnText)).toBeInTheDocument();
+    // 只提示，不拦截：保存按钮保持可点。
+    expect(
+      screen.getByRole('button', { name: '保存并重新检测' }),
+    ).toBeEnabled();
+
+    rerender(<SettingsPage {...baseProps} jobsActive={false} />);
+    expect(screen.queryByText(warnText)).not.toBeInTheDocument();
+  });
+
   it('shows auth warning when runtime is ready but not logged in', () => {
     render(
       <SettingsPage
