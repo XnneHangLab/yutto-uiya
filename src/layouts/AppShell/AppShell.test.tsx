@@ -280,6 +280,76 @@ describe('AppShell', () => {
     expect(screen.getByText('下载中')).toBeInTheDocument();
   });
 
+  it('refreshes the environment once when the download queue drains', async () => {
+    vi.mocked(resolveParseTarget).mockResolvedValue({
+      dir: '',
+      items: [
+        {
+          index: 1,
+          title: '视频一',
+          url: 'https://www.bilibili.com/video/BV1xx411c7mD?p=1',
+          dir: '',
+        },
+        {
+          index: 2,
+          title: '视频二',
+          url: 'https://www.bilibili.com/video/BV1xx411c7mD?p=2',
+          dir: '',
+        },
+      ],
+      groups: [],
+      videoQualities: [],
+      audioQualities: [],
+    });
+    const onEvents = new Map<string, (event: RuntimeEvent) => void>();
+    let taskSeq = 0;
+    vi.mocked(startDownload).mockImplementation(async (args) => {
+      taskSeq += 1;
+      const taskId = `task-${taskSeq}`;
+      if (args.onEvent) {
+        onEvents.set(taskId, args.onEvent);
+      }
+      return queuedRecord(taskId, args.target, args.label);
+    });
+    const completed = (taskId: string): RuntimeEvent => ({
+      event: 'download.completed',
+      taskId,
+      target: 'https://www.bilibili.com/video/BV1xx411c7mD',
+      status: 'completed',
+      message: '下载完成',
+      progressCurrent: 3,
+      progressTotal: 3,
+      progressUnit: 'stage',
+      timestamp: '1712300002',
+    });
+
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: '下载管理' }));
+    const urlInput = await screen.findByLabelText('Bilibili 视频链接');
+    await user.type(urlInput, 'https://www.bilibili.com/video/BV1xx411c7mD');
+    await user.click(screen.getByRole('button', { name: '解析' }));
+    await screen.findAllByText('视频一');
+    await user.click(screen.getByRole('button', { name: '下载所选 (2)' }));
+    await waitFor(() => expect(onEvents.size).toBe(2));
+
+    const probeCalls = () =>
+      vi.mocked(runtimeBridge.probeEnvironment).mock.calls.length;
+    const baseline = probeCalls();
+
+    // 第一个任务完成：队列里还有任务，不做环境刷新（避免每单一个 probe）。
+    act(() => {
+      onEvents.get('task-1')?.(completed('task-1'));
+    });
+    expect(probeCalls()).toBe(baseline);
+
+    // 最后一个任务完成、队列清空：只刷新一次。
+    act(() => {
+      onEvents.get('task-2')?.(completed('task-2'));
+    });
+    await waitFor(() => expect(probeCalls()).toBe(baseline + 1));
+  });
+
   it('does not reset a queue row that advanced before startDownload resolved', async () => {
     vi.mocked(resolveParseTarget).mockResolvedValue({
       dir: '',

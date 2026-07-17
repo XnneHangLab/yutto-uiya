@@ -705,6 +705,13 @@ export function DownloadPage({
                 'downloading',
                 'verifying',
               ].includes(task.status);
+              // 服务端单 worker 串行执行，同一时刻只有一个任务在跑；排队中的
+              // 卡片不放动画进度条，否则整批看起来像同时开下。
+              const isRunning = [
+                'preparing',
+                'downloading',
+                'verifying',
+              ].includes(task.status);
               return (
                 <div key={task.taskId} className="models-page__task">
                   <div className="models-page__task-info">
@@ -742,7 +749,7 @@ export function DownloadPage({
                       </button>
                     ) : null}
                   </div>
-                  {isActive ? (
+                  {isRunning ? (
                     <>
                       <div className="models-page__task-console-hint">
                         详细进度请前往控制台查看

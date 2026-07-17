@@ -492,12 +492,6 @@ export function AppShell() {
     if (entry) {
       setLogs((current) => [...current, entry]);
     }
-    if (
-      event.event === 'download.completed' ||
-      event.event === 'download.failed'
-    ) {
-      void refreshEnvironmentStatus();
-    }
   }
 
   async function handleDownloadCompleted(completion: DownloadCompletion) {
@@ -1029,6 +1023,18 @@ export function AppShell() {
   const scriptsReady = isEnvironmentReady(environmentProbe);
   const workspaceLocked = getQueueSummary(tasks).queueLength > 0;
   const jobsActive = workspaceLocked || parseBusy;
+
+  // 批量下载时每个任务完成都刷新一次环境（probe + inspect 两个子进程）会把
+  // 控制台刷满 [probe] 噪音 —— 改为整个队列清空时刷新一次。
+  const prevQueueActiveRef = useRef(false);
+  useEffect(() => {
+    const active = workspaceLocked;
+    if (prevQueueActiveRef.current && !active) {
+      void refreshEnvironmentStatus();
+    }
+    prevQueueActiveRef.current = active;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceLocked]);
 
   return (
     <div className="launcher-root" data-theme={theme}>

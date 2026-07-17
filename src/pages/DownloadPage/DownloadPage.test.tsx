@@ -241,6 +241,60 @@ describe('DownloadPage', () => {
     expect(screen.getByText('用相机拍古诗词')).toBeInTheDocument();
   });
 
+  it('animates only the running task; queued tasks wait without a bar', () => {
+    render(
+      <DownloadPage
+        tasks={[
+          {
+            taskId: 't1',
+            target: 'https://www.bilibili.com/video/BV1xx411c7mD?p=1',
+            label: '正在下载的视频',
+            status: 'downloading',
+            message: '开始下载',
+            progressCurrent: 1,
+            progressTotal: 3,
+            updatedAt: '1712300001',
+            saveDir: '',
+          },
+          {
+            taskId: 't2',
+            target: 'https://www.bilibili.com/video/BV1xx411c7mD?p=2',
+            label: '排队等待的视频',
+            status: 'queued',
+            message: '已进入下载队列',
+            progressCurrent: 0,
+            progressTotal: 3,
+            updatedAt: '1712300001',
+            saveDir: '',
+          },
+        ]}
+        onDownload={() => undefined}
+        onParse={vi.fn()}
+        scriptsReady
+        parseItems={[]}
+        parseGroups={[]}
+        parseSelected={new Set()}
+        onParseSelectedChange={() => undefined}
+        onClearParseItems={() => undefined}
+        downloadUrl=""
+        onDownloadUrlChange={() => undefined}
+        parseVideoQualities={[]}
+        parseAudioQualities={[]}
+        downloadOptions={DEFAULT_DOWNLOAD_OPTIONS}
+        onDownloadOptionsChange={() => undefined}
+        onCancelTask={() => undefined}
+        onOpenDownloadsFolder={() => undefined}
+      />,
+    );
+
+    // 服务端串行执行：动画进度条只属于正在执行的任务，排队中的安静等待。
+    expect(screen.getAllByText('详细进度请前往控制台查看')).toHaveLength(1);
+    expect(screen.getByText('排队中')).toBeInTheDocument();
+    expect(screen.getByText('下载中')).toBeInTheDocument();
+    // 排队中的任务仍然可以取消。
+    expect(screen.getAllByTitle('取消')).toHaveLength(2);
+  });
+
   it('auto-fetches the cover only after parsing is over plus a settle delay', async () => {
     vi.useFakeTimers();
     vi.mocked(fetchCoverImage).mockResolvedValue('data:image/jpeg;base64,Zm9v');
