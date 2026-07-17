@@ -16,7 +16,6 @@ toml_loads = tomllib.loads
 toml_dumps = tomlw.dumps  # 使用 tomlw.dumps
 
 if TYPE_CHECKING:
-    from uiya._dataclass import YuttoSettings
     from uiya._typing import UiyaSettingsTitle
 
 
@@ -145,7 +144,7 @@ def load_settings_file(
 
 def write_settings_file(
     settings_name: str,
-    settings: UiyaSetting | YuttoSettings,
+    settings: UiyaSetting,
 ) -> None:
     """将 Setting 对象写入 TOML 文件。"""
     settings_file = search_for_settings_file(setting_name=settings_name)

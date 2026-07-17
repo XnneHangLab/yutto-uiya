@@ -1,11 +1,15 @@
 """
 uiya CLI – entry point called by the Tauri Rust layer.
 
+解析与下载已走 yutto serve 的 JSON-RPC（serve 迁移阶段 3/4），这里只剩
+serve 之外的职责：
+
 Commands:
   inspect-runtime   Return runtime info as a JSON PythonEnvelope (kind=payload).
-  download <target> Run a yutto download job, emitting JSON events to stdout.
-  parse <target>    Run yutto --skip-download to enumerate playlist items + available quality tiers.
+  convert-wav       wav 转码（wire 不支持 wav，下载 m4a 后本地转）。
+  fetch-cover       前端封面取图（webview 防盗链）。
   save-settings     Persist settings to uiya.toml.
+  auth-login / auth-logout   扫码登录，读写 yutto auth.toml（等上游 auth.* RPC）。
 """
 
 from __future__ import annotations
@@ -14,7 +18,6 @@ import argparse
 import base64
 import json
 import os
-import re
 import subprocess
 import sys
 import urllib.request
@@ -176,72 +179,6 @@ def cmd_convert_wav(directory: str | None) -> None:
     ffmpeg_cmd = env_ffmpeg or (getattr(settings, "ffmpeg_path", "") or "ffmpeg")
     _convert_audio_to_wav(target_dir, ffmpeg_cmd, emit_event)
     print(json.dumps({"kind": "payload", "payload": {"ok": True}}, ensure_ascii=False), flush=True)
-
-
-def cmd_fetch_meta(url: str) -> None:
-    """
-    Fetch video metadata from Bilibili API for a single video URL.
-    Emits a JSON payload with cover (as base64 data URL), title, description, uploader, etc.
-    """
-    import base64
-
-    import httpx
-
-    _headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Referer": "https://www.bilibili.com",
-        "Accept": "application/json, text/plain, */*",
-        "Accept-Language": "zh-CN,zh;q=0.9",
-    }
-
-    def emit_payload(payload: dict[str, Any]) -> None:
-        print(json.dumps({"kind": "payload", "payload": payload}, ensure_ascii=False), flush=True)
-
-    trust_env = not _load_no_proxy_setting()
-    bvid_m = re.search(r"(BV[1-9A-HJ-NP-Za-km-z]{10})", url)
-    if not bvid_m:
-        emit_payload({"error": "无法从 URL 中提取 BV 号"})
-        return
-    bvid = bvid_m.group(1)
-    api_url = f"https://api.bilibili.com/x/web-interface/view?bvid={bvid}"
-    try:
-        with httpx.Client(timeout=10, http2=True, headers=_headers, trust_env=trust_env) as client:
-            data = client.get(api_url).raise_for_status().json()
-    except Exception as exc:
-        emit_payload({"error": f"请求失败: {exc}"})
-        return
-    if data.get("code") != 0:
-        emit_payload({"error": f"API 错误: {data.get('message')}"})
-        return
-    d: dict[str, Any] = data["data"]
-    owner: dict[str, Any] = d.get("owner") or {}
-    stat: dict[str, Any] = d.get("stat") or {}
-
-    # Fetch cover image locally and encode as base64 data URL to bypass hotlink protection
-    cover_data_url = ""
-    pic_url = d.get("pic", "")
-    if pic_url:
-        try:
-            with httpx.Client(timeout=10, http2=True, headers=_headers, trust_env=trust_env) as client:
-                img_resp = client.get(pic_url).raise_for_status()
-                img_bytes = img_resp.content
-                mime = img_resp.headers.get("content-type", "image/jpeg").split(";")[0]
-            cover_data_url = f"data:{mime};base64,{base64.b64encode(img_bytes).decode()}"
-        except Exception:
-            pass  # fall back to empty string; frontend will skip the image
-
-    emit_payload(
-        {
-            "title": d.get("title", ""),
-            "cover": cover_data_url,
-            "description": d.get("desc", ""),
-            "uploader": owner.get("name", ""),
-            "pubdate": d.get("pubdate", 0),
-            "duration": d.get("duration", 0),
-            "view": stat.get("view", 0),
-            "like": stat.get("like", 0),
-        }
-    )
 
 
 def cmd_fetch_cover(url: str) -> None:
@@ -486,9 +423,6 @@ def main() -> None:
     convert_wav_parser = subparsers.add_parser("convert-wav")
     convert_wav_parser.add_argument("--dir", default=None)
 
-    fetch_meta_parser = subparsers.add_parser("fetch-meta")
-    fetch_meta_parser.add_argument("url")
-
     fetch_cover_parser = subparsers.add_parser("fetch-cover")
     fetch_cover_parser.add_argument("url")
 
@@ -507,8 +441,6 @@ def main() -> None:
         cmd_inspect_runtime()
     elif args.command == "convert-wav":
         cmd_convert_wav(args.dir)
-    elif args.command == "fetch-meta":
-        cmd_fetch_meta(args.url)
     elif args.command == "fetch-cover":
         cmd_fetch_cover(args.url)
     elif args.command == "save-settings":
