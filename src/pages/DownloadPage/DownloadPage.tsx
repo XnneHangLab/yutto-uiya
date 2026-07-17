@@ -10,6 +10,9 @@ import type {
 import { collectParseItems } from '../../services/runtime/runtime';
 import '../../styles/models.css';
 
+// 解析全部结束后，先让最终列表渲染安定，再发起封面抓取（子进程较重）。
+const AUTO_COVER_FETCH_DELAY_MS = 1000;
+
 const taskStatusLabel: Record<string, string> = {
   queued: '排队中',
   preparing: '准备中',
@@ -106,11 +109,21 @@ export function DownloadPage({
   >(new Map());
 
   const listRef = useRef<HTMLUListElement>(null);
-  // Tracks previous parsing state to detect false→true→false transition.
-  const prevParsingRef = useRef(false);
+  // `index:coverUrl` of the auto-fetch already scheduled for the current parse
+  // round — makes the every-render effect one-shot. Reset on re-parse / URL
+  // change / unmount so the next round (or a remount) fetches again.
+  const autoFetchKeyRef = useRef<string | null>(null);
+  const autoFetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Latest covers map for callbacks that outlive their defining render (the
+  // delayed auto-fetch fires ~1s after scheduling).
+  const coversRef = useRef(covers);
 
   const allParseItems = collectParseItems(parseItems, parseGroups);
   const hasParseResults = allParseItems.length > 0;
+
+  useEffect(() => {
+    coversRef.current = covers;
+  }, [covers]);
 
   // Auto-expand the latest item and scroll it into view as it arrives during parsing.
   useEffect(() => {
@@ -123,23 +136,54 @@ export function DownloadPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allParseItems.length]);
 
-  // When parsing finishes, auto-fetch the cover for the last item (single fetch, looks great for
-  // single-video parses and gives a nice preview for the end of a playlist).
+  // Auto-fetch the LAST item's cover (single fetch, looks great for single-
+  // video parses and gives a nice preview for the end of a playlist) — but
+  // only once parsing is fully over AND the final rebuilt list has rendered.
+  // Condition-driven on every commit instead of edge-triggered on the parsing
+  // flip: the old one-shot effect could fire on a commit where the
+  // authoritative item rebuild hadn't landed yet, silently losing the fetch
+  // (no cover, no loading/retry state — nothing). The extra delay lets the
+  // freshly rendered list settle before the subprocess-backed fetch starts.
   useEffect(() => {
-    const wasParsing = prevParsingRef.current;
-    prevParsingRef.current = parsing;
-    if (wasParsing && !parsing && allParseItems.length > 0) {
-      const lastItem = allParseItems[allParseItems.length - 1];
-      if (lastItem.cover?.startsWith('http') && !covers.has(lastItem.index)) {
-        void handleLoadCover(lastItem);
-      }
+    if (parsing || allParseItems.length === 0) return;
+    const lastItem = allParseItems[allParseItems.length - 1];
+    if (!lastItem.cover?.startsWith('http') || covers.has(lastItem.index)) {
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [parsing]);
+    const key = `${lastItem.index}:${lastItem.cover}`;
+    if (autoFetchKeyRef.current === key) return;
+    autoFetchKeyRef.current = key;
+    autoFetchTimerRef.current = setTimeout(() => {
+      autoFetchTimerRef.current = null;
+      void handleLoadCover(lastItem);
+    }, AUTO_COVER_FETCH_DELAY_MS);
+  });
+
+  // A pending auto-fetch dies with the page; resetting the key lets a remount
+  // (StrictMode replays included) schedule a fresh one.
+  useEffect(
+    () => () => {
+      if (autoFetchTimerRef.current) {
+        clearTimeout(autoFetchTimerRef.current);
+        autoFetchTimerRef.current = null;
+      }
+      autoFetchKeyRef.current = null;
+    },
+    [],
+  );
+
+  function cancelPendingAutoFetch() {
+    if (autoFetchTimerRef.current) {
+      clearTimeout(autoFetchTimerRef.current);
+      autoFetchTimerRef.current = null;
+    }
+    autoFetchKeyRef.current = null;
+  }
 
   function handleUrlChange(next: string) {
     onDownloadUrlChange(next);
     if (next.trim() !== downloadUrl.trim()) {
+      cancelPendingAutoFetch();
       onClearParseItems();
       setExpandedIndex(null);
       setExpandedGroups(new Set());
@@ -151,6 +195,7 @@ export function DownloadPage({
     event.preventDefault();
     const trimmed = downloadUrl.trim();
     if (!trimmed) return;
+    cancelPendingAutoFetch();
     setParsing(true);
     onClearParseItems();
     setExpandedIndex(null);
@@ -222,7 +267,8 @@ export function DownloadPage({
   }
 
   async function handleLoadCover(item: VideoParseItem) {
-    const state = covers.get(item.index);
+    // 经 coversRef 读取最新状态：延迟触发的自动抓取闭包早于点击/完成的那次渲染。
+    const state = coversRef.current.get(item.index);
     // 'error' 状态允许再次点击重试；loading/已加载则不重复请求。
     if (!item.cover || (state !== undefined && state !== 'error')) return;
     setExpandedIndex(item.index);
