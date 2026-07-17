@@ -8,8 +8,8 @@ use super::process::{
     ensure_environment_ready, kill_process, open_path, open_url, pick_download_dir,
     pick_ffmpeg_path, pick_python_path, pick_workspace_root, read_system_proxy,
     resolve_managed_path, run_auth_login_command, run_auth_logout_command, run_convert_wav_command,
-    run_fetch_cover_command, run_fetch_meta_command, run_inspect_command, run_probe_command,
-    run_save_settings_command, run_uv_sync_command, write_console_log,
+    run_fetch_cover_command, run_inspect_command, run_probe_command, run_save_settings_command,
+    run_uv_sync_command, write_console_log,
 };
 use super::state::{
     read_saved_download_dir, read_saved_driver_config, read_saved_hotkey,
@@ -110,21 +110,6 @@ pub async fn probe_environment(
     run_blocking_runtime_action(move || {
         let probe = run_probe_command(&repo_root, &workspace_root, &driver, &ffmpeg_path, &app)?;
         serde_json::to_value(probe).map_err(|error| error.to_string())
-    })
-    .await
-}
-
-#[tauri::command]
-pub async fn fetch_video_meta(
-    app: AppHandle,
-    state: State<'_, RuntimeState>,
-    url: String,
-) -> Result<serde_json::Value, String> {
-    let repo_root = state.repo_root.clone();
-    let workspace_root = state.current_workspace_root();
-    let driver = state.current_driver_config();
-    run_blocking_runtime_action(move || {
-        run_fetch_meta_command(&repo_root, &workspace_root, &driver, &url, &app)
     })
     .await
 }

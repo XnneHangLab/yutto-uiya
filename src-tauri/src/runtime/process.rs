@@ -575,39 +575,6 @@ pub fn ensure_environment_ready(
     }
 }
 
-pub fn run_fetch_meta_command(
-    repo_root: &Path,
-    workspace_root: &Path,
-    driver: &RuntimeDriverConfig,
-    url: &str,
-    app: &AppHandle,
-) -> Result<serde_json::Value, String> {
-    let output = build_python_command_for_driver(
-        repo_root,
-        workspace_root,
-        driver,
-        ["-m", "uiya.cli", "fetch-meta", url],
-    )
-    .output()
-    .map_err(|error| format!("failed to run fetch-meta: {error}"))?;
-
-    emit_stderr_lines(app, &output.stderr);
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let last_line = stdout
-        .lines()
-        .last()
-        .ok_or_else(|| "fetch-meta returned no output".to_string())?;
-    let envelope: PythonEnvelope = serde_json::from_str(last_line)
-        .map_err(|e| format!("failed to parse fetch-meta output: {e}"))?;
-
-    if let Some(error) = envelope.payload.get("error").and_then(|v| v.as_str()) {
-        return Err(error.to_string());
-    }
-
-    Ok(envelope.payload)
-}
-
 pub fn run_fetch_cover_command(
     repo_root: &Path,
     workspace_root: &Path,
@@ -1427,8 +1394,8 @@ mod tests {
 
     use super::{
         build_direct_python_command, build_uv_python_command, build_windows_open_command,
-        managed_path_from_payload, parse_windows_proxy_server, runtime_event_from_python_payload,
-        EnvironmentProbePayload, ENVIRONMENT_PROBE_SCRIPT,
+        managed_path_from_payload, parse_windows_proxy_server, runtime_config_path,
+        runtime_event_from_python_payload, EnvironmentProbePayload, ENVIRONMENT_PROBE_SCRIPT,
     };
 
     #[test]
@@ -1530,14 +1497,22 @@ mod tests {
             })
             .collect::<Vec<_>>();
 
+        // Path::join 的分隔符跟随平台，期望值必须同样拼出来（Windows 是反斜杠）。
+        let expected_config = runtime_config_path(Path::new("/app"))
+            .to_string_lossy()
+            .into_owned();
+        let expected_pythonpath = Path::new("/repo")
+            .join("python")
+            .to_string_lossy()
+            .into_owned();
         assert!(envs.iter().any(|(key, value)| {
-            key == "UIYA_RUNTIME_CONFIG" && value.as_deref() == Some("/app/config/uiya.toml")
+            key == "UIYA_RUNTIME_CONFIG" && value.as_deref() == Some(expected_config.as_str())
         }));
         assert!(envs.iter().any(|(key, value)| {
             key == "UIYA_HIDE_CONSOLE_WINDOW" && value.as_deref() == Some("1")
         }));
         assert!(envs.iter().any(|(key, value)| {
-            key == "PYTHONPATH" && value.as_deref() == Some("/repo/python")
+            key == "PYTHONPATH" && value.as_deref() == Some(expected_pythonpath.as_str())
         }));
     }
 

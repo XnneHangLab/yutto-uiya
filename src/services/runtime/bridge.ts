@@ -7,7 +7,6 @@ import type {
   RuntimeInspection,
   ServeInfo,
   ServeStatus,
-  VideoMeta,
 } from './runtime';
 
 export function probeEnvironment() {
@@ -124,10 +123,6 @@ export function openPath(path: string) {
 
 export function openUrl(url: string) {
   return invoke<void>('open_url_command', { url });
-}
-
-export function fetchVideoMeta(url: string) {
-  return invoke<VideoMeta>('fetch_video_meta', { url });
 }
 
 export function fetchCoverImage(url: string) {
