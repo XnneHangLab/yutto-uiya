@@ -79,12 +79,10 @@ serve 在 UI 里只是侧边栏的一个环境项（状态 + 地址），像 uv 
 - 死代码退役：`parse` / `download` 命令已随阶段 3/4 删除；本阶段清掉残余 ——
   `fetch-meta` 全链路（python cmd + Rust command + bridge，前端无调用方）、
   `_dataclass.py`（旧 CLI args 生成器，含 `--skip-download`）及其测试。
-- 依赖现状（2026-07-17 核实）：**暂时无法换到上游 yutto** —— 上游 serve 只暴露
-  `download.start`，`resolve.start`（解析管线的根基）还只在 fork 里（上游 PR 暂停中）。
-  且 PyPI 的 `uiya-yutto==0.1.0` **不含 server 包**（发布早于 #748），当前 serve 架构
-  只在 dev 环境（本地 yutto checkout 链接进 venv）可用。合入 dev / 发版前必须从
-  fork dev 发布 `uiya-yutto 0.2.0`（带 serve + resolve verb）并把 pyproject 依赖升上去；
-  等 resolve verb 上游化后再执行「换上游 yutto」。
+- 依赖现状：~~PyPI `uiya-yutto==0.1.0` 不含 server 包~~ —— **已解决（2026-07-17）**：
+  mirror 的 dev 重置为「上游 main（含 #748 server 模式）+ resolve verb」，发布
+  `uiya-yutto 0.2.0` 并已把 pyproject 依赖升级到该版本（旧 dev 备份在
+  `legacy/dev-0.1.0`）。「换上游 yutto」仍待 resolve verb 上游化（上游 PR 暂停中）。
 - 暂留：`auth-login`（import 方式 + auth 文件互操作，等上游 `auth.*` RPC）、
   `fetch-cover`（webview 防盗链取图是前端职责）、wav 转码、`inspect-runtime` / 设置。
 
