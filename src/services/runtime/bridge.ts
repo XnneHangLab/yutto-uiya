@@ -1,12 +1,10 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type {
-  DownloadOptions,
   EnvironmentProbe,
   ManagedPath,
   RuntimeEvent,
   RuntimeInspection,
-  RuntimeTaskRecord,
   ServeInfo,
   ServeStatus,
   VideoMeta,
@@ -28,31 +26,13 @@ export function inspectRuntime() {
   return invoke<RuntimeInspection>('inspect_runtime');
 }
 
-export function enqueueDownload(
-  target: string,
-  options: DownloadOptions,
-  label?: string,
-  dirOverride?: string,
-  selectIndex?: number,
-) {
-  return invoke<RuntimeTaskRecord>('enqueue_download', {
-    target,
-    label: label ?? null,
-    requireVideo: options.requireVideo,
-    requireAudio: options.requireAudio,
-    requireCover: options.requireCover,
-    requireSubtitle: options.requireSubtitle,
-    requireDanmaku: options.requireDanmaku,
-    videoQuality: options.videoQuality,
-    audioQuality: options.audioQuality,
-    dirOverride: dirOverride ?? null,
-    selectIndex: selectIndex ?? null,
-    audioFormat: options.audioFormat,
-  });
-}
-
-export function listDownloadTasks() {
-  return invoke<RuntimeTaskRecord[]>('list_download_tasks');
+/**
+ * Convert downloaded m4a/aac under the given downloads-root-relative
+ * directory to wav (the wire has no wav format; this is the retained uiya
+ * post-processing step).
+ */
+export function convertWavAudio(relativeDir: string) {
+  return invoke<void>('convert_wav_audio', { relativeDir });
 }
 
 export function listManagedFolders() {
@@ -124,10 +104,6 @@ export function detectFfmpegPath() {
 
 export function pickDownloadDir() {
   return invoke<string | null>('pick_download_dir_command');
-}
-
-export function cancelTask(taskId: string) {
-  return invoke<void>('cancel_task', { taskId });
 }
 
 export function startAuthLogin() {

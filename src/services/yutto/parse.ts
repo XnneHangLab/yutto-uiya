@@ -18,13 +18,14 @@ import {
   outputDirectoryFromSnapshot,
   wireItemToParseItem,
 } from './adapter';
+import { getRpcClient } from './connection';
 import { AUDIO_QUALITY_OPTIONS, VIDEO_QUALITY_OPTIONS } from './quality';
-import {
-  type DownloadRequestPayload,
-  type RpcSocketFactory,
-  type TaskEventPayload,
-  type TaskState,
-  YuttoRpcClient,
+import { type NetworkPreferences, networkRequestOptions } from './requests';
+import type {
+  DownloadRequestPayload,
+  RpcSocketFactory,
+  TaskEventPayload,
+  TaskState,
 } from './rpc';
 
 export interface ResolveParseOptions {
@@ -33,10 +34,10 @@ export interface ResolveParseOptions {
   /**
    * Maps uiya's 网络设置 onto the request (the old pipeline passed these as
    * yutto CLI flags). Omitted fields fall back to server defaults — note the
-   * wire default for proxy is "auto" (system proxy), so 不使用代理 users must
-   * pass proxy: 'no' or every request may die with ConnectError.
+   * wire default for proxy is "auto" (env proxies), so callers should always
+   * resolve an explicit value.
    */
-  network?: { proxy?: string; fetchWorkers?: number };
+  network?: NetworkPreferences;
   /** Receives translated parse.* RuntimeEvents as the task progresses. */
   onEvent?: (event: RuntimeEvent) => void;
   /** Test hook forwarded to YuttoRpcClient.connect. */
@@ -56,12 +57,8 @@ const TERMINAL_EVENTS: Record<string, TaskState> = {
 export async function resolveParseTarget(
   options: ResolveParseOptions,
 ): Promise<VideoParseResult> {
-  const client = await YuttoRpcClient.connect({
-    url: options.serve.url,
-    token: options.serve.token,
-    socketFactory: options.socketFactory,
-  });
-  try {
+  const client = await getRpcClient(options.serve, options.socketFactory);
+  {
     if (!client.hasCapability('resolve.start')) {
       throw new Error(
         `当前 yutto server（${client.serverInfo.version}）不支持 resolve.start，请升级 yutto`,
@@ -72,22 +69,9 @@ export async function resolveParseTarget(
       source: { url: options.target },
       scope: { batch: true },
     };
-    if (options.network) {
-      const network: Record<string, unknown> = {};
-      if (options.network.proxy) {
-        network.proxy = options.network.proxy;
-      }
-      if (options.network.fetchWorkers) {
-        // ServerPolicy caps fetch workers (default max 16); clamp so a large
-        // uiya setting degrades instead of rejecting the request.
-        network.fetch_workers = Math.min(
-          Math.max(1, Math.floor(options.network.fetchWorkers)),
-          16,
-        );
-      }
-      if (Object.keys(network).length > 0) {
-        request.network = network;
-      }
+    const network = networkRequestOptions(options.network);
+    if (network) {
+      request.network = network;
     }
     const snapshot = await client.resolveStart(request);
     const taskId = snapshot.task_id;
@@ -141,8 +125,6 @@ export async function resolveParseTarget(
       );
     }
     return buildParseResult(final.result, outputDirectory);
-  } finally {
-    client.close();
   }
 }
 
@@ -159,7 +141,10 @@ function buildParseResult(
   const wireItems = extractResolvedItems(result);
   const rootItems: VideoParseItem[] = [];
   const groupOrder: string[] = [];
-  const groupedItems = new Map<string, VideoParseItem[]>();
+  const groupedItems = new Map<
+    string,
+    { item: VideoParseItem; wire: WireResolvedItem }[]
+  >();
 
   wireItems.forEach((wireItem, position) => {
     const item = wireItemToParseItem(wireItem, position + 1, outputDirectory);
@@ -173,15 +158,29 @@ function buildParseResult(
     }
     const bucket = groupedItems.get(groupTitle);
     if (bucket) {
-      bucket.push(item);
+      bucket.push({ item, wire: wireItem });
     } else {
       groupOrder.push(groupTitle);
-      groupedItems.set(groupTitle, [item]);
+      groupedItems.set(groupTitle, [{ item, wire: wireItem }]);
     }
   });
 
   const groups: VideoParseGroup[] = groupOrder.map((title) => {
-    const items = groupedItems.get(title) ?? [];
+    const entries = groupedItems.get(title) ?? [];
+    // 多P episodes of one video share an avid and display their page names;
+    // a group of DISTINCT videos (收藏夹/合集) shows each video's own title —
+    // the page name of a single-P upload is often a raw filename (lv_0_xxx).
+    const distinctAvids = new Set(
+      entries.map((entry) => String(entry.wire.avid ?? '')),
+    );
+    const episodeGroup = entries.length > 1 && distinctAvids.size === 1;
+    const items = entries.map(({ item, wire }) => {
+      if (episodeGroup) {
+        return item;
+      }
+      const videoTitle = typeof wire.title === 'string' ? wire.title : '';
+      return videoTitle ? { ...item, title: videoTitle } : item;
+    });
     return { title, dir: items[0]?.dir ?? '', items };
   });
 

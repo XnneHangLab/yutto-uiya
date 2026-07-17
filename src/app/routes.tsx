@@ -75,6 +75,7 @@ interface RenderPageOptions {
   runtimeDriver: RuntimeDriver;
   scriptsReady: boolean;
   workspaceLocked: boolean;
+  jobsActive: boolean;
   workspaceRoot: string;
   environmentProbe: EnvironmentProbe | null;
   onChooseWorkspaceRoot: () => void;
@@ -144,6 +145,7 @@ function renderLazyPage(
         <SettingsPage
           workspaceRoot={options.workspaceRoot}
           workspaceLocked={options.workspaceLocked}
+          jobsActive={options.jobsActive}
           environmentProbe={options.environmentProbe}
           onChooseWorkspaceRoot={options.onChooseWorkspaceRoot}
           onUseRepoWorkspaceRoot={options.onUseRepoWorkspaceRoot}

@@ -47,6 +47,10 @@ export default defineConfig({
               link: "/troubleshooting/low-quality-360p",
             },
             {
+              text: "🎚️ 画质菜单与自动降级",
+              link: "/troubleshooting/quality-auto-downgrade",
+            },
+            {
               text: "📦 uv sync 安装失败",
               link: "/troubleshooting/uv-sync-failed",
             },
@@ -92,6 +96,10 @@ export default defineConfig({
             {
               text: "📉 画质只有 360P",
               link: "/troubleshooting/low-quality-360p",
+            },
+            {
+              text: "🎚️ 画质菜单与自动降级",
+              link: "/troubleshooting/quality-auto-downgrade",
             },
             {
               text: "📦 uv sync 安装失败",

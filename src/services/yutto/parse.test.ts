@@ -1,4 +1,5 @@
 import type { RuntimeEvent } from '../runtime/runtime';
+import { resetRpcConnection } from './connection';
 import { FakeSocket, flush } from './fake-socket';
 import { resolveParseTarget } from './parse';
 import { AUDIO_QUALITY_OPTIONS, VIDEO_QUALITY_OPTIONS } from './quality';
@@ -123,6 +124,10 @@ async function answerTaskGet(socket: FakeSocket, snapshot: unknown) {
 }
 
 describe('resolveParseTarget', () => {
+  beforeEach(() => {
+    resetRpcConnection();
+  });
+
   it('streams parse events and rebuilds items/groups from the final result', async () => {
     const { socket, events, parsePromise } = await startParse();
     await answerResolveStart(socket);
@@ -208,6 +213,55 @@ describe('resolveParseTarget', () => {
       dir: '某合集',
       cover: 'https://i0.hdslb.com/1.jpg',
     });
+  });
+
+  it('uses video titles for groups of distinct videos (收藏夹)', async () => {
+    const { socket, parsePromise } = await startParse();
+    await answerResolveStart(socket);
+    await answerSubscribe(socket, [
+      stateEvent(1, 'running'),
+      stateEvent(2, 'completed'),
+    ]);
+    await answerTaskGet(socket, {
+      task_id: 'task-1',
+      state: 'completed',
+      error: null,
+      created_at: '',
+      started_at: '',
+      finished_at: '',
+      last_event_seq: 2,
+      payload: { output: { directory: '/dl/root' } },
+      result: {
+        items: [
+          {
+            avid: 'av100',
+            cid: '1',
+            url: 'https://www.bilibili.com/video/BV1aa?p=1',
+            name: 'lv_0_20260223215442',
+            title: '一分钟带你看完伊蕾娜的颜值变化',
+            cover_url: '',
+            planned_path: '/dl/root/收藏夹/一分钟带你看完伊蕾娜的颜值变化.mp4',
+            display_group: '收藏夹',
+          },
+          {
+            avid: 'av200',
+            cid: '2',
+            url: 'https://www.bilibili.com/video/BV1bb?p=1',
+            name: 'mmexport1768031333059',
+            title: '另一个真实标题',
+            cover_url: '',
+            planned_path: '/dl/root/收藏夹/另一个真实标题.mp4',
+            display_group: '收藏夹',
+          },
+        ],
+      },
+    });
+
+    const result = await parsePromise;
+    expect(result.groups?.[0].items.map((item) => item.title)).toEqual([
+      '一分钟带你看完伊蕾娜的颜值变化',
+      '另一个真实标题',
+    ]);
   });
 
   it('places ungrouped items into root items', async () => {

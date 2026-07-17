@@ -206,6 +206,7 @@ describe('createTaskEventTranslator (download tasks)', () => {
       percent: 50,
       downloaded: '50.0 MiB',
       total: '100.0 MiB',
+      speed: '1.0 MiB/s',
       progressCurrent: 52_428_800,
       progressTotal: 104_857_600,
       progressUnit: 'bytes',
@@ -224,15 +225,16 @@ describe('createTaskEventTranslator (download tasks)', () => {
   it('describes stage and artifact events for the console', () => {
     const translate = createTaskEventTranslator(context);
 
-    expect(
-      translate(
-        wireEvent({
-          seq: 6,
-          kind: 'stage',
-          data: { name: 'postprocessing', item: 'EP01' },
-        }),
-      )[0].message,
-    ).toBe('后处理中: EP01');
+    const [stageEvent] = translate(
+      wireEvent({
+        seq: 6,
+        kind: 'stage',
+        data: { name: 'postprocessing', item: 'EP01' },
+      }),
+    );
+    expect(stageEvent.message).toBe('后处理中: EP01');
+    // 队列卡片的阶段行读 desc（不带 item）。
+    expect(stageEvent.desc).toBe('后处理中');
     expect(
       translate(
         wireEvent({

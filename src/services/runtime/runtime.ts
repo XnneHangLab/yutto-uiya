@@ -78,6 +78,13 @@ export interface RuntimeTaskRecord {
   progressTotal: number;
   updatedAt: string;
   saveDir: string;
+  // 字节级实时进度（download.file_progress），仅正在执行的任务有值；
+  // 状态切换事件会重建整行，进度字段随之清空。
+  percent?: number;
+  downloaded?: string;
+  totalSize?: string;
+  speed?: string;
+  stageDesc?: string;
 }
 
 export interface RuntimeEvent {
@@ -95,6 +102,7 @@ export interface RuntimeEvent {
   percent?: number;
   downloaded?: string;
   total?: string;
+  speed?: string;
   parseItem?: VideoParseItem;
   authQrDataUrl?: string;
 }
@@ -221,6 +229,70 @@ export function applyRuntimeEvent(
     next[index] = task;
   }
 
+  return next;
+}
+
+/**
+ * Merge a download.file_progress event into the matching task row. Rows are
+ * never created here (进度事件比 startDownload 的记录先到时直接丢弃)，and the
+ * array reference is reused while the integer percent stays put, so byte-level
+ * event bursts don't turn into re-renders.
+ */
+export function applyDownloadProgressEvent(
+  current: RuntimeTaskRecord[],
+  event: RuntimeEvent,
+): RuntimeTaskRecord[] {
+  if (event.event !== 'download.file_progress' || event.percent === undefined) {
+    return current;
+  }
+  const index = current.findIndex((item) => item.taskId === event.taskId);
+  if (index === -1) {
+    return current;
+  }
+  const previous = current[index];
+  if (previous.percent === event.percent && previous.stageDesc === event.desc) {
+    return current;
+  }
+  const next = [...current];
+  next[index] = {
+    ...previous,
+    percent: event.percent,
+    downloaded: event.downloaded,
+    totalSize: event.total,
+    speed: event.speed,
+    stageDesc: event.desc,
+  };
+  return next;
+}
+
+/**
+ * download.stage 只推进卡片的阶段行（stageDesc），并在阶段切换时清掉上一
+ * 阶段残留的字节进度 —— 「后处理中」不该顶着旧的 100% 进度条。
+ */
+export function applyDownloadStageEvent(
+  current: RuntimeTaskRecord[],
+  event: RuntimeEvent,
+): RuntimeTaskRecord[] {
+  if (event.event !== 'download.stage' || !event.desc) {
+    return current;
+  }
+  const index = current.findIndex((item) => item.taskId === event.taskId);
+  if (index === -1) {
+    return current;
+  }
+  const previous = current[index];
+  if (previous.stageDesc === event.desc) {
+    return current;
+  }
+  const next = [...current];
+  next[index] = {
+    ...previous,
+    stageDesc: event.desc,
+    percent: undefined,
+    downloaded: undefined,
+    totalSize: undefined,
+    speed: undefined,
+  };
   return next;
 }
 

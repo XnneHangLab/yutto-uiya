@@ -156,7 +156,7 @@
   font-family: ui-monospace, "SF Mono", Consolas, monospace;
 }
 
-.models-page__task-console-hint {
+.models-page__task-stage {
   flex-basis: 100%;
   font-size: 11px;
   color: var(--muted);
@@ -229,6 +229,21 @@
   background: var(--accent);
   border-radius: 2px;
   animation: indeterminate-slide 1.2s linear infinite;
+}
+
+.models-page__progressbar {
+  flex-basis: 100%;
+  height: 3px;
+  background: var(--line);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.models-page__progressbar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.3s ease;
 }
 
 /* ── Download form ── */

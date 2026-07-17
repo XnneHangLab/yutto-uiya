@@ -18,6 +18,8 @@ import '../../styles/settings.css';
 interface SettingsPageProps {
   workspaceRoot: string;
   workspaceLocked: boolean;
+  /** 有解析或下载在跑：保存会重启 serve 并把它们切断，提示但不拦截。 */
+  jobsActive?: boolean;
   environmentProbe: EnvironmentProbe | null;
   onChooseWorkspaceRoot: () => void;
   onUseRepoWorkspaceRoot: () => void;
@@ -59,6 +61,7 @@ interface SettingsPageProps {
 export function SettingsPage({
   workspaceRoot,
   workspaceLocked,
+  jobsActive = false,
   environmentProbe,
   onChooseWorkspaceRoot,
   onUseRepoWorkspaceRoot,
@@ -677,6 +680,11 @@ export function SettingsPage({
             </SettingCard>
 
             <div className="settings-save-row">
+              {jobsActive ? (
+                <span className="settings-save-warn" role="status">
+                  正在解析/下载，保存会重启 serve 并中断当前任务
+                </span>
+              ) : null}
               <button
                 type="button"
                 className="settings-save-button"

@@ -65,14 +65,18 @@ export function createTaskEventTranslator(
         return [genericEvent(context, event, describeData(event.data))];
       case 'progress':
         return translateProgress(context, event);
-      case 'stage':
-        return [
-          genericEvent(
-            context,
-            event,
-            stageMessage(event.data.name, event.data.item),
-          ),
-        ];
+      case 'stage': {
+        const stageEvent = genericEvent(
+          context,
+          event,
+          stageMessage(event.data.name, event.data.item),
+        );
+        // 队列卡片的阶段行读 desc（解析中/写入附件/后处理中…）。
+        stageEvent.desc =
+          STAGE_LABELS[String(event.data.name)] ??
+          String(event.data.name ?? '');
+        return [stageEvent];
+      }
       case 'batch_started':
         return [
           genericEvent(context, event, `批量任务：共 ${event.data.total} 项`),
@@ -113,37 +117,52 @@ export function outputDirectoryFromSnapshot(
   return typeof directory === 'string' ? directory : undefined;
 }
 
+/** 下载任务沿用旧队列的三段式进度（排队 0/3 → 下载 1/3 → 完成 3/3）。 */
+function stageProgress(event: RuntimeEvent, current: number): RuntimeEvent {
+  event.progressCurrent = current;
+  event.progressTotal = 3;
+  event.progressUnit = 'stage';
+  return event;
+}
+
 function translateState(
   context: TaskEventAdapterContext,
   event: TaskEventPayload,
 ): RuntimeEvent[] {
   const prefix = eventPrefix(context);
+  const isDownload = context.kind === 'download';
   const to = String(event.data.to ?? '');
   switch (to) {
-    case 'queued':
-      return [
-        baseEvent(context, event, `${prefix}.queued`, 'queued', '已进入队列'),
-      ];
-    case 'running':
-      return [
-        baseEvent(
-          context,
-          event,
-          `${prefix}.started`,
-          context.kind === 'resolve' ? 'preparing' : 'downloading',
-          context.kind === 'resolve' ? '开始解析' : '开始下载',
-        ),
-      ];
-    case 'completed':
-      return [
-        baseEvent(
-          context,
-          event,
-          `${prefix}.completed`,
-          'completed',
-          context.kind === 'resolve' ? '解析完成' : '下载完成',
-        ),
-      ];
+    case 'queued': {
+      const queued = baseEvent(
+        context,
+        event,
+        `${prefix}.queued`,
+        'queued',
+        '已进入队列',
+      );
+      return [isDownload ? stageProgress(queued, 0) : queued];
+    }
+    case 'running': {
+      const started = baseEvent(
+        context,
+        event,
+        `${prefix}.started`,
+        context.kind === 'resolve' ? 'preparing' : 'downloading',
+        context.kind === 'resolve' ? '开始解析' : '开始下载',
+      );
+      return [isDownload ? stageProgress(started, 1) : started];
+    }
+    case 'completed': {
+      const completed = baseEvent(
+        context,
+        event,
+        `${prefix}.completed`,
+        'completed',
+        context.kind === 'resolve' ? '解析完成' : '下载完成',
+      );
+      return [isDownload ? stageProgress(completed, 3) : completed];
+    }
     case 'failed':
       return [
         baseEvent(
@@ -260,6 +279,10 @@ function translateProgress(
   }
   if (total > 0) {
     runtimeEvent.total = formatBytes(total);
+  }
+  const speed = toFiniteNumber(data.speed_per_second);
+  if (speed > 0) {
+    runtimeEvent.speed = `${formatBytes(speed)}/s`;
   }
   return [runtimeEvent];
 }

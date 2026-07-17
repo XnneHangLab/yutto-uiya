@@ -7,7 +7,7 @@ use std::thread;
 
 use tauri::{AppHandle, Emitter};
 
-use super::models::{EnvironmentProbePayload, PythonEnvelope, RuntimeEventPayload, TaskStatus};
+use super::models::{EnvironmentProbePayload, PythonEnvelope, RuntimeEventPayload};
 use super::state::{RuntimeDriverConfig, RuntimeState};
 
 #[cfg(target_os = "windows")]
@@ -575,150 +575,6 @@ pub fn ensure_environment_ready(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-pub fn run_download_command(
-    app: AppHandle,
-    state: RuntimeState,
-    task_id: String,
-    target: String,
-    require_video: bool,
-    require_audio: bool,
-    require_cover: bool,
-    require_subtitle: bool,
-    require_danmaku: bool,
-    video_quality: u32,
-    audio_quality: u32,
-    dir_override: Option<String>,
-    audio_format: Option<String>,
-) -> Result<(), String> {
-    let driver = state.current_driver_config();
-    let ffmpeg_path = state.current_ffmpeg_path();
-    let mut command = build_python_command_for_driver(
-        &state.repo_root,
-        &state.current_workspace_root(),
-        &driver,
-        ["-m", "uiya.cli", "download"],
-    );
-    command
-        .arg(&target)
-        .arg("--require-video")
-        .arg(if require_video { "true" } else { "false" })
-        .arg("--require-audio")
-        .arg(if require_audio { "true" } else { "false" })
-        .arg("--require-cover")
-        .arg(if require_cover { "true" } else { "false" })
-        .arg("--require-subtitle")
-        .arg(if require_subtitle { "true" } else { "false" })
-        .arg("--require-danmaku")
-        .arg(if require_danmaku { "true" } else { "false" })
-        .arg("--video-quality")
-        .arg(video_quality.to_string())
-        .arg("--audio-quality")
-        .arg(audio_quality.to_string())
-        .env("UIYA_FFMPEG_PATH", &ffmpeg_path)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    if let Some(dir) = &dir_override {
-        command.arg("--dir-override").arg(dir);
-    }
-    if let Some(fmt) = &audio_format {
-        command.arg("--audio-format").arg(fmt);
-    }
-
-    let mut child = command
-        .spawn()
-        .map_err(|error| format!("failed to spawn download process: {error}"))?;
-
-    // Register the running child so cancel_task can kill it by PID.
-    {
-        let mut active = state.active_download.lock().unwrap();
-        *active = Some((task_id.clone(), child.id()));
-    }
-
-    let stdout = child
-        .stdout
-        .take()
-        .ok_or_else(|| "missing child stdout".to_string())?;
-    let stderr = child
-        .stderr
-        .take()
-        .ok_or_else(|| "missing child stderr".to_string())?;
-
-    let app_for_stderr = app.clone();
-    let stderr_reader = thread::spawn(move || -> Result<(), String> {
-        for line_result in BufReader::new(stderr).lines() {
-            let line = line_result.map_err(|error| error.to_string())?;
-            if !line.trim().is_empty() {
-                app_for_stderr
-                    .emit("runtime:raw-log", &line)
-                    .map_err(|error| error.to_string())?;
-            }
-        }
-        Ok(())
-    });
-
-    let mut stdout_reader = BufReader::new(stdout);
-    let mut raw_line = String::new();
-    loop {
-        raw_line.clear();
-        let n = stdout_reader
-            .read_line(&mut raw_line)
-            .map_err(|error| error.to_string())?;
-        if n == 0 {
-            break;
-        }
-        // Strip trailing \n only — keep \r so the frontend can detect progress lines
-        let line = raw_line.trim_end_matches('\n');
-        if line
-            .trim_matches(|c: char| c == '\r' || c.is_whitespace())
-            .is_empty()
-        {
-            continue;
-        }
-        // Strip \r for JSON parsing only (progress bar lines are never valid JSON)
-        let for_parse = line.trim_end_matches('\r');
-        if let Ok(envelope) = serde_json::from_str::<PythonEnvelope>(for_parse) {
-            if envelope.kind == "event" {
-                let payload = envelope.payload;
-                let timestamp = super::state::current_timestamp();
-                let event =
-                    runtime_event_from_python_payload(&task_id, &target, &payload, &timestamp);
-                if event.event != "download.file_progress" {
-                    let mut queue = state.queue.lock().unwrap();
-                    queue.apply_update(
-                        &task_id,
-                        task_status_from_str(&event.status),
-                        event.message.clone(),
-                        event.progress_current,
-                        event.progress_total,
-                    );
-                }
-                app.emit("runtime:event", &event)
-                    .map_err(|error| error.to_string())?;
-            }
-        } else {
-            app.emit("runtime:raw-log", line)
-                .map_err(|error| error.to_string())?;
-        }
-    }
-
-    let status = child.wait().map_err(|error| error.to_string())?;
-    // Unregister the child PID regardless of exit status.
-    {
-        let mut active = state.active_download.lock().unwrap();
-        *active = None;
-    }
-    stderr_reader
-        .join()
-        .map_err(|_| "stderr reader thread panicked".to_string())??;
-
-    if status.success() {
-        Ok(())
-    } else {
-        Err(format!("download process exited with status {status}"))
-    }
-}
-
 pub fn run_fetch_meta_command(
     repo_root: &Path,
     workspace_root: &Path,
@@ -790,65 +646,59 @@ pub fn run_fetch_cover_command(
         .ok_or_else(|| "fetch-cover payload missing dataUrl".to_string())
 }
 
-pub fn drain_download_queue(app: AppHandle, state: RuntimeState) {
-    loop {
-        let next_task = {
-            let mut queue = state.queue.lock().unwrap();
-            queue.take_next_task_or_mark_idle()
-        };
+pub fn run_convert_wav_command(
+    repo_root: &Path,
+    workspace_root: &Path,
+    driver: &RuntimeDriverConfig,
+    ffmpeg_path: &str,
+    relative_dir: &str,
+    app: &AppHandle,
+) -> Result<(), String> {
+    emit_raw_log(app, "[wav] 正在转码 m4a/aac → wav …");
+    let mut command = build_python_command_for_driver(
+        repo_root,
+        workspace_root,
+        driver,
+        ["-m", "uiya.cli", "convert-wav", "--dir", relative_dir],
+    );
+    command
+        .env("UIYA_FFMPEG_PATH", ffmpeg_path)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
 
-        let Some(task) = next_task else {
-            break;
-        };
+    let mut child = command
+        .spawn()
+        .map_err(|error| format!("failed to run convert-wav: {error}"))?;
+    let stdout = child.stdout.take().ok_or("convert-wav missing stdout")?;
+    let stderr = child.stderr.take().ok_or("convert-wav missing stderr")?;
 
-        if let Err(error) = run_download_command(
-            app.clone(),
-            RuntimeState {
-                repo_root: state.repo_root.clone(),
-                workspace_root: state.workspace_root.clone(),
-                queue: state.queue.clone(),
-                driver_config: state.driver_config.clone(),
-                portable_python_path: state.portable_python_path.clone(),
-                ffmpeg_path: state.ffmpeg_path.clone(),
-                active_download: state.active_download.clone(),
-                active_auth: state.active_auth.clone(),
-                hotkey: state.hotkey.clone(),
-                download_dir: state.download_dir.clone(),
-                serve: state.serve.clone(),
-            },
-            task.task_id.clone(),
-            task.target.clone(),
-            task.require_video,
-            task.require_audio,
-            task.require_cover,
-            task.require_subtitle,
-            task.require_danmaku,
-            task.video_quality,
-            task.audio_quality,
-            task.dir_override.clone(),
-            task.audio_format.clone(),
-        ) {
-            // If the task was already marked cancelled (by cancel_task), don't overwrite.
-            let already_cancelled = {
-                let queue = state.queue.lock().unwrap();
-                queue
-                    .tasks
-                    .iter()
-                    .find(|t| t.task_id == task.task_id)
-                    .map(|t| t.status == TaskStatus::Cancelled)
-                    .unwrap_or(false)
-            };
-            if !already_cancelled {
-                let timestamp = super::state::current_timestamp();
-                let mut queue = state.queue.lock().unwrap();
-                queue.apply_update(&task.task_id, TaskStatus::Failed, error.clone(), 3, 3);
-                drop(queue);
-
-                let event =
-                    build_terminal_failure_event(&task.task_id, &task.target, &error, &timestamp);
-                let _ = app.emit("runtime:event", &event);
+    let app_for_stderr = app.clone();
+    let stderr_handle = thread::spawn(move || {
+        let reader = BufReader::new(stderr);
+        for line in reader.lines().map_while(Result::ok) {
+            if !line.trim().is_empty() {
+                let _ = app_for_stderr.emit("runtime:raw-log", line);
             }
         }
+    });
+    let reader = BufReader::new(stdout);
+    for line in reader.lines().map_while(Result::ok) {
+        if !line.trim().is_empty() {
+            emit_raw_log(app, &line);
+        }
+    }
+    let _ = stderr_handle.join();
+    let status = child
+        .wait()
+        .map_err(|error| format!("failed to wait for convert-wav: {error}"))?;
+    if status.success() {
+        emit_raw_log(app, "[wav] 转码完成");
+        Ok(())
+    } else {
+        Err(format!(
+            "convert-wav failed with exit code {:?}",
+            status.code()
+        ))
     }
 }
 
@@ -1152,30 +1002,6 @@ fn managed_path_from_payload(
     Err(format!(
         "managed path key not found in inspect-runtime payload: {path_key}"
     ))
-}
-
-fn build_terminal_failure_event(
-    task_id: &str,
-    target: &str,
-    message: &str,
-    timestamp: &str,
-) -> RuntimeEventPayload {
-    RuntimeEventPayload {
-        event: "download.failed".to_string(),
-        task_id: task_id.to_string(),
-        target: target.to_string(),
-        status: "failed".to_string(),
-        message: message.to_string(),
-        progress_current: 3,
-        progress_total: 3,
-        progress_unit: "stage".to_string(),
-        timestamp: timestamp.to_string(),
-        desc: None,
-        percent: None,
-        downloaded: None,
-        total: None,
-        auth_qr_data_url: None,
-    }
 }
 
 fn runtime_event_from_python_payload(
@@ -1593,19 +1419,6 @@ fn build_probe_payload(
     }
 }
 
-fn task_status_from_str(value: &str) -> TaskStatus {
-    match value {
-        "queued" => TaskStatus::Queued,
-        "preparing" => TaskStatus::Preparing,
-        "downloading" => TaskStatus::Downloading,
-        "verifying" => TaskStatus::Verifying,
-        "completed" => TaskStatus::Completed,
-        "failed" => TaskStatus::Failed,
-        "cancelled" => TaskStatus::Cancelled,
-        _ => TaskStatus::Downloading,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::path::Path;
@@ -1613,9 +1426,9 @@ mod tests {
     use serde_json::json;
 
     use super::{
-        build_direct_python_command, build_terminal_failure_event, build_uv_python_command,
-        build_windows_open_command, managed_path_from_payload, parse_windows_proxy_server,
-        runtime_event_from_python_payload, EnvironmentProbePayload, ENVIRONMENT_PROBE_SCRIPT,
+        build_direct_python_command, build_uv_python_command, build_windows_open_command,
+        managed_path_from_payload, parse_windows_proxy_server, runtime_event_from_python_payload,
+        EnvironmentProbePayload, ENVIRONMENT_PROBE_SCRIPT,
     };
 
     #[test]
@@ -1814,22 +1627,6 @@ mod tests {
 
         let error = managed_path_from_payload(&payload, "genieBase").unwrap_err();
         assert!(error.contains("genieBase"));
-    }
-
-    #[test]
-    fn build_terminal_failure_event_marks_task_as_failed() {
-        let event =
-            build_terminal_failure_event("task-7", "genie-base", "spawn failed", "1712300000");
-
-        assert_eq!(event.event, "download.failed");
-        assert_eq!(event.task_id, "task-7");
-        assert_eq!(event.target, "genie-base");
-        assert_eq!(event.status, "failed");
-        assert_eq!(event.message, "spawn failed");
-        assert_eq!(event.progress_current, 3);
-        assert_eq!(event.progress_total, 3);
-        assert_eq!(event.progress_unit, "stage");
-        assert_eq!(event.timestamp, "1712300000");
     }
 
     #[test]
