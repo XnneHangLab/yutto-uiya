@@ -87,3 +87,17 @@ serve 在 UI 里只是侧边栏的一个环境项（状态 + 地址），像 uv 
   等 resolve verb 上游化后再执行「换上游 yutto」。
 - 暂留：`auth-login`（import 方式 + auth 文件互操作，等上游 `auth.*` RPC）、
   `fetch-cover`（webview 防盗链取图是前端职责）、wav 转码、`inspect-runtime` / 设置。
+
+## 阶段 6：文档
+
+迁移改变了不少用户可见行为，合入 dev 前把文档追平：
+
+- `docs/guide/settings.md`：serve 状态行与一键重启入口；「保存并重新检测」会**重启
+  serve 并中断进行中的解析/下载**（设置页有琥珀色提示）；「解析并发数」逐请求生效
+  （上限 16，改完即用不需重启）；下载目录/ffmpeg/python 变更随保存自动重启生效。
+- 下载管理指南（新页或并入快速开始）：队列串行执行（服务端单 worker，天然防风控）、
+  卡片阶段行（解析中/写入附件/下载中/后处理中）与字节级实时进度条、批量共用一套
+  下载选项（troubleshooting/quality-auto-downgrade 已先行覆盖画质部分）。
+- 常见问题：serve 启动失败排查（对应侧边栏重启按钮）；仅音频 mp3/flac 已自动转码
+  （旧版会合并失败）。
+- README / 截图核对：队列卡片、设置页新增项与当前 UI 一致。
