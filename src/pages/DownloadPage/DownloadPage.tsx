@@ -100,10 +100,10 @@ export function DownloadPage({
   const [parsing, setParsing] = useState(false);
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  // item.index → 'loading' | data-URL string
-  const [covers, setCovers] = useState<Map<number, 'loading' | string>>(
-    new Map(),
-  );
+  // item.index → 'loading' | 'error' | data-URL string
+  const [covers, setCovers] = useState<
+    Map<number, 'loading' | 'error' | string>
+  >(new Map());
 
   const listRef = useRef<HTMLUListElement>(null);
   // Tracks previous parsing state to detect false→true→false transition.
@@ -222,7 +222,9 @@ export function DownloadPage({
   }
 
   async function handleLoadCover(item: VideoParseItem) {
-    if (!item.cover || covers.has(item.index)) return;
+    const state = covers.get(item.index);
+    // 'error' 状态允许再次点击重试；loading/已加载则不重复请求。
+    if (!item.cover || (state !== undefined && state !== 'error')) return;
     setExpandedIndex(item.index);
     setCovers((prev) => new Map(prev).set(item.index, 'loading'));
     const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -239,18 +241,17 @@ export function DownloadPage({
     if (dataUrl) {
       setCovers((prev) => new Map(prev).set(item.index, dataUrl!));
     } else {
-      setCovers((prev) => {
-        const m = new Map(prev);
-        m.delete(item.index);
-        return m;
-      });
+      // 失败要可见：按钮变成重试提示，而不是静默退回「查看封面」。
+      setCovers((prev) => new Map(prev).set(item.index, 'error'));
     }
   }
 
   function renderDetailPanel(item: VideoParseItem) {
     const coverState = covers.get(item.index);
     const coverNode =
-      typeof coverState === 'string' && coverState !== 'loading' ? (
+      typeof coverState === 'string' &&
+      coverState !== 'loading' &&
+      coverState !== 'error' ? (
         <img
           className="parse-detail__cover"
           src={coverState}
@@ -317,9 +318,11 @@ export function DownloadPage({
             >
               {covers.get(item.index) === 'loading'
                 ? '加载中…'
-                : covers.get(item.index)
-                  ? '封面'
-                  : '查看封面'}
+                : covers.get(item.index) === 'error'
+                  ? '加载失败，重试'
+                  : covers.get(item.index)
+                    ? '封面'
+                    : '查看封面'}
             </button>
           ) : null}
           <button
