@@ -24,6 +24,7 @@ export default defineConfig({
           items: [
             { text: "🎬 项目介绍", link: "/guide/intro" },
             { text: "🚀 快速开始", link: "/guide/getting-started" },
+            { text: "📥 下载管理", link: "/guide/download" },
             { text: "⚙️ 设置说明", link: "/guide/settings" },
           ],
         },
@@ -53,6 +54,10 @@ export default defineConfig({
             {
               text: "📦 uv sync 安装失败",
               link: "/troubleshooting/uv-sync-failed",
+            },
+            {
+              text: "🔌 server 连接断开",
+              link: "/troubleshooting/serve-restart",
             },
           ],
         },
@@ -75,6 +80,7 @@ export default defineConfig({
           items: [
             { text: "🎬 项目介绍", link: "/guide/intro" },
             { text: "🚀 快速开始", link: "/guide/getting-started" },
+            { text: "📥 下载管理", link: "/guide/download" },
             { text: "⚙️ 设置说明", link: "/guide/settings" },
           ],
         },
@@ -104,6 +110,10 @@ export default defineConfig({
             {
               text: "📦 uv sync 安装失败",
               link: "/troubleshooting/uv-sync-failed",
+            },
+            {
+              text: "🔌 server 连接断开",
+              link: "/troubleshooting/serve-restart",
             },
           ],
         },
