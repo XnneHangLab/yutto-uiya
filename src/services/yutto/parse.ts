@@ -141,7 +141,10 @@ function buildParseResult(
   const wireItems = extractResolvedItems(result);
   const rootItems: VideoParseItem[] = [];
   const groupOrder: string[] = [];
-  const groupedItems = new Map<string, VideoParseItem[]>();
+  const groupedItems = new Map<
+    string,
+    { item: VideoParseItem; wire: WireResolvedItem }[]
+  >();
 
   wireItems.forEach((wireItem, position) => {
     const item = wireItemToParseItem(wireItem, position + 1, outputDirectory);
@@ -155,15 +158,29 @@ function buildParseResult(
     }
     const bucket = groupedItems.get(groupTitle);
     if (bucket) {
-      bucket.push(item);
+      bucket.push({ item, wire: wireItem });
     } else {
       groupOrder.push(groupTitle);
-      groupedItems.set(groupTitle, [item]);
+      groupedItems.set(groupTitle, [{ item, wire: wireItem }]);
     }
   });
 
   const groups: VideoParseGroup[] = groupOrder.map((title) => {
-    const items = groupedItems.get(title) ?? [];
+    const entries = groupedItems.get(title) ?? [];
+    // 多P episodes of one video share an avid and display their page names;
+    // a group of DISTINCT videos (收藏夹/合集) shows each video's own title —
+    // the page name of a single-P upload is often a raw filename (lv_0_xxx).
+    const distinctAvids = new Set(
+      entries.map((entry) => String(entry.wire.avid ?? '')),
+    );
+    const episodeGroup = entries.length > 1 && distinctAvids.size === 1;
+    const items = entries.map(({ item, wire }) => {
+      if (episodeGroup) {
+        return item;
+      }
+      const videoTitle = typeof wire.title === 'string' ? wire.title : '';
+      return videoTitle ? { ...item, title: videoTitle } : item;
+    });
     return { title, dir: items[0]?.dir ?? '', items };
   });
 
