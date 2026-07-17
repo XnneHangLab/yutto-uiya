@@ -83,6 +83,7 @@ vi.mock('../../services/runtime/bridge', async () => {
     useRepoWorkspaceRoot: vi.fn().mockResolvedValue(readyProbe),
     inspectRuntime: vi.fn().mockResolvedValue(defaultInspection),
     listManagedFolders: vi.fn().mockResolvedValue(defaultManagedFolders),
+    setRuntimeDriver: vi.fn().mockResolvedValue(readyProbe),
     convertWavAudio: vi.fn().mockResolvedValue(undefined),
     openManagedPath: vi.fn().mockResolvedValue(undefined),
     openPath: vi.fn().mockResolvedValue(undefined),
@@ -430,6 +431,30 @@ describe('AppShell', () => {
     expect(screen.getByLabelText('Python 可执行文件路径')).toHaveValue(
       '/portable/env/python.exe',
     );
+  });
+
+  it('reloads the yutto serve after saving settings', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: '设置' }));
+    await user.click(
+      await screen.findByRole('button', { name: '保存并重新检测' }),
+    );
+
+    // 保存成功后 serve 必须重启：--download-root、ffmpeg PATH 和 python
+    // 解释器都在 serve 启动时固定，不重启新配置不会生效。
+    await waitFor(() => expect(runtimeBridge.stopServe).toHaveBeenCalled());
+    const saveOrder = vi.mocked(runtimeBridge.setRuntimeDriver).mock
+      .invocationCallOrder[0];
+    const stopOrder = vi.mocked(runtimeBridge.stopServe).mock
+      .invocationCallOrder[0];
+    expect(stopOrder).toBeGreaterThan(saveOrder);
+    await waitFor(() => {
+      const startOrders = vi.mocked(runtimeBridge.startServe).mock
+        .invocationCallOrder;
+      expect(startOrders.some((order) => order > stopOrder)).toBe(true);
+    });
   });
 
   it('cancels auth login when closing the qr dialog and allows restarting', async () => {
