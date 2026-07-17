@@ -471,9 +471,21 @@ export function AppShell() {
     }
   }
 
+  // 只有这些事件允许改写队列卡片；item_listed/stage/request_queued 等
+  // 信息型事件（消息是原始 JSON/中间态）只属于控制台，落到卡片上会让
+  // 下载中的卡片内容不停变动。
+  const taskCardEvents = new Set([
+    'download.queued',
+    'download.started',
+    'download.converting',
+    'download.completed',
+    'download.failed',
+    'download.cancelled',
+  ]);
+
   function processDownloadRuntimeEvent(event: RuntimeEvent) {
     // 队列行沿用三段式进度，字节级 file_progress 只在控制台原始输出里看。
-    if (event.event !== 'download.file_progress') {
+    if (taskCardEvents.has(event.event)) {
       setTasks((current) => applyRuntimeEvent(current, event));
     }
     const entry = consoleEntryForDownloadEvent(event);
@@ -547,8 +559,20 @@ export function AppShell() {
         onCompleted: handleDownloadCompleted,
       });
       setTasks((current) => {
-        const next = current.filter((item) => item.taskId !== record.taskId);
-        next.push(record);
+        // startDownload resolves AFTER replaying已到达的事件，行可能已存在且
+        // 状态领先于 record —— 只补 label/saveDir，别把状态倒回排队中或挪动行位。
+        const index = current.findIndex(
+          (item) => item.taskId === record.taskId,
+        );
+        if (index === -1) {
+          return [...current, record];
+        }
+        const next = [...current];
+        next[index] = {
+          ...next[index],
+          label: record.label,
+          saveDir: record.saveDir,
+        };
         return next;
       });
       setLogs((current) => [

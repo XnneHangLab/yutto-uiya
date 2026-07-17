@@ -205,6 +205,140 @@ describe('AppShell', () => {
     );
   });
 
+  it('keeps the queue card on stage messages while download detail events stream', async () => {
+    vi.mocked(resolveParseTarget).mockResolvedValue({
+      dir: '',
+      items: [
+        {
+          index: 1,
+          title: '测试视频',
+          url: 'https://www.bilibili.com/video/BV1xx411c7mD',
+          dir: '',
+        },
+      ],
+      groups: [],
+      videoQualities: [],
+      audioQualities: [],
+    });
+    let downloadOnEvent: ((event: RuntimeEvent) => void) | undefined;
+    vi.mocked(startDownload).mockImplementation(async (args) => {
+      downloadOnEvent = args.onEvent;
+      return queuedRecord('task-1', args.target, args.label);
+    });
+    const downloadEvent = (
+      name: string,
+      status: string,
+      message: string,
+      current = 0,
+    ): RuntimeEvent => ({
+      event: name,
+      taskId: 'task-1',
+      target: 'https://www.bilibili.com/video/BV1xx411c7mD',
+      status,
+      message,
+      progressCurrent: current,
+      progressTotal: 3,
+      progressUnit: 'stage',
+      timestamp: '1712300001',
+    });
+
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: '下载管理' }));
+    const urlInput = await screen.findByLabelText('Bilibili 视频链接');
+    await user.type(urlInput, 'https://www.bilibili.com/video/BV1xx411c7mD');
+    await user.click(screen.getByRole('button', { name: '解析' }));
+    await screen.findAllByText('测试视频');
+    await user.click(screen.getByRole('button', { name: /下载所选/ }));
+    await waitFor(() =>
+      expect(screen.getByText('已进入下载队列')).toBeInTheDocument(),
+    );
+
+    // 信息型事件（item_listed 的原始 JSON、stage 中间态等）不得改写卡片。
+    act(() => {
+      downloadOnEvent?.(
+        downloadEvent(
+          'download.item_listed',
+          'downloading',
+          '{"avid":"BV1xx411c7mD","title":"测试视频","cover_url":"https://i0.hdslb.com/c.jpg"}',
+        ),
+      );
+      downloadOnEvent?.(
+        downloadEvent('download.stage', 'downloading', '解析中'),
+      );
+    });
+    expect(screen.getByText('已进入下载队列')).toBeInTheDocument();
+    expect(screen.queryByText(/cover_url/)).not.toBeInTheDocument();
+
+    // 三段式状态事件照常推进卡片。
+    act(() => {
+      downloadOnEvent?.(
+        downloadEvent('download.started', 'downloading', '开始下载', 1),
+      );
+    });
+    expect(screen.getByText('开始下载')).toBeInTheDocument();
+    expect(screen.getByText('下载中')).toBeInTheDocument();
+  });
+
+  it('does not reset a queue row that advanced before startDownload resolved', async () => {
+    vi.mocked(resolveParseTarget).mockResolvedValue({
+      dir: '',
+      items: [
+        {
+          index: 1,
+          title: '测试视频',
+          url: 'https://www.bilibili.com/video/BV1xx411c7mD',
+          dir: '',
+        },
+      ],
+      groups: [],
+      videoQualities: [],
+      audioQualities: [],
+    });
+    // startDownload 在 resolve 前就回放了 queued/started 事件（真实时序）。
+    vi.mocked(startDownload).mockImplementation(async (args) => {
+      const base = {
+        taskId: 'task-1',
+        target: args.target,
+        progressTotal: 3,
+        progressUnit: 'stage',
+        timestamp: '1712300001',
+      };
+      args.onEvent?.({
+        ...base,
+        event: 'download.queued',
+        status: 'queued',
+        message: '已进入队列',
+        progressCurrent: 0,
+      });
+      args.onEvent?.({
+        ...base,
+        event: 'download.started',
+        status: 'downloading',
+        message: '开始下载',
+        progressCurrent: 1,
+      });
+      return queuedRecord('task-1', args.target, args.label);
+    });
+
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: '下载管理' }));
+    const urlInput = await screen.findByLabelText('Bilibili 视频链接');
+    await user.type(urlInput, 'https://www.bilibili.com/video/BV1xx411c7mD');
+    await user.click(screen.getByRole('button', { name: '解析' }));
+    await screen.findAllByText('测试视频');
+    await user.click(screen.getByRole('button', { name: /下载所选/ }));
+
+    // record 只补 label/saveDir：已领先的状态不回退到排队中。
+    await waitFor(() =>
+      expect(screen.getByText('开始下载')).toBeInTheDocument(),
+    );
+    expect(screen.getByText('下载中')).toBeInTheDocument();
+    expect(screen.queryByText('已进入下载队列')).not.toBeInTheDocument();
+    expect(screen.queryByText('排队中')).not.toBeInTheDocument();
+  });
+
   it('enqueues grouped child items with the shared group directory', async () => {
     vi.mocked(resolveParseTarget).mockResolvedValue({
       dir: '',
