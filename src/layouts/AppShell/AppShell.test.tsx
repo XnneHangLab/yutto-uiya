@@ -254,7 +254,7 @@ describe('AppShell', () => {
       expect(screen.getByText('已进入下载队列')).toBeInTheDocument(),
     );
 
-    // 信息型事件（item_listed 的原始 JSON、stage 中间态等）不得改写卡片。
+    // item_listed 的原始 JSON 不得改写卡片。
     act(() => {
       downloadOnEvent?.(
         downloadEvent(
@@ -262,9 +262,6 @@ describe('AppShell', () => {
           'downloading',
           '{"avid":"BV1xx411c7mD","title":"测试视频","cover_url":"https://i0.hdslb.com/c.jpg"}',
         ),
-      );
-      downloadOnEvent?.(
-        downloadEvent('download.stage', 'downloading', '解析中'),
       );
     });
     expect(screen.getByText('已进入下载队列')).toBeInTheDocument();
@@ -278,6 +275,16 @@ describe('AppShell', () => {
     });
     expect(screen.getByText('开始下载')).toBeInTheDocument();
     expect(screen.getByText('下载中')).toBeInTheDocument();
+
+    // stage 事件推进阶段行（状态消息不动），代替旧的「去控制台看」提示。
+    act(() => {
+      downloadOnEvent?.({
+        ...downloadEvent('download.stage', 'downloading', '解析中: 测试视频'),
+        desc: '解析中',
+      });
+    });
+    expect(screen.getByText('开始下载')).toBeInTheDocument();
+    expect(screen.getByText('解析中…')).toBeInTheDocument();
 
     // 字节级 file_progress 驱动真实进度条。
     act(() => {

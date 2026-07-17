@@ -38,6 +38,7 @@ import {
 } from '../../services/runtime/bridge';
 import {
   applyDownloadProgressEvent,
+  applyDownloadStageEvent,
   applyParseRuntimeEvent,
   applyRuntimeEvent,
   buildFolderItemsFromPaths,
@@ -490,6 +491,8 @@ export function AppShell() {
       setTasks((current) => applyRuntimeEvent(current, event));
     } else if (event.event === 'download.file_progress') {
       setTasks((current) => applyDownloadProgressEvent(current, event));
+    } else if (event.event === 'download.stage') {
+      setTasks((current) => applyDownloadStageEvent(current, event));
     }
     const entry = consoleEntryForDownloadEvent(event);
     if (entry) {

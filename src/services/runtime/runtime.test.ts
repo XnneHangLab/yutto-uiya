@@ -2,6 +2,7 @@ import { listen } from '@tauri-apps/api/event';
 import { subscribeRuntimeEvents } from './bridge';
 import {
   applyDownloadProgressEvent,
+  applyDownloadStageEvent,
   applyParseRuntimeEvent,
   applyRuntimeEvent,
   buildFolderItemsFromPaths,
@@ -167,6 +168,39 @@ describe('runtime helpers', () => {
 
     // 进度事件不会为未知任务创建新行。
     expect(applyDownloadProgressEvent([], progressEvent)).toEqual([]);
+
+    // 阶段切换写入阶段行，并清掉上一阶段残留的字节进度。
+    const staged = applyDownloadStageEvent(next, {
+      event: 'download.stage',
+      taskId: 'task-1',
+      target: 'https://www.bilibili.com/video/BV1xx411c7mD',
+      status: 'downloading',
+      message: '后处理中: EP01',
+      progressCurrent: 0,
+      progressTotal: 0,
+      progressUnit: '',
+      timestamp: '1712300002',
+      desc: '后处理中',
+    });
+    expect(staged[0]).toMatchObject({ stageDesc: '后处理中' });
+    expect(staged[0].percent).toBeUndefined();
+    expect(staged[0].speed).toBeUndefined();
+
+    // 相同阶段重复到达时复用原数组引用；未知任务不创建新行。
+    const repeat = {
+      event: 'download.stage',
+      taskId: 'task-1',
+      target: 'https://www.bilibili.com/video/BV1xx411c7mD',
+      status: 'downloading',
+      message: '后处理中: EP01',
+      progressCurrent: 0,
+      progressTotal: 0,
+      progressUnit: '',
+      timestamp: '1712300003',
+      desc: '后处理中',
+    };
+    expect(applyDownloadStageEvent(staged, repeat)).toBe(staged);
+    expect(applyDownloadStageEvent([], repeat)).toEqual([]);
   });
 
   it('normalizes unknown runtime status values into downloading', () => {

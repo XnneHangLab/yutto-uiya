@@ -265,6 +265,37 @@ export function applyDownloadProgressEvent(
   return next;
 }
 
+/**
+ * download.stage 只推进卡片的阶段行（stageDesc），并在阶段切换时清掉上一
+ * 阶段残留的字节进度 —— 「后处理中」不该顶着旧的 100% 进度条。
+ */
+export function applyDownloadStageEvent(
+  current: RuntimeTaskRecord[],
+  event: RuntimeEvent,
+): RuntimeTaskRecord[] {
+  if (event.event !== 'download.stage' || !event.desc) {
+    return current;
+  }
+  const index = current.findIndex((item) => item.taskId === event.taskId);
+  if (index === -1) {
+    return current;
+  }
+  const previous = current[index];
+  if (previous.stageDesc === event.desc) {
+    return current;
+  }
+  const next = [...current];
+  next[index] = {
+    ...previous,
+    stageDesc: event.desc,
+    percent: undefined,
+    downloaded: undefined,
+    totalSize: undefined,
+    speed: undefined,
+  };
+  return next;
+}
+
 export function isParseRuntimeEvent(event: RuntimeEvent) {
   return event.event.startsWith('parse.');
 }

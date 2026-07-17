@@ -287,8 +287,9 @@ describe('DownloadPage', () => {
       />,
     );
 
-    // 服务端串行执行：动画进度条只属于正在执行的任务，排队中的安静等待。
-    expect(screen.getAllByText('详细进度请前往控制台查看')).toHaveLength(1);
+    // 服务端串行执行：阶段行只属于正在执行的任务，排队中的安静等待。
+    // stageDesc 未知时退回状态文案（下载中…）。
+    expect(screen.getByText('下载中…')).toBeInTheDocument();
     expect(screen.getByText('排队中')).toBeInTheDocument();
     expect(screen.getByText('下载中')).toBeInTheDocument();
     // 排队中的任务仍然可以取消。
@@ -335,13 +336,11 @@ describe('DownloadPage', () => {
       />,
     );
 
-    // 有字节进度时显示真实进度条与速率，不再提示去控制台。
+    // 有字节进度时显示真实进度条与速率，阶段占位行退场。
     expect(
       screen.getByText('下载中 45% · 45.0 MiB / 100.0 MiB · 2.4 MiB/s'),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByText('详细进度请前往控制台查看'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('下载中…')).not.toBeInTheDocument();
     const fill = document.querySelector('.models-page__progressbar-fill');
     expect(fill).toHaveStyle({ width: '45%' });
   });

@@ -752,7 +752,7 @@ export function DownloadPage({
                   {isRunning ? (
                     task.percent !== undefined ? (
                       <>
-                        <div className="models-page__task-console-hint">
+                        <div className="models-page__task-stage">
                           {task.stageDesc ?? '下载中'} {task.percent}%
                           {task.downloaded && task.totalSize
                             ? ` · ${task.downloaded} / ${task.totalSize}`
@@ -767,10 +767,10 @@ export function DownloadPage({
                         </div>
                       </>
                     ) : (
-                      // 字节进度未知的阶段（解析流信息、合并等）退回滚动条。
+                      // 字节进度未知时报当前阶段（解析中/写入附件/后处理中…）。
                       <>
-                        <div className="models-page__task-console-hint">
-                          详细进度请前往控制台查看
+                        <div className="models-page__task-stage">
+                          {`${task.stageDesc ?? taskStatusLabel[task.status] ?? '进行中'}…`}
                         </div>
                         <div className="models-page__indeterminate">
                           <div className="models-page__indeterminate-fill" />

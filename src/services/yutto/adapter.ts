@@ -65,14 +65,18 @@ export function createTaskEventTranslator(
         return [genericEvent(context, event, describeData(event.data))];
       case 'progress':
         return translateProgress(context, event);
-      case 'stage':
-        return [
-          genericEvent(
-            context,
-            event,
-            stageMessage(event.data.name, event.data.item),
-          ),
-        ];
+      case 'stage': {
+        const stageEvent = genericEvent(
+          context,
+          event,
+          stageMessage(event.data.name, event.data.item),
+        );
+        // 队列卡片的阶段行读 desc（解析中/写入附件/后处理中…）。
+        stageEvent.desc =
+          STAGE_LABELS[String(event.data.name)] ??
+          String(event.data.name ?? '');
+        return [stageEvent];
+      }
       case 'batch_started':
         return [
           genericEvent(context, event, `批量任务：共 ${event.data.total} 项`),

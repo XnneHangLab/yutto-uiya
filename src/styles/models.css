@@ -156,7 +156,7 @@
   font-family: ui-monospace, "SF Mono", Consolas, monospace;
 }
 
-.models-page__task-console-hint {
+.models-page__task-stage {
   flex-basis: 100%;
   font-size: 11px;
   color: var(--muted);
