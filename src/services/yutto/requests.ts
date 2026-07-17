@@ -48,6 +48,18 @@ export function needsWavConversion(options: DownloadOptions): boolean {
   );
 }
 
+/**
+ * B 站音频流是 AAC；mp3/flac 容器装不下它，保持 wire 默认的
+ * audio_save_codec="copy" 会让 ffmpeg 直接写头失败（Invalid audio
+ * stream），必须显式转码。m4a/aac 与源编码一致，维持 copy。
+ * 用编码族名（而非 libmp3lame 这类实现名）：ffmpeg 自选默认编码器，
+ * 缺编码器的裁剪版会在 ServerPolicy 校验时得到明确报错。
+ */
+const AUDIO_SAVE_CODEC_BY_FORMAT: Record<string, string> = {
+  mp3: 'mp3',
+  flac: 'flac',
+};
+
 export interface DownloadRequestArgs {
   /** Atomic URL of one episode (from parse). */
   target: string;
@@ -61,6 +73,10 @@ export function buildDownloadRequest(
   args: DownloadRequestArgs,
 ): DownloadRequestPayload {
   const { options } = args;
+  const stream: Record<string, unknown> = {
+    video_quality: options.videoQuality,
+    audio_quality: options.audioQuality,
+  };
   const request: DownloadRequestPayload = {
     source: { url: args.target },
     scope: { batch: false },
@@ -72,10 +88,7 @@ export function buildDownloadRequest(
       cover: options.requireCover,
       save_cover: options.requireCover,
     },
-    stream: {
-      video_quality: options.videoQuality,
-      audio_quality: options.audioQuality,
-    },
+    stream,
   };
 
   const output: Record<string, unknown> = {};
@@ -86,6 +99,10 @@ export function buildDownloadRequest(
     const format = options.audioFormat === 'wav' ? 'm4a' : options.audioFormat;
     if (format && format !== 'infer') {
       output.audio_only_format = format;
+      const saveCodec = AUDIO_SAVE_CODEC_BY_FORMAT[format];
+      if (saveCodec) {
+        stream.audio_save_codec = saveCodec;
+      }
     }
   }
   if (Object.keys(output).length > 0) {
