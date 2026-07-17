@@ -750,14 +750,33 @@ export function DownloadPage({
                     ) : null}
                   </div>
                   {isRunning ? (
-                    <>
-                      <div className="models-page__task-console-hint">
-                        详细进度请前往控制台查看
-                      </div>
-                      <div className="models-page__indeterminate">
-                        <div className="models-page__indeterminate-fill" />
-                      </div>
-                    </>
+                    task.percent !== undefined ? (
+                      <>
+                        <div className="models-page__task-console-hint">
+                          {task.stageDesc ?? '下载中'} {task.percent}%
+                          {task.downloaded && task.totalSize
+                            ? ` · ${task.downloaded} / ${task.totalSize}`
+                            : ''}
+                          {task.speed ? ` · ${task.speed}` : ''}
+                        </div>
+                        <div className="models-page__progressbar">
+                          <div
+                            className="models-page__progressbar-fill"
+                            style={{ width: `${task.percent}%` }}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      // 字节进度未知的阶段（解析流信息、合并等）退回滚动条。
+                      <>
+                        <div className="models-page__task-console-hint">
+                          详细进度请前往控制台查看
+                        </div>
+                        <div className="models-page__indeterminate">
+                          <div className="models-page__indeterminate-fill" />
+                        </div>
+                      </>
+                    )
                   ) : null}
                 </div>
               );

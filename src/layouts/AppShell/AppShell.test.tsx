@@ -278,6 +278,21 @@ describe('AppShell', () => {
     });
     expect(screen.getByText('开始下载')).toBeInTheDocument();
     expect(screen.getByText('下载中')).toBeInTheDocument();
+
+    // 字节级 file_progress 驱动真实进度条。
+    act(() => {
+      downloadOnEvent?.({
+        ...downloadEvent('download.file_progress', 'downloading', '下载中 45%'),
+        desc: '下载中',
+        percent: 45,
+        downloaded: '45.0 MiB',
+        total: '100.0 MiB',
+        speed: '2.4 MiB/s',
+      });
+    });
+    expect(
+      screen.getByText('下载中 45% · 45.0 MiB / 100.0 MiB · 2.4 MiB/s'),
+    ).toBeInTheDocument();
   });
 
   it('refreshes the environment once when the download queue drains', async () => {

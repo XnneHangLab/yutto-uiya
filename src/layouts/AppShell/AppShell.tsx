@@ -37,6 +37,7 @@ import {
   uvSync,
 } from '../../services/runtime/bridge';
 import {
+  applyDownloadProgressEvent,
   applyParseRuntimeEvent,
   applyRuntimeEvent,
   buildFolderItemsFromPaths,
@@ -484,9 +485,11 @@ export function AppShell() {
   ]);
 
   function processDownloadRuntimeEvent(event: RuntimeEvent) {
-    // 队列行沿用三段式进度，字节级 file_progress 只在控制台原始输出里看。
+    // 队列行沿用三段式状态，字节级 file_progress 只更新进度条字段。
     if (taskCardEvents.has(event.event)) {
       setTasks((current) => applyRuntimeEvent(current, event));
+    } else if (event.event === 'download.file_progress') {
+      setTasks((current) => applyDownloadProgressEvent(current, event));
     }
     const entry = consoleEntryForDownloadEvent(event);
     if (entry) {

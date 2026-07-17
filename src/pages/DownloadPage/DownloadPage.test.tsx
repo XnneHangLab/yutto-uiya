@@ -295,6 +295,57 @@ describe('DownloadPage', () => {
     expect(screen.getAllByTitle('取消')).toHaveLength(2);
   });
 
+  it('renders a real progress bar once byte progress is known', () => {
+    render(
+      <DownloadPage
+        tasks={[
+          {
+            taskId: 't1',
+            target: 'https://www.bilibili.com/video/BV1xx411c7mD?p=1',
+            label: '正在下载的视频',
+            status: 'downloading',
+            message: '开始下载',
+            progressCurrent: 1,
+            progressTotal: 3,
+            updatedAt: '1712300001',
+            saveDir: '',
+            percent: 45,
+            downloaded: '45.0 MiB',
+            totalSize: '100.0 MiB',
+            speed: '2.4 MiB/s',
+            stageDesc: '下载中',
+          },
+        ]}
+        onDownload={() => undefined}
+        onParse={vi.fn()}
+        scriptsReady
+        parseItems={[]}
+        parseGroups={[]}
+        parseSelected={new Set()}
+        onParseSelectedChange={() => undefined}
+        onClearParseItems={() => undefined}
+        downloadUrl=""
+        onDownloadUrlChange={() => undefined}
+        parseVideoQualities={[]}
+        parseAudioQualities={[]}
+        downloadOptions={DEFAULT_DOWNLOAD_OPTIONS}
+        onDownloadOptionsChange={() => undefined}
+        onCancelTask={() => undefined}
+        onOpenDownloadsFolder={() => undefined}
+      />,
+    );
+
+    // 有字节进度时显示真实进度条与速率，不再提示去控制台。
+    expect(
+      screen.getByText('下载中 45% · 45.0 MiB / 100.0 MiB · 2.4 MiB/s'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('详细进度请前往控制台查看'),
+    ).not.toBeInTheDocument();
+    const fill = document.querySelector('.models-page__progressbar-fill');
+    expect(fill).toHaveStyle({ width: '45%' });
+  });
+
   it('auto-fetches the cover only after parsing is over plus a settle delay', async () => {
     vi.useFakeTimers();
     vi.mocked(fetchCoverImage).mockResolvedValue('data:image/jpeg;base64,Zm9v');

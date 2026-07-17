@@ -1,6 +1,7 @@
 import { listen } from '@tauri-apps/api/event';
 import { subscribeRuntimeEvents } from './bridge';
 import {
+  applyDownloadProgressEvent,
   applyParseRuntimeEvent,
   applyRuntimeEvent,
   buildFolderItemsFromPaths,
@@ -113,6 +114,59 @@ describe('runtime helpers', () => {
         saveDir: '',
       },
     ]);
+  });
+
+  it('merges byte progress into the matching task row', () => {
+    const current: RuntimeTaskRecord[] = [
+      {
+        taskId: 'task-1',
+        target: 'https://www.bilibili.com/video/BV1xx411c7mD',
+        label: '测试视频',
+        status: 'downloading',
+        message: '开始下载',
+        progressCurrent: 1,
+        progressTotal: 3,
+        updatedAt: '1712300000',
+        saveDir: '',
+      },
+    ];
+    const progressEvent = {
+      event: 'download.file_progress',
+      taskId: 'task-1',
+      target: 'https://www.bilibili.com/video/BV1xx411c7mD',
+      status: 'downloading',
+      message: '下载中 50%',
+      progressCurrent: 52_428_800,
+      progressTotal: 104_857_600,
+      progressUnit: 'bytes',
+      timestamp: '1712300001',
+      desc: '下载中',
+      percent: 50,
+      downloaded: '50.0 MiB',
+      total: '100.0 MiB',
+      speed: '1.0 MiB/s',
+    };
+
+    const next = applyDownloadProgressEvent(current, progressEvent);
+    expect(next[0]).toMatchObject({
+      // 三段式状态字段不被字节进度覆盖
+      status: 'downloading',
+      message: '开始下载',
+      progressCurrent: 1,
+      progressTotal: 3,
+      // 字节进度落到专用字段
+      percent: 50,
+      downloaded: '50.0 MiB',
+      totalSize: '100.0 MiB',
+      speed: '1.0 MiB/s',
+      stageDesc: '下载中',
+    });
+
+    // 整数百分比没变时复用原数组引用，避免事件风暴触发重渲染。
+    expect(applyDownloadProgressEvent(next, progressEvent)).toBe(next);
+
+    // 进度事件不会为未知任务创建新行。
+    expect(applyDownloadProgressEvent([], progressEvent)).toEqual([]);
   });
 
   it('normalizes unknown runtime status values into downloading', () => {

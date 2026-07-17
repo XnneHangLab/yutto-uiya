@@ -276,6 +276,10 @@ function translateProgress(
   if (total > 0) {
     runtimeEvent.total = formatBytes(total);
   }
+  const speed = toFiniteNumber(data.speed_per_second);
+  if (speed > 0) {
+    runtimeEvent.speed = `${formatBytes(speed)}/s`;
+  }
   return [runtimeEvent];
 }
 

@@ -206,6 +206,7 @@ describe('createTaskEventTranslator (download tasks)', () => {
       percent: 50,
       downloaded: '50.0 MiB',
       total: '100.0 MiB',
+      speed: '1.0 MiB/s',
       progressCurrent: 52_428_800,
       progressTotal: 104_857_600,
       progressUnit: 'bytes',
