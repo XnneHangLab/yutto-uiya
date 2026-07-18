@@ -37,6 +37,10 @@ import {
   uvSync,
 } from '../../services/runtime/bridge';
 import {
+  createEventPacer,
+  type EventPacer,
+} from '../../services/runtime/pacer';
+import {
   applyDownloadProgressEvent,
   applyDownloadStageEvent,
   applyParseRuntimeEvent,
@@ -61,10 +65,6 @@ import {
   type VideoParseGroup,
   type VideoParseItem,
 } from '../../services/runtime/runtime';
-import {
-  createEventPacer,
-  type EventPacer,
-} from '../../services/runtime/pacer';
 import {
   readStoredTheme,
   type ThemeMode,
