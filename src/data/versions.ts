@@ -7,17 +7,34 @@ export interface VersionEntry {
 }
 
 export const CURRENT_VERSION = {
-  version: 'v2.1.0',
-  date: '2026-07-11',
+  version: 'v2.2.0',
+  date: '2026-07-18',
   channel: '稳定版',
-  summary: '批量解析并发提速、解析并发数设置、文档站点',
+  summary:
+    'serve 架构：常驻 yutto server 驱动解析与下载，实时进度条与流式解析列表',
 };
 
 export const VERSION_TIMELINE: VersionEntry[] = [
   {
+    date: '2026-07-18',
+    version: 'v2.2.0',
+    badge: '当前',
+    title: '迁移到常驻 yutto server',
+    highlights: [
+      '解析与下载全面迁移到常驻 yutto server（内核 uiya-yutto 0.2.1），结构化事件取代日志抓取',
+      '收藏夹/合集解析大幅提速，列表边解析边逐条平滑出现',
+      '下载卡片显示阶段（解析中/写入附件/下载中/后处理中）与实时进度条（百分比 · 大小 · 速率）',
+      '下载队列串行执行，显著降低触发风控的概率；排队任务安静等待',
+      '修复仅音频 MP3/FLAC 下载失败（现在自动转码）',
+      '保存设置自动重启 server，下载目录 / FFmpeg / Python 修改立即生效；任务进行中保存会先提示',
+      '画质菜单为完整档位，实际画质下载时自动降级（详见文档站点说明）',
+      '疑难解答移至文档站点，应用内保留入口',
+    ],
+  },
+  {
     date: '2026-07-11',
     version: 'v2.1.0',
-    badge: '当前',
+    badge: '',
     title: '批量解析提速',
     highlights: [
       '内核升级至 uiya-yutto 0.1.0，合集/收藏夹批量解析并发执行，等待时间大幅缩短',

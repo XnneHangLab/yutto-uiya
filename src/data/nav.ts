@@ -1,7 +1,6 @@
 export type PageId =
   | 'home'
   | 'settings'
-  | 'troubleshooting'
   | 'versions'
   | 'models'
   | 'community'
@@ -24,7 +23,20 @@ export interface ThemeToggleNavItemData {
   section: 'secondary';
 }
 
-export type NavItemData = PageNavItemData | ThemeToggleNavItemData;
+/** 在系统浏览器中打开外部链接（如文档站点）的导航项。 */
+export interface LinkNavItemData {
+  type: 'link';
+  id: 'docs';
+  href: string;
+  label: string;
+  icon: string;
+  section: 'primary' | 'secondary';
+}
+
+export type NavItemData =
+  | PageNavItemData
+  | ThemeToggleNavItemData
+  | LinkNavItemData;
 
 export const navItems: NavItemData[] = [
   {
@@ -42,8 +54,10 @@ export const navItems: NavItemData[] = [
     section: 'primary',
   },
   {
-    type: 'page',
-    id: 'troubleshooting',
+    // 疑难解答改由文档站点承载（内容更全、随时可更新），应用内只留入口。
+    type: 'link',
+    id: 'docs',
+    href: 'https://yutto.xnnehang.top/guide/intro.html',
     label: '疑难解答',
     icon: '⌘',
     section: 'primary',

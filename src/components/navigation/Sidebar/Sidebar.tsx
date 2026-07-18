@@ -1,5 +1,6 @@
 import huixinLogo from '../../../assets/brand/logo-square.jpg';
 import type { NavItemData, PageId } from '../../../data/nav';
+import { openUrl } from '../../../services/runtime/bridge';
 import type { ThemeMode } from '../../../services/theme/theme';
 import { NavItem } from '../NavItem/NavItem';
 
@@ -23,6 +24,10 @@ export function Sidebar({
   const handleSelect = (item: NavItemData) => {
     if (item.type === 'action') {
       onToggleTheme();
+      return;
+    }
+    if (item.type === 'link') {
+      void openUrl(item.href);
       return;
     }
     onSelect(item.id);

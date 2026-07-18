@@ -22,11 +22,6 @@ const SettingsPage = lazy(() =>
     default: m.SettingsPage,
   })),
 );
-const TroubleshootingPage = lazy(() =>
-  import('../pages/TroubleshootingPage/TroubleshootingPage').then((m) => ({
-    default: m.TroubleshootingPage,
-  })),
-);
 const VersionsPage = lazy(() =>
   import('../pages/VersionsPage/VersionsPage').then((m) => ({
     default: m.VersionsPage,
@@ -176,8 +171,6 @@ function renderLazyPage(
           onSetHotkey={options.onSetHotkey}
         />
       );
-    case 'troubleshooting':
-      return <TroubleshootingPage />;
     case 'versions':
       return <VersionsPage />;
     case 'models':
