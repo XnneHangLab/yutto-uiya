@@ -147,12 +147,11 @@ jobs:
             -o miniconda.sh
           bash miniconda.sh -b -p /tmp/miniconda3
           /tmp/miniconda3/bin/conda create -y -p ./env python=3.11
-          ./env/bin/python -m pip install --no-cache-dir \
-            "pydantic>=2.10.6" \
-            "tomli_w>=1.2.0" \
-            "uiya-yutto==0.1.0" \
-            "httpx[http2,socks]>=0.28.1" \
-            "natsort>=8.4.0"
+          # 依赖清单直接取自 pyproject —— 工作流里硬编码的版本号曾经和
+          # pyproject 脱节（v2.2.0 首发把 serve 之前的 uiya-yutto 0.1.0 打了进去）。
+          ./env/bin/python -c "import tomllib; print('\n'.join(tomllib.load(open('pyproject.toml','rb'))['project']['dependencies']))" > portable-requirements.txt
+          cat portable-requirements.txt
+          ./env/bin/python -m pip install --no-cache-dir -r portable-requirements.txt
 
       - name: Download ffmpeg
         run: |
@@ -265,13 +264,12 @@ jobs:
             -Wait -NoNewWindow
           Write-Host "Creating Python 3.11 env at ./env ..."
           & "C:\miniconda3\Scripts\conda.exe" create -y -p "$PWD\env" python=3.11
-          Write-Host "Installing Python dependencies..."
-          .\env\python.exe -m pip install --no-cache-dir `
-            "pydantic>=2.10.6" `
-            "tomli_w>=1.2.0" `
-            "uiya-yutto==0.1.0" `
-            "httpx[http2,socks]>=0.28.1" `
-            "natsort>=8.4.0"
+          Write-Host "Installing Python dependencies (from pyproject)..."
+          # 依赖清单直接取自 pyproject —— 工作流里硬编码的版本号曾经和
+          # pyproject 脱节（v2.2.0 首发把 serve 之前的 uiya-yutto 0.1.0 打了进去）。
+          .\env\python.exe -c "import tomllib; print('\n'.join(tomllib.load(open('pyproject.toml','rb'))['project']['dependencies']))" | Out-File -Encoding ascii portable-requirements.txt
+          Get-Content portable-requirements.txt
+          .\env\python.exe -m pip install --no-cache-dir -r portable-requirements.txt
 
       # Download a static ffmpeg build (no extra DLLs required)
       - name: Download ffmpeg
