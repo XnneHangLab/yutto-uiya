@@ -7,9 +7,7 @@ use std::thread;
 
 use tauri::{AppHandle, Emitter};
 
-use super::models::{
-    EnvironmentProbePayload, ParseResult, PythonEnvelope, RuntimeEventPayload, TaskStatus,
-};
+use super::models::{EnvironmentProbePayload, PythonEnvelope, RuntimeEventPayload};
 use super::state::{RuntimeDriverConfig, RuntimeState};
 
 #[cfg(target_os = "windows")]
@@ -167,114 +165,6 @@ pub fn run_inspect_command(
     let envelope: PythonEnvelope =
         serde_json::from_str(last_line).map_err(|error| error.to_string())?;
     Ok(envelope.payload)
-}
-
-pub fn run_parse_command(
-    repo_root: &Path,
-    workspace_root: &Path,
-    driver: &RuntimeDriverConfig,
-    target: &str,
-    ffmpeg_path: &str,
-    app: &AppHandle,
-) -> Result<ParseResult, String> {
-    emit_raw_log(app, &format!("[parse] 正在解析 {target} …"));
-
-    let mut command = build_python_command_for_driver(
-        repo_root,
-        workspace_root,
-        driver,
-        ["-m", "uiya.cli", "parse", target],
-    );
-    command
-        .env("UIYA_FFMPEG_PATH", ffmpeg_path)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-
-    let mut child = command
-        .spawn()
-        .map_err(|error| format!("failed to run parse command: {error}"))?;
-
-    let stdout = child
-        .stdout
-        .take()
-        .ok_or_else(|| "parse command missing stdout".to_string())?;
-    let stderr = child
-        .stderr
-        .take()
-        .ok_or_else(|| "parse command missing stderr".to_string())?;
-
-    let app_for_stderr = app.clone();
-    let stderr_handle = thread::spawn(move || {
-        let reader = BufReader::new(stderr);
-        for line in reader.lines().map_while(Result::ok) {
-            let line = line.trim().to_string();
-            if !line.is_empty() {
-                let _ = app_for_stderr.emit("runtime:raw-log", line);
-            }
-        }
-    });
-
-    let mut final_payload: Option<serde_json::Value> = None;
-    let reader = BufReader::new(stdout);
-    for line in reader.lines() {
-        let line = line.map_err(|error| format!("failed to read parse command stdout: {error}"))?;
-        let line = line.trim().to_string();
-        if line.is_empty() {
-            continue;
-        }
-
-        match serde_json::from_str::<PythonEnvelope>(&line) {
-            Ok(envelope) => match envelope.kind.as_str() {
-                "event" => {
-                    let timestamp = super::state::current_timestamp();
-                    let event = runtime_event_from_python_payload(
-                        "",
-                        target,
-                        &envelope.payload,
-                        &timestamp,
-                    );
-                    let _ = app.emit("runtime:event", &event);
-                }
-                "payload" => {
-                    final_payload = Some(envelope.payload);
-                }
-                _ => emit_raw_log(app, &line),
-            },
-            Err(_) => emit_raw_log(app, &line),
-        }
-    }
-
-    let status = child
-        .wait()
-        .map_err(|error| format!("failed to wait for parse command: {error}"))?;
-    let _ = stderr_handle.join();
-
-    let payload = final_payload.ok_or_else(|| {
-        if status.success() {
-            "parse command returned no payload".to_string()
-        } else {
-            format!("parse command failed with exit code {:?}", status.code())
-        }
-    })?;
-
-    if !status.success() {
-        if let Some(error) = payload.get("error").and_then(serde_json::Value::as_str) {
-            return Err(error.to_string());
-        }
-        return Err(format!(
-            "parse command failed with exit code {:?}",
-            status.code()
-        ));
-    }
-
-    let result: ParseResult = serde_json::from_value(payload)
-        .map_err(|error| format!("failed to deserialize parse result: {error}"))?;
-
-    emit_raw_log(
-        app,
-        &format!("[parse] 解析完成，共 {} 个视频", result.items.len()),
-    );
-    Ok(result)
 }
 
 pub fn run_save_settings_command(
@@ -685,183 +575,6 @@ pub fn ensure_environment_ready(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-pub fn run_download_command(
-    app: AppHandle,
-    state: RuntimeState,
-    task_id: String,
-    target: String,
-    require_video: bool,
-    require_audio: bool,
-    require_cover: bool,
-    require_subtitle: bool,
-    require_danmaku: bool,
-    video_quality: u32,
-    audio_quality: u32,
-    dir_override: Option<String>,
-    audio_format: Option<String>,
-) -> Result<(), String> {
-    let driver = state.current_driver_config();
-    let ffmpeg_path = state.current_ffmpeg_path();
-    let mut command = build_python_command_for_driver(
-        &state.repo_root,
-        &state.current_workspace_root(),
-        &driver,
-        ["-m", "uiya.cli", "download"],
-    );
-    command
-        .arg(&target)
-        .arg("--require-video")
-        .arg(if require_video { "true" } else { "false" })
-        .arg("--require-audio")
-        .arg(if require_audio { "true" } else { "false" })
-        .arg("--require-cover")
-        .arg(if require_cover { "true" } else { "false" })
-        .arg("--require-subtitle")
-        .arg(if require_subtitle { "true" } else { "false" })
-        .arg("--require-danmaku")
-        .arg(if require_danmaku { "true" } else { "false" })
-        .arg("--video-quality")
-        .arg(video_quality.to_string())
-        .arg("--audio-quality")
-        .arg(audio_quality.to_string())
-        .env("UIYA_FFMPEG_PATH", &ffmpeg_path)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    if let Some(dir) = &dir_override {
-        command.arg("--dir-override").arg(dir);
-    }
-    if let Some(fmt) = &audio_format {
-        command.arg("--audio-format").arg(fmt);
-    }
-
-    let mut child = command
-        .spawn()
-        .map_err(|error| format!("failed to spawn download process: {error}"))?;
-
-    // Register the running child so cancel_task can kill it by PID.
-    {
-        let mut active = state.active_download.lock().unwrap();
-        *active = Some((task_id.clone(), child.id()));
-    }
-
-    let stdout = child
-        .stdout
-        .take()
-        .ok_or_else(|| "missing child stdout".to_string())?;
-    let stderr = child
-        .stderr
-        .take()
-        .ok_or_else(|| "missing child stderr".to_string())?;
-
-    let app_for_stderr = app.clone();
-    let stderr_reader = thread::spawn(move || -> Result<(), String> {
-        for line_result in BufReader::new(stderr).lines() {
-            let line = line_result.map_err(|error| error.to_string())?;
-            if !line.trim().is_empty() {
-                app_for_stderr
-                    .emit("runtime:raw-log", &line)
-                    .map_err(|error| error.to_string())?;
-            }
-        }
-        Ok(())
-    });
-
-    let mut stdout_reader = BufReader::new(stdout);
-    let mut raw_line = String::new();
-    loop {
-        raw_line.clear();
-        let n = stdout_reader
-            .read_line(&mut raw_line)
-            .map_err(|error| error.to_string())?;
-        if n == 0 {
-            break;
-        }
-        // Strip trailing \n only — keep \r so the frontend can detect progress lines
-        let line = raw_line.trim_end_matches('\n');
-        if line
-            .trim_matches(|c: char| c == '\r' || c.is_whitespace())
-            .is_empty()
-        {
-            continue;
-        }
-        // Strip \r for JSON parsing only (progress bar lines are never valid JSON)
-        let for_parse = line.trim_end_matches('\r');
-        if let Ok(envelope) = serde_json::from_str::<PythonEnvelope>(for_parse) {
-            if envelope.kind == "event" {
-                let payload = envelope.payload;
-                let timestamp = super::state::current_timestamp();
-                let event =
-                    runtime_event_from_python_payload(&task_id, &target, &payload, &timestamp);
-                if event.event != "download.file_progress" {
-                    let mut queue = state.queue.lock().unwrap();
-                    queue.apply_update(
-                        &task_id,
-                        task_status_from_str(&event.status),
-                        event.message.clone(),
-                        event.progress_current,
-                        event.progress_total,
-                    );
-                }
-                app.emit("runtime:event", &event)
-                    .map_err(|error| error.to_string())?;
-            }
-        } else {
-            app.emit("runtime:raw-log", line)
-                .map_err(|error| error.to_string())?;
-        }
-    }
-
-    let status = child.wait().map_err(|error| error.to_string())?;
-    // Unregister the child PID regardless of exit status.
-    {
-        let mut active = state.active_download.lock().unwrap();
-        *active = None;
-    }
-    stderr_reader
-        .join()
-        .map_err(|_| "stderr reader thread panicked".to_string())??;
-
-    if status.success() {
-        Ok(())
-    } else {
-        Err(format!("download process exited with status {status}"))
-    }
-}
-
-pub fn run_fetch_meta_command(
-    repo_root: &Path,
-    workspace_root: &Path,
-    driver: &RuntimeDriverConfig,
-    url: &str,
-    app: &AppHandle,
-) -> Result<serde_json::Value, String> {
-    let output = build_python_command_for_driver(
-        repo_root,
-        workspace_root,
-        driver,
-        ["-m", "uiya.cli", "fetch-meta", url],
-    )
-    .output()
-    .map_err(|error| format!("failed to run fetch-meta: {error}"))?;
-
-    emit_stderr_lines(app, &output.stderr);
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let last_line = stdout
-        .lines()
-        .last()
-        .ok_or_else(|| "fetch-meta returned no output".to_string())?;
-    let envelope: PythonEnvelope = serde_json::from_str(last_line)
-        .map_err(|e| format!("failed to parse fetch-meta output: {e}"))?;
-
-    if let Some(error) = envelope.payload.get("error").and_then(|v| v.as_str()) {
-        return Err(error.to_string());
-    }
-
-    Ok(envelope.payload)
-}
-
 pub fn run_fetch_cover_command(
     repo_root: &Path,
     workspace_root: &Path,
@@ -900,64 +613,137 @@ pub fn run_fetch_cover_command(
         .ok_or_else(|| "fetch-cover payload missing dataUrl".to_string())
 }
 
-pub fn drain_download_queue(app: AppHandle, state: RuntimeState) {
-    loop {
-        let next_task = {
-            let mut queue = state.queue.lock().unwrap();
-            queue.take_next_task_or_mark_idle()
-        };
+pub fn run_convert_wav_command(
+    repo_root: &Path,
+    workspace_root: &Path,
+    driver: &RuntimeDriverConfig,
+    ffmpeg_path: &str,
+    relative_dir: &str,
+    app: &AppHandle,
+) -> Result<(), String> {
+    emit_raw_log(app, "[wav] 正在转码 m4a/aac → wav …");
+    let mut command = build_python_command_for_driver(
+        repo_root,
+        workspace_root,
+        driver,
+        ["-m", "uiya.cli", "convert-wav", "--dir", relative_dir],
+    );
+    command
+        .env("UIYA_FFMPEG_PATH", ffmpeg_path)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
 
-        let Some(task) = next_task else {
-            break;
-        };
+    let mut child = command
+        .spawn()
+        .map_err(|error| format!("failed to run convert-wav: {error}"))?;
+    let stdout = child.stdout.take().ok_or("convert-wav missing stdout")?;
+    let stderr = child.stderr.take().ok_or("convert-wav missing stderr")?;
 
-        if let Err(error) = run_download_command(
-            app.clone(),
-            RuntimeState {
-                repo_root: state.repo_root.clone(),
-                workspace_root: state.workspace_root.clone(),
-                queue: state.queue.clone(),
-                driver_config: state.driver_config.clone(),
-                portable_python_path: state.portable_python_path.clone(),
-                ffmpeg_path: state.ffmpeg_path.clone(),
-                active_download: state.active_download.clone(),
-                active_auth: state.active_auth.clone(),
-                hotkey: state.hotkey.clone(),
-                download_dir: state.download_dir.clone(),
-            },
-            task.task_id.clone(),
-            task.target.clone(),
-            task.require_video,
-            task.require_audio,
-            task.require_cover,
-            task.require_subtitle,
-            task.require_danmaku,
-            task.video_quality,
-            task.audio_quality,
-            task.dir_override.clone(),
-            task.audio_format.clone(),
-        ) {
-            // If the task was already marked cancelled (by cancel_task), don't overwrite.
-            let already_cancelled = {
-                let queue = state.queue.lock().unwrap();
-                queue
-                    .tasks
-                    .iter()
-                    .find(|t| t.task_id == task.task_id)
-                    .map(|t| t.status == TaskStatus::Cancelled)
-                    .unwrap_or(false)
-            };
-            if !already_cancelled {
-                let timestamp = super::state::current_timestamp();
-                let mut queue = state.queue.lock().unwrap();
-                queue.apply_update(&task.task_id, TaskStatus::Failed, error.clone(), 3, 3);
-                drop(queue);
-
-                let event =
-                    build_terminal_failure_event(&task.task_id, &task.target, &error, &timestamp);
-                let _ = app.emit("runtime:event", &event);
+    let app_for_stderr = app.clone();
+    let stderr_handle = thread::spawn(move || {
+        let reader = BufReader::new(stderr);
+        for line in reader.lines().map_while(Result::ok) {
+            if !line.trim().is_empty() {
+                let _ = app_for_stderr.emit("runtime:raw-log", line);
             }
         }
+    });
+    let reader = BufReader::new(stdout);
+    for line in reader.lines().map_while(Result::ok) {
+        if !line.trim().is_empty() {
+            emit_raw_log(app, &line);
+        }
+    }
+    let _ = stderr_handle.join();
+    let status = child
+        .wait()
+        .map_err(|error| format!("failed to wait for convert-wav: {error}"))?;
+    if status.success() {
+        emit_raw_log(app, "[wav] 转码完成");
+        Ok(())
+    } else {
+        Err(format!(
+            "convert-wav failed with exit code {:?}",
+            status.code()
+        ))
+    }
+}
+
+/// Windows system proxy (WinINET, what browsers follow), or None when
+/// disabled/absent. Read live per call so toggling the proxy client's
+/// "system proxy" switch takes effect immediately — unlike environment
+/// variables, which are frozen at process launch.
+pub fn read_system_proxy() -> Option<String> {
+    #[cfg(target_os = "windows")]
+    {
+        let query = |value: &str| -> Option<String> {
+            let output = new_background_command("reg")
+                .args([
+                    "query",
+                    r"HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings",
+                    "/v",
+                    value,
+                ])
+                .output()
+                .ok()?;
+            String::from_utf8_lossy(&output.stdout)
+                .lines()
+                .find_map(|line| {
+                    let mut parts = line.split_whitespace();
+                    if parts.next() != Some(value) {
+                        return None;
+                    }
+                    parts.next(); // REG_DWORD / REG_SZ
+                    parts.next().map(str::to_string)
+                })
+        };
+        let enabled = query("ProxyEnable")?;
+        if enabled != "0x1" {
+            return None;
+        }
+        parse_windows_proxy_server(&query("ProxyServer")?)
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        None
+    }
+}
+
+/// Normalize the WinINET ProxyServer value into a proxy URL yutto accepts
+/// (http/https/socks5 schemes). Handles both the plain `host:port` form and
+/// the per-protocol `http=...;https=...;socks=...` form.
+// Only the Windows branch of read_system_proxy calls this, but the parsing is
+// pure string logic — keep it compiled (and unit-tested) on every platform.
+#[cfg_attr(not(target_os = "windows"), allow(dead_code))]
+pub fn parse_windows_proxy_server(server: &str) -> Option<String> {
+    let server = server.trim();
+    if server.is_empty() {
+        return None;
+    }
+    if !server.contains('=') {
+        return Some(normalize_proxy_url(server, "http"));
+    }
+    let mut by_protocol = std::collections::HashMap::new();
+    for entry in server.split(';') {
+        if let Some((protocol, address)) = entry.split_once('=') {
+            by_protocol.insert(protocol.trim().to_ascii_lowercase(), address.trim());
+        }
+    }
+    for (protocol, scheme) in [("https", "http"), ("http", "http"), ("socks", "socks5")] {
+        if let Some(address) = by_protocol.get(protocol) {
+            if !address.is_empty() {
+                return Some(normalize_proxy_url(address, scheme));
+            }
+        }
+    }
+    None
+}
+
+fn normalize_proxy_url(address: &str, default_scheme: &str) -> String {
+    if address.contains("://") {
+        address.to_string()
+    } else {
+        format!("{default_scheme}://{address}")
     }
 }
 
@@ -1185,31 +971,6 @@ fn managed_path_from_payload(
     ))
 }
 
-fn build_terminal_failure_event(
-    task_id: &str,
-    target: &str,
-    message: &str,
-    timestamp: &str,
-) -> RuntimeEventPayload {
-    RuntimeEventPayload {
-        event: "download.failed".to_string(),
-        task_id: task_id.to_string(),
-        target: target.to_string(),
-        status: "failed".to_string(),
-        message: message.to_string(),
-        progress_current: 3,
-        progress_total: 3,
-        progress_unit: "stage".to_string(),
-        timestamp: timestamp.to_string(),
-        desc: None,
-        percent: None,
-        downloaded: None,
-        total: None,
-        parse_item: None,
-        auth_qr_data_url: None,
-    }
-}
-
 fn runtime_event_from_python_payload(
     task_id: &str,
     default_target: &str,
@@ -1242,15 +1003,11 @@ fn runtime_event_from_python_payload(
         percent: payload["percent"].as_u64(),
         downloaded: payload["downloaded"].as_str().map(str::to_string),
         total: payload["total"].as_str().map(str::to_string),
-        parse_item: payload
-            .get("parseItem")
-            .cloned()
-            .and_then(|value| serde_json::from_value(value).ok()),
         auth_qr_data_url: payload["authQrDataUrl"].as_str().map(str::to_string),
     }
 }
 
-fn emit_raw_log(app: &AppHandle, line: &str) {
+pub(crate) fn emit_raw_log(app: &AppHandle, line: &str) {
     let _ = app.emit("runtime:raw-log", line);
 }
 
@@ -1629,19 +1386,6 @@ fn build_probe_payload(
     }
 }
 
-fn task_status_from_str(value: &str) -> TaskStatus {
-    match value {
-        "queued" => TaskStatus::Queued,
-        "preparing" => TaskStatus::Preparing,
-        "downloading" => TaskStatus::Downloading,
-        "verifying" => TaskStatus::Verifying,
-        "completed" => TaskStatus::Completed,
-        "failed" => TaskStatus::Failed,
-        "cancelled" => TaskStatus::Cancelled,
-        _ => TaskStatus::Downloading,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::path::Path;
@@ -1649,10 +1393,46 @@ mod tests {
     use serde_json::json;
 
     use super::{
-        build_direct_python_command, build_terminal_failure_event, build_uv_python_command,
-        build_windows_open_command, managed_path_from_payload, runtime_event_from_python_payload,
-        EnvironmentProbePayload, ENVIRONMENT_PROBE_SCRIPT,
+        build_direct_python_command, build_uv_python_command, build_windows_open_command,
+        managed_path_from_payload, parse_windows_proxy_server, runtime_config_path,
+        runtime_event_from_python_payload, EnvironmentProbePayload, ENVIRONMENT_PROBE_SCRIPT,
     };
+
+    #[test]
+    fn parse_windows_proxy_server_plain_host_port() {
+        assert_eq!(
+            parse_windows_proxy_server("127.0.0.1:7890"),
+            Some("http://127.0.0.1:7890".to_string())
+        );
+    }
+
+    #[test]
+    fn parse_windows_proxy_server_per_protocol_prefers_https() {
+        assert_eq!(
+            parse_windows_proxy_server(
+                "http=127.0.0.1:7890;https=127.0.0.1:7891;socks=127.0.0.1:7892"
+            ),
+            Some("http://127.0.0.1:7891".to_string())
+        );
+    }
+
+    #[test]
+    fn parse_windows_proxy_server_socks_only_maps_to_socks5() {
+        assert_eq!(
+            parse_windows_proxy_server("socks=127.0.0.1:7892"),
+            Some("socks5://127.0.0.1:7892".to_string())
+        );
+    }
+
+    #[test]
+    fn parse_windows_proxy_server_keeps_existing_scheme_and_rejects_empty() {
+        assert_eq!(
+            parse_windows_proxy_server("socks5://127.0.0.1:1080"),
+            Some("socks5://127.0.0.1:1080".to_string())
+        );
+        assert_eq!(parse_windows_proxy_server("  "), None);
+        assert_eq!(parse_windows_proxy_server("ftp=127.0.0.1:2121"), None);
+    }
 
     #[test]
     fn build_uv_python_command_always_includes_no_sync() {
@@ -1717,14 +1497,22 @@ mod tests {
             })
             .collect::<Vec<_>>();
 
+        // Path::join 的分隔符跟随平台，期望值必须同样拼出来（Windows 是反斜杠）。
+        let expected_config = runtime_config_path(Path::new("/app"))
+            .to_string_lossy()
+            .into_owned();
+        let expected_pythonpath = Path::new("/repo")
+            .join("python")
+            .to_string_lossy()
+            .into_owned();
         assert!(envs.iter().any(|(key, value)| {
-            key == "UIYA_RUNTIME_CONFIG" && value.as_deref() == Some("/app/config/uiya.toml")
+            key == "UIYA_RUNTIME_CONFIG" && value.as_deref() == Some(expected_config.as_str())
         }));
         assert!(envs.iter().any(|(key, value)| {
             key == "UIYA_HIDE_CONSOLE_WINDOW" && value.as_deref() == Some("1")
         }));
         assert!(envs.iter().any(|(key, value)| {
-            key == "PYTHONPATH" && value.as_deref() == Some("/repo/python")
+            key == "PYTHONPATH" && value.as_deref() == Some(expected_pythonpath.as_str())
         }));
     }
 
@@ -1817,22 +1605,6 @@ mod tests {
     }
 
     #[test]
-    fn build_terminal_failure_event_marks_task_as_failed() {
-        let event =
-            build_terminal_failure_event("task-7", "genie-base", "spawn failed", "1712300000");
-
-        assert_eq!(event.event, "download.failed");
-        assert_eq!(event.task_id, "task-7");
-        assert_eq!(event.target, "genie-base");
-        assert_eq!(event.status, "failed");
-        assert_eq!(event.message, "spawn failed");
-        assert_eq!(event.progress_current, 3);
-        assert_eq!(event.progress_total, 3);
-        assert_eq!(event.progress_unit, "stage");
-        assert_eq!(event.timestamp, "1712300000");
-    }
-
-    #[test]
     fn runtime_event_from_python_payload_keeps_file_progress_fields() {
         let payload = json!({
             "event": "download.file_progress",
@@ -1859,41 +1631,6 @@ mod tests {
         assert_eq!(event.percent, Some(42));
         assert_eq!(event.downloaded.as_deref(), Some("75.0M"));
         assert_eq!(event.total.as_deref(), Some("180M"));
-    }
-
-    #[test]
-    fn runtime_event_from_python_payload_keeps_parse_item_fields() {
-        let payload = json!({
-            "event": "parse.item",
-            "target": "https://www.bilibili.com/video/BV1xx411c7mD",
-            "status": "parsing",
-            "message": "解析到视频",
-            "progressCurrent": 1,
-            "progressTotal": 0,
-            "progressUnit": "item",
-            "parseItem": {
-                "index": 1,
-                "title": "测试视频",
-                "url": "https://www.bilibili.com/video/BV1xx411c7mD?p=1",
-                "dir": ""
-            }
-        });
-
-        let event = runtime_event_from_python_payload(
-            "",
-            "https://www.bilibili.com/video/BV1xx411c7mD",
-            &payload,
-            "1712300002",
-        );
-
-        let parse_item = event.parse_item.expect("parse item should be present");
-        assert_eq!(event.event, "parse.item");
-        assert_eq!(parse_item.index, 1);
-        assert_eq!(parse_item.title, "测试视频");
-        assert_eq!(
-            parse_item.url,
-            "https://www.bilibili.com/video/BV1xx411c7mD?p=1"
-        );
     }
 
     #[test]

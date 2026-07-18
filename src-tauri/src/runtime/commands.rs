@@ -5,11 +5,11 @@ use tauri_plugin_global_shortcut::GlobalShortcutExt;
 use std::os::windows::process::CommandExt;
 
 use super::process::{
-    drain_download_queue, ensure_environment_ready, kill_process, open_path, open_url,
-    pick_download_dir, pick_ffmpeg_path, pick_python_path, pick_workspace_root,
-    resolve_managed_path, run_auth_login_command, run_auth_logout_command, run_fetch_cover_command,
-    run_fetch_meta_command, run_inspect_command, run_parse_command, run_probe_command,
-    run_save_settings_command, run_uv_sync_command, write_console_log,
+    ensure_environment_ready, kill_process, open_path, open_url, pick_download_dir,
+    pick_ffmpeg_path, pick_python_path, pick_workspace_root, read_system_proxy,
+    resolve_managed_path, run_auth_login_command, run_auth_logout_command, run_convert_wav_command,
+    run_fetch_cover_command, run_inspect_command, run_probe_command, run_save_settings_command,
+    run_uv_sync_command, write_console_log,
 };
 use super::state::{
     read_saved_download_dir, read_saved_driver_config, read_saved_hotkey,
@@ -115,45 +115,6 @@ pub async fn probe_environment(
 }
 
 #[tauri::command]
-pub async fn parse_target(
-    app: AppHandle,
-    state: State<'_, RuntimeState>,
-    target: String,
-) -> Result<serde_json::Value, String> {
-    let repo_root = state.repo_root.clone();
-    let workspace_root = state.current_workspace_root();
-    let driver = state.current_driver_config();
-    let ffmpeg_path = state.current_ffmpeg_path();
-    run_blocking_runtime_action(move || {
-        let result = run_parse_command(
-            &repo_root,
-            &workspace_root,
-            &driver,
-            &target,
-            &ffmpeg_path,
-            &app,
-        )?;
-        serde_json::to_value(result).map_err(|error| error.to_string())
-    })
-    .await
-}
-
-#[tauri::command]
-pub async fn fetch_video_meta(
-    app: AppHandle,
-    state: State<'_, RuntimeState>,
-    url: String,
-) -> Result<serde_json::Value, String> {
-    let repo_root = state.repo_root.clone();
-    let workspace_root = state.current_workspace_root();
-    let driver = state.current_driver_config();
-    run_blocking_runtime_action(move || {
-        run_fetch_meta_command(&repo_root, &workspace_root, &driver, &url, &app)
-    })
-    .await
-}
-
-#[tauri::command]
 pub async fn fetch_cover_image(
     app: AppHandle,
     state: State<'_, RuntimeState>,
@@ -188,79 +149,6 @@ pub async fn use_repo_workspace_root(
 ) -> Result<serde_json::Value, String> {
     let repo_root = state.repo_root.clone();
     switch_workspace_root(app, &state, repo_root).await
-}
-
-#[allow(clippy::too_many_arguments)]
-#[tauri::command]
-pub async fn enqueue_download(
-    app: AppHandle,
-    state: State<'_, RuntimeState>,
-    target: String,
-    label: Option<String>,
-    require_video: Option<bool>,
-    require_audio: Option<bool>,
-    require_cover: Option<bool>,
-    require_subtitle: Option<bool>,
-    require_danmaku: Option<bool>,
-    video_quality: Option<u32>,
-    audio_quality: Option<u32>,
-    dir_override: Option<String>,
-    select_index: Option<u32>,
-    audio_format: Option<String>,
-) -> Result<serde_json::Value, String> {
-    let (target, fallback_label) = validate_download_target(&target)?;
-    let display_label = label
-        .map(|s| s.trim().to_string())
-        .filter(|s| !s.is_empty())
-        .unwrap_or(fallback_label);
-    let rv = require_video.unwrap_or(true);
-    let ra = require_audio.unwrap_or(true);
-    let rc = require_cover.unwrap_or(false);
-    let rs = require_subtitle.unwrap_or(false);
-    let rd = require_danmaku.unwrap_or(false);
-    let vq = video_quality.unwrap_or(127);
-    let aq = audio_quality.unwrap_or(30280);
-    let dir = dir_override.filter(|s| !s.is_empty());
-    let af = audio_format.filter(|s| !s.is_empty() && s != "infer");
-    let (task, should_spawn_worker) = {
-        let mut queue = state.queue.lock().unwrap();
-        queue.enqueue_with_worker_control(
-            target.to_string(),
-            display_label,
-            rv,
-            ra,
-            rc,
-            rs,
-            rd,
-            vq,
-            aq,
-            select_index,
-            dir,
-            af,
-        )
-    };
-
-    if should_spawn_worker {
-        let app_handle = app.clone();
-        let runtime_state = RuntimeState {
-            repo_root: state.repo_root.clone(),
-            workspace_root: state.workspace_root.clone(),
-            queue: state.queue.clone(),
-            driver_config: state.driver_config.clone(),
-            portable_python_path: state.portable_python_path.clone(),
-            ffmpeg_path: state.ffmpeg_path.clone(),
-            active_download: state.active_download.clone(),
-            active_auth: state.active_auth.clone(),
-            hotkey: state.hotkey.clone(),
-            download_dir: state.download_dir.clone(),
-        };
-
-        tauri::async_runtime::spawn_blocking(move || {
-            drain_download_queue(app_handle.clone(), runtime_state);
-        });
-    }
-
-    serde_json::to_value(task).map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -306,7 +194,6 @@ pub async fn start_auth_login(
                     percent: None,
                     downloaded: None,
                     total: None,
-                    parse_item: None,
                     auth_qr_data_url: None,
                 },
             );
@@ -330,7 +217,6 @@ pub async fn start_auth_login(
                     percent: None,
                     downloaded: None,
                     total: None,
-                    parse_item: None,
                     auth_qr_data_url: None,
                 },
             );
@@ -384,7 +270,6 @@ pub async fn logout_auth(app: AppHandle, state: State<'_, RuntimeState>) -> Resu
             percent: None,
             downloaded: None,
             total: None,
-            parse_item: None,
             auth_qr_data_url: None,
         },
     );
@@ -399,98 +284,51 @@ pub async fn uv_sync(app: AppHandle, state: State<'_, RuntimeState>) -> Result<(
 }
 
 #[tauri::command]
-pub fn list_download_tasks(state: State<'_, RuntimeState>) -> Result<serde_json::Value, String> {
-    let queue = state.queue.lock().unwrap();
-    serde_json::to_value(&queue.tasks).map_err(|error| error.to_string())
+pub async fn serve_start(
+    app: AppHandle,
+    state: State<'_, RuntimeState>,
+) -> Result<super::serve::ServeInfo, String> {
+    let state = state.inner().clone();
+    run_blocking_runtime_action(move || super::serve::start_serve(&app, &state)).await
 }
 
 #[tauri::command]
-pub fn cancel_task(
+pub async fn serve_stop(app: AppHandle, state: State<'_, RuntimeState>) -> Result<(), String> {
+    let state = state.inner().clone();
+    run_blocking_runtime_action(move || super::serve::stop_serve(&app, &state)).await
+}
+
+#[tauri::command]
+pub fn serve_status(state: State<'_, RuntimeState>) -> super::serve::ServeStatusPayload {
+    super::serve::current_status(&state)
+}
+
+#[tauri::command]
+pub fn get_system_proxy() -> Option<String> {
+    read_system_proxy()
+}
+
+#[tauri::command]
+pub async fn convert_wav_audio(
     app: AppHandle,
     state: State<'_, RuntimeState>,
-    task_id: String,
+    relative_dir: String,
 ) -> Result<(), String> {
-    use super::models::{RuntimeEventPayload, TaskStatus};
-    use super::state::current_timestamp;
-
-    let timestamp = current_timestamp();
-
-    // Fast path: the task is still waiting in the queue — just remove it.
-    let cancelled_target = {
-        let mut queue = state.queue.lock().unwrap();
-        queue.cancel_waiting_task(&task_id)
-    };
-
-    if let Some(target) = cancelled_target {
-        let _ = app.emit(
-            "runtime:event",
-            &RuntimeEventPayload {
-                event: "download.cancelled".to_string(),
-                task_id: task_id.clone(),
-                target,
-                status: "cancelled".to_string(),
-                message: "已取消".to_string(),
-                progress_current: 0,
-                progress_total: 3,
-                progress_unit: "stage".to_string(),
-                timestamp,
-                desc: None,
-                percent: None,
-                downloaded: None,
-                total: None,
-                parse_item: None,
-                auth_qr_data_url: None,
-            },
-        );
-        return Ok(());
-    }
-
-    // The task might be actively running — kill its subprocess.
-    let active = state.active_download.lock().unwrap().clone();
-    if let Some((active_task_id, pid)) = active {
-        if active_task_id == task_id {
-            kill_process(pid);
-
-            let target = {
-                let queue = state.queue.lock().unwrap();
-                queue
-                    .tasks
-                    .iter()
-                    .find(|t| t.task_id == task_id)
-                    .map(|t| t.target.clone())
-                    .unwrap_or_default()
-            };
-
-            // Pre-mark as cancelled so drain_download_queue won't overwrite with failed.
-            {
-                let mut queue = state.queue.lock().unwrap();
-                queue.apply_update(&task_id, TaskStatus::Cancelled, "已取消".to_string(), 0, 3);
-            }
-
-            let _ = app.emit(
-                "runtime:event",
-                &RuntimeEventPayload {
-                    event: "download.cancelled".to_string(),
-                    task_id,
-                    target,
-                    status: "cancelled".to_string(),
-                    message: "已取消".to_string(),
-                    progress_current: 0,
-                    progress_total: 3,
-                    progress_unit: "stage".to_string(),
-                    timestamp,
-                    desc: None,
-                    percent: None,
-                    downloaded: None,
-                    total: None,
-                    parse_item: None,
-                    auth_qr_data_url: None,
-                },
-            );
-        }
-    }
-
-    Ok(())
+    let repo_root = state.repo_root.clone();
+    let workspace_root = state.current_workspace_root();
+    let driver = state.current_driver_config();
+    let ffmpeg_path = state.current_ffmpeg_path();
+    run_blocking_runtime_action(move || {
+        run_convert_wav_command(
+            &repo_root,
+            &workspace_root,
+            &driver,
+            &ffmpeg_path,
+            &relative_dir,
+            &app,
+        )
+    })
+    .await
 }
 
 #[tauri::command]
@@ -797,20 +635,6 @@ pub fn detect_ffmpeg_path(state: State<'_, RuntimeState>) -> Vec<String> {
     found
 }
 
-fn validate_download_target(target: &str) -> Result<(String, String), String> {
-    let target = target.trim();
-    if target.is_empty() {
-        return Err("download target must not be empty".to_string());
-    }
-    // Use BV ID as label when available; otherwise fall back to full URL.
-    let label = target
-        .find("BV")
-        .and_then(|idx| target.get(idx..idx + 12))
-        .map(str::to_string)
-        .unwrap_or_else(|| target.to_string());
-    Ok((target.to_string(), label))
-}
-
 async fn run_blocking_runtime_action<T, F>(action: F) -> Result<T, String>
 where
     T: Send + 'static,
@@ -826,13 +650,10 @@ async fn switch_workspace_root(
     state: &RuntimeState,
     next_workspace_root: std::path::PathBuf,
 ) -> Result<serde_json::Value, String> {
-    {
-        let mut queue = state.queue.lock().unwrap();
-        if queue.has_active_tasks() {
-            return Err("当前有任务运行，禁止切换工作目录".to_string());
-        }
-        queue.reset_for_workspace_switch();
-    }
+    // 下载任务住在 serve 里；前端 workspaceLocked 已禁止有任务时切换。
+    // serve 的 --download-root 在启动时固定，切换工作目录后必须停掉，
+    // 下次解析/下载会用新目录自动拉起。
+    let _ = super::serve::stop_serve(&app, state);
 
     state.set_workspace_root(next_workspace_root.clone());
 

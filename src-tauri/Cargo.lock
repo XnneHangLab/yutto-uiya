@@ -4604,6 +4604,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "win32job"
+version = "2.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8c6a6724ccfbf34154a8691bd868b0fcd2be2ca3f7b47b32614654f1a01b191c"
+dependencies = [
+ "thiserror 1.0.69",
+ "windows",
+]
+
+[[package]]
 name = "winapi"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5278,8 +5288,9 @@ dependencies = [
 
 [[package]]
 name = "yutto-uiya"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
+ "getrandom 0.2.17",
  "log",
  "serde",
  "serde_json",
@@ -5287,6 +5298,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-global-shortcut",
  "tauri-plugin-log",
+ "win32job",
 ]
 
 [[package]]

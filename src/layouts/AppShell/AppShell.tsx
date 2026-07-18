@@ -10,19 +10,18 @@ import {
 } from '../../services/launcher/launcher';
 import {
   cancelAuthLogin,
-  cancelTask,
   chooseWorkspaceRoot,
+  convertWavAudio,
   detectFfmpegPath,
-  enqueueDownload,
   exportConsoleLogs,
   getHotkey,
+  getServeStatus,
+  getSystemProxy,
   inspectRuntime,
-  listDownloadTasks,
   listManagedFolders,
   logoutAuth,
   openManagedPath,
   openTaskSaveDir,
-  parseTarget,
   pickDownloadDir,
   pickFfmpegPath,
   pickPythonPath,
@@ -30,11 +29,20 @@ import {
   setHotkey as setHotkeyApi,
   setRuntimeDriver as setRuntimeDriverApi,
   startAuthLogin,
+  startServe,
+  stopServe,
   subscribeRuntimeEvents,
+  subscribeServeStatus,
   useRepoWorkspaceRoot,
   uvSync,
 } from '../../services/runtime/bridge';
 import {
+  createEventPacer,
+  type EventPacer,
+} from '../../services/runtime/pacer';
+import {
+  applyDownloadProgressEvent,
+  applyDownloadStageEvent,
   applyParseRuntimeEvent,
   applyRuntimeEvent,
   buildFolderItemsFromPaths,
@@ -50,8 +58,10 @@ import {
   type ManagedFolderItem,
   type QualityOption,
   type RuntimeDriver,
+  type RuntimeEvent,
   type RuntimeInspection,
   type RuntimeTaskRecord,
+  type ServeStatus,
   type VideoParseGroup,
   type VideoParseItem,
 } from '../../services/runtime/runtime';
@@ -61,6 +71,13 @@ import {
   toggleThemeMode,
   writeStoredTheme,
 } from '../../services/theme/theme';
+import {
+  cancelDownload,
+  type DownloadCompletion,
+  startDownload,
+} from '../../services/yutto/download';
+import { resolveParseTarget } from '../../services/yutto/parse';
+import type { NetworkPreferences } from '../../services/yutto/requests';
 
 function toErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
@@ -96,6 +113,8 @@ export function AppShell() {
   const [ffmpegExePath, setFfmpegExePath] = useState('');
   const [noProxy, setNoProxy] = useState(false);
   const [fetchWorkers, setFetchWorkers] = useState(8);
+  // 有解析在跑（下载看 tasks 队列）——设置页据此提示「保存会中断任务」。
+  const [parseBusy, setParseBusy] = useState(false);
   const [downloadDirSetting, setDownloadDirSetting] = useState('./downloads');
   const [parseItems, setParseItems] = useState<VideoParseItem[]>([]);
   const [parseGroups, setParseGroups] = useState<VideoParseGroup[]>([]);
@@ -115,7 +134,52 @@ export function AppShell() {
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [authDialogStatus, setAuthDialogStatus] = useState('');
   const [authDialogQrDataUrl, setAuthDialogQrDataUrl] = useState('');
+  const [serveStatus, setServeStatus] = useState<ServeStatus | null>(null);
+  const [serveBusy, setServeBusy] = useState(false);
   const parsingTargetRef = useRef<string | null>(null);
+  // Kept for the phase-2 RPC client (server.authenticate).
+  const serveTokenRef = useRef<string | null>(null);
+  // Auto-start happens once per app session; crashes never auto-restart —
+  // the sidebar reload button is the recovery path.
+  const serveAutoStartRef = useRef(false);
+
+  async function autoStartServe() {
+    if (serveAutoStartRef.current) {
+      return;
+    }
+    serveAutoStartRef.current = true;
+    try {
+      const info = await startServe();
+      serveTokenRef.current = info.token;
+    } catch (error) {
+      setLogs((current) => [
+        ...current,
+        createConsoleLog(
+          'stderr',
+          `yutto server 启动失败: ${toErrorMessage(error)}`,
+        ),
+      ]);
+    }
+  }
+
+  async function handleServeReload() {
+    setServeBusy(true);
+    try {
+      await stopServe();
+      const info = await startServe();
+      serveTokenRef.current = info.token;
+    } catch (error) {
+      setLogs((current) => [
+        ...current,
+        createConsoleLog(
+          'stderr',
+          `yutto server 重启失败: ${toErrorMessage(error)}`,
+        ),
+      ]);
+    } finally {
+      setServeBusy(false);
+    }
+  }
 
   async function refreshEnvironmentStatus() {
     try {
@@ -143,6 +207,7 @@ export function AppShell() {
       setNoProxy(nextInspection.noProxy ?? false);
       setFetchWorkers(nextInspection.fetchWorkers ?? 8);
       setDownloadDirSetting(nextInspection.downloadDirSetting ?? './downloads');
+      void autoStartServe();
     } catch (error) {
       setLogs((current) => [
         ...current,
@@ -161,6 +226,7 @@ export function AppShell() {
   useEffect(() => {
     let disposed = false;
     let unsubscribe = () => {};
+    let unsubscribeServe = () => {};
 
     async function refreshInspectionSnapshot() {
       try {
@@ -217,15 +283,14 @@ export function AppShell() {
           })
           .catch(() => {});
 
-        const [nextProbe, nextTasks] = await Promise.all([
-          probeEnvironment(),
-          listDownloadTasks(),
-        ]);
+        // Download tasks live in the serve now, and the serve is born with
+        // this app instance — a fresh session always starts with an empty
+        // queue, so there is nothing to restore here.
+        const nextProbe = await probeEnvironment();
         if (disposed) {
           return;
         }
         setEnvironmentProbe(nextProbe);
-        setTasks(nextTasks);
 
         if (!isEnvironmentReady(nextProbe)) {
           setInspection(null);
@@ -233,6 +298,7 @@ export function AppShell() {
         }
 
         await refreshInspectionSnapshot();
+        void autoStartServe();
       } catch (error) {
         if (disposed) {
           return;
@@ -293,30 +359,7 @@ export function AppShell() {
         }
 
         if (isParseRuntimeEvent(event)) {
-          if (
-            parsingTargetRef.current &&
-            event.target === parsingTargetRef.current
-          ) {
-            setParseItems((current) => applyParseRuntimeEvent(current, event));
-
-            if (event.event === 'parse.started') {
-              setParseSelected(new Set());
-              setParseGroups([]);
-              setParseDirOverride('');
-              setParseVideoQualities([]);
-            } else if (event.event === 'parse.item' && event.parseItem) {
-              setParseSelected((current) => {
-                const next = new Set(current);
-                next.add(event.parseItem!.index);
-                return next;
-              });
-            }
-          }
-
-          setLogs((current) => [
-            ...current,
-            createConsoleLogFromRuntimeEvent(event),
-          ]);
+          processParseRuntimeEvent(event);
           return;
         }
 
@@ -375,11 +418,120 @@ export function AppShell() {
         ]);
       });
 
+    void getServeStatus()
+      .then((status) => {
+        if (!disposed) {
+          setServeStatus(status);
+        }
+      })
+      .catch(() => {});
+
+    void subscribeServeStatus((status) => {
+      setServeStatus(status);
+    })
+      .then((cleanup) => {
+        if (disposed) {
+          cleanup();
+          return;
+        }
+        unsubscribeServe = cleanup;
+      })
+      .catch(() => {});
+
     return () => {
       disposed = true;
       unsubscribe();
+      unsubscribeServe();
     };
   }, []);
+
+  /**
+   * uiya owns the proxy decision: 直连, or the LIVE Windows system proxy
+   * (read per operation so toggling the proxy client applies immediately).
+   * Never 'auto' — environment variables are launch-time snapshots and must
+   * not silently decide the route.
+   */
+  async function resolveNetworkPreferences(): Promise<NetworkPreferences> {
+    let proxy = 'no';
+    if (!noProxy) {
+      proxy = (await getSystemProxy().catch(() => null)) ?? 'no';
+    }
+    return { proxy, fetchWorkers };
+  }
+
+  function consoleEntryForDownloadEvent(event: RuntimeEvent) {
+    switch (event.event) {
+      case 'download.started':
+        return createConsoleLog('system', `[下载] 开始：${event.target}`);
+      case 'download.converting':
+        return createConsoleLog('system', `[下载] ${event.message}`);
+      case 'download.completed':
+        return createConsoleLog('system', `[下载] 完成：${event.target}`);
+      case 'download.failed':
+        return createConsoleLog('stderr', `[下载] 失败：${event.message}`);
+      case 'download.cancelled':
+        return createConsoleLog('system', '[下载] 已取消');
+      default:
+        // queued/file_progress 等中间态不进控制台，serve 原始输出足够详细。
+        return null;
+    }
+  }
+
+  // 只有这些事件允许改写队列卡片；item_listed/stage/request_queued 等
+  // 信息型事件（消息是原始 JSON/中间态）只属于控制台，落到卡片上会让
+  // 下载中的卡片内容不停变动。
+  const taskCardEvents = new Set([
+    'download.queued',
+    'download.started',
+    'download.converting',
+    'download.completed',
+    'download.failed',
+    'download.cancelled',
+  ]);
+
+  function processDownloadRuntimeEvent(event: RuntimeEvent) {
+    // 队列行沿用三段式状态，字节级 file_progress 只更新进度条字段。
+    if (taskCardEvents.has(event.event)) {
+      setTasks((current) => applyRuntimeEvent(current, event));
+    } else if (event.event === 'download.file_progress') {
+      setTasks((current) => applyDownloadProgressEvent(current, event));
+    } else if (event.event === 'download.stage') {
+      setTasks((current) => applyDownloadStageEvent(current, event));
+    }
+    const entry = consoleEntryForDownloadEvent(event);
+    if (entry) {
+      setLogs((current) => [...current, entry]);
+    }
+  }
+
+  async function handleDownloadCompleted(completion: DownloadCompletion) {
+    if (!completion.needsWavConvert) {
+      return;
+    }
+    const finish = (name: string, status: string, message: string) => {
+      processDownloadRuntimeEvent({
+        event: name,
+        taskId: completion.taskId,
+        target: completion.target,
+        status,
+        message,
+        progressCurrent: status === 'completed' ? 3 : 2,
+        progressTotal: 3,
+        progressUnit: 'stage',
+        timestamp: new Date().toISOString(),
+      });
+    };
+    try {
+      await convertWavAudio(completion.saveDir);
+      finish('download.completed', 'completed', '下载完成（已转码 wav）');
+    } catch (error) {
+      finish(
+        'download.failed',
+        'failed',
+        `wav 转码失败: ${toErrorMessage(error)}`,
+      );
+    }
+  }
 
   async function handleDownloadBilibili(
     url: string,
@@ -395,20 +547,41 @@ export function AppShell() {
     }
 
     try {
-      const task = await enqueueDownload(
-        url,
-        downloadOptions,
-        label,
-        itemDir || parseDirOverride || undefined,
-      );
+      // startServe is idempotent: it returns the running server's info or
+      // boots one first; the server task service does the queueing.
+      const serveInfo = await startServe();
+      serveTokenRef.current = serveInfo.token;
+      const network = await resolveNetworkPreferences();
+      const record = await startDownload({
+        serve: serveInfo,
+        target: url,
+        label: label || url,
+        dir: itemDir || parseDirOverride || '',
+        options: downloadOptions,
+        network,
+        onEvent: processDownloadRuntimeEvent,
+        onCompleted: handleDownloadCompleted,
+      });
       setTasks((current) => {
-        const next = current.filter((item) => item.taskId !== task.taskId);
-        next.push(task);
+        // startDownload resolves AFTER replaying已到达的事件，行可能已存在且
+        // 状态领先于 record —— 只补 label/saveDir，别把状态倒回排队中或挪动行位。
+        const index = current.findIndex(
+          (item) => item.taskId === record.taskId,
+        );
+        if (index === -1) {
+          return [...current, record];
+        }
+        const next = [...current];
+        next[index] = {
+          ...next[index],
+          label: record.label,
+          saveDir: record.saveDir,
+        };
         return next;
       });
       setLogs((current) => [
         ...current,
-        createConsoleLog('system', `下载任务已添加: ${task.label}`),
+        createConsoleLog('system', `下载任务已添加: ${record.label}`),
       ]);
       setActivePage('models');
     } catch (error) {
@@ -422,6 +595,81 @@ export function AppShell() {
     }
   }
 
+  /**
+   * Console entry for a parse event, or null for lifecycle noise. The serve
+   * already streams yutto's own Logger lines through runtime:raw-log, so the
+   * console only gets short milestone lines instead of one URL-prefixed line
+   * per wire event.
+   */
+  function consoleEntryForParseEvent(event: RuntimeEvent) {
+    switch (event.event) {
+      case 'parse.started':
+        return createConsoleLog('system', `[解析] 开始解析 ${event.target}`);
+      case 'parse.item':
+        return createConsoleLog('system', `[解析] ${event.message}`);
+      case 'parse.completed':
+        return createConsoleLog('system', '[解析] 解析完成');
+      case 'parse.failed':
+        return createConsoleLog('stderr', `[解析] ${event.message}`);
+      case 'parse.cancelled':
+        return createConsoleLog('system', '[解析] 已取消');
+      default:
+        // queued / stage / file_progress 等中间态不进控制台。
+        return null;
+    }
+  }
+
+  // parse.item 的排版缓冲：serve 并发抓取让条目一波波（~fetch_workers 条）
+  // 到达，直接上屏一次跳好几条；经节拍器逐条放行才有平滑增长的观感。
+  const parsePacerRef = useRef<EventPacer<RuntimeEvent> | null>(null);
+
+  function getParsePacer(): EventPacer<RuntimeEvent> {
+    if (!parsePacerRef.current) {
+      parsePacerRef.current = createEventPacer((events) => {
+        for (const event of events) {
+          setParseItems((current) => applyParseRuntimeEvent(current, event));
+          if (event.parseItem) {
+            setParseSelected((current) => {
+              const next = new Set(current);
+              next.add(event.parseItem!.index);
+              return next;
+            });
+          }
+        }
+      });
+    }
+    return parsePacerRef.current;
+  }
+
+  useEffect(() => () => parsePacerRef.current?.stop(), []);
+
+  /**
+   * Shared by the Tauri runtime:event subscription and the in-process
+   * resolveParseTarget stream — both deliver parse.* RuntimeEvents.
+   */
+  function processParseRuntimeEvent(event: RuntimeEvent) {
+    if (parsingTargetRef.current && event.target === parsingTargetRef.current) {
+      if (event.event === 'parse.item' && event.parseItem) {
+        // 列表条目走节拍器；控制台日志仍然即时。
+        getParsePacer().enqueue(event);
+      } else {
+        setParseItems((current) => applyParseRuntimeEvent(current, event));
+        if (event.event === 'parse.started') {
+          getParsePacer().stop();
+          setParseSelected(new Set());
+          setParseGroups([]);
+          setParseDirOverride('');
+          setParseVideoQualities([]);
+        }
+      }
+    }
+
+    const entry = consoleEntryForParseEvent(event);
+    if (entry) {
+      setLogs((current) => [...current, entry]);
+    }
+  }
+
   async function handleParseTarget(url: string): Promise<VideoParseItem[]> {
     if (!isEnvironmentReady(environmentProbe)) {
       setLogs((current) => [
@@ -430,9 +678,40 @@ export function AppShell() {
       ]);
       return [];
     }
+    if (environmentProbe?.authState !== 'authenticated') {
+      setLogs((current) => [
+        ...current,
+        createConsoleLog(
+          'stderr',
+          '[解析] 当前未登录 B 站，解析容易被风控拒绝；可在 设置 → 认证操作 扫码登录',
+        ),
+      ]);
+    }
     try {
+      setParseBusy(true);
+      // startServe is idempotent: it returns the running server's info or
+      // boots one first — which also revives a crashed serve before parsing.
+      const serveInfo = await startServe();
+      serveTokenRef.current = serveInfo.token;
+      const network = await resolveNetworkPreferences();
+      setLogs((current) => [
+        ...current,
+        createConsoleLog(
+          'system',
+          network.proxy === 'no'
+            ? '[解析] 网络：直连'
+            : `[解析] 网络：系统代理 ${network.proxy}`,
+        ),
+      ]);
       parsingTargetRef.current = url;
-      const result = await parseTarget(url);
+      const result = await resolveParseTarget({
+        serve: serveInfo,
+        target: url,
+        network,
+        onEvent: processParseRuntimeEvent,
+      });
+      // 节拍器里未放行的条目直接丢弃：下面的权威重建会整体接管列表。
+      getParsePacer().stop();
       const nextGroups = normalizeParseGroups(result.groups ?? []);
       const nextItems = collectParseItems(result.items, nextGroups);
       setParseItems(result.items);
@@ -455,12 +734,27 @@ export function AppShell() {
       }
       return result.items;
     } catch (error) {
-      setLogs((current) => [
-        ...current,
-        createConsoleLog('stderr', `解析失败: ${toErrorMessage(error)}`),
-      ]);
+      // 解析失败没有权威重建：把节拍器里的积压立即放行，别弄丢已解析的尾巴。
+      getParsePacer().flush();
+      const message = toErrorMessage(error);
+      setLogs((current) => {
+        const next = [
+          ...current,
+          createConsoleLog('stderr', `解析失败: ${message}`),
+        ];
+        if (message.includes('ConnectError') && !noProxy) {
+          next.push(
+            createConsoleLog(
+              'stderr',
+              '[解析] 连接失败：若系统代理不可用，可在 设置 → 网络 勾选「不使用代理」改为直连后重试',
+            ),
+          );
+        }
+        return next;
+      });
       return [];
     } finally {
+      setParseBusy(false);
       if (parsingTargetRef.current === url) {
         parsingTargetRef.current = null;
       }
@@ -703,6 +997,9 @@ export function AppShell() {
           setFolders(buildFolderItemsFromPaths(paths));
         }
       }
+      // serve 在启动时固定 --download-root、PATH 里的 ffmpeg 和 python 解释器，
+      // 保存设置后无条件重启，让新配置立即生效（不区分哪些项需要重启）。
+      await handleServeReload();
     } catch (error) {
       setLogs((current) => [
         ...current,
@@ -745,7 +1042,12 @@ export function AppShell() {
 
   async function handleCancelTask(taskId: string) {
     try {
-      await cancelTask(taskId);
+      const serveUrl = serveStatus?.url;
+      const token = serveTokenRef.current;
+      if (!serveUrl || !token) {
+        throw new Error('yutto server 未运行');
+      }
+      await cancelDownload({ url: serveUrl, token }, taskId);
     } catch (error) {
       setLogs((current) => [
         ...current,
@@ -757,6 +1059,19 @@ export function AppShell() {
   const latestMessage = environmentProbe?.message ?? '正在读取运行时信息';
   const scriptsReady = isEnvironmentReady(environmentProbe);
   const workspaceLocked = getQueueSummary(tasks).queueLength > 0;
+  const jobsActive = workspaceLocked || parseBusy;
+
+  // 批量下载时每个任务完成都刷新一次环境（probe + inspect 两个子进程）会把
+  // 控制台刷满 [probe] 噪音 —— 改为整个队列清空时刷新一次。
+  const prevQueueActiveRef = useRef(false);
+  useEffect(() => {
+    const active = workspaceLocked;
+    if (prevQueueActiveRef.current && !active) {
+      void refreshEnvironmentStatus();
+    }
+    prevQueueActiveRef.current = active;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceLocked]);
 
   return (
     <div className="launcher-root" data-theme={theme}>
@@ -800,6 +1115,7 @@ export function AppShell() {
               runtimeDriver,
               scriptsReady,
               workspaceLocked,
+              jobsActive,
               workspaceRoot: environmentProbe?.workspaceRoot ?? '',
               environmentProbe,
               onChooseWorkspaceRoot: handleChooseWorkspaceRoot,
@@ -823,6 +1139,9 @@ export function AppShell() {
               onCloseAuthDialog: handleCloseAuthDialog,
               onSave: handleSaveSettings,
               onUvSync: handleUvSync,
+              serveStatus,
+              serveBusy,
+              onServeReload: handleServeReload,
               onSetAutoScroll: setAutoScroll,
               onSetWrapLines: setWrapLines,
               onClearLogs: handleClearLogs,

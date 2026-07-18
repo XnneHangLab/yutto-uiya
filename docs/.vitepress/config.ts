@@ -15,6 +15,7 @@ export default defineConfig({
       { text: "🏠 首页", link: "/" },
       { text: "📖 指南", link: "/guide/intro" },
       { text: "🔧 常见问题", link: "/troubleshooting/ffmpeg-not-found" },
+      { text: "📝 更新日志", link: "/guide/changelog" },
     ],
 
     sidebar: {
@@ -24,7 +25,9 @@ export default defineConfig({
           items: [
             { text: "🎬 项目介绍", link: "/guide/intro" },
             { text: "🚀 快速开始", link: "/guide/getting-started" },
+            { text: "📥 下载管理", link: "/guide/download" },
             { text: "⚙️ 设置说明", link: "/guide/settings" },
+            { text: "📝 更新日志", link: "/guide/changelog" },
           ],
         },
         {
@@ -47,8 +50,16 @@ export default defineConfig({
               link: "/troubleshooting/low-quality-360p",
             },
             {
+              text: "🎚️ 画质菜单与自动降级",
+              link: "/troubleshooting/quality-auto-downgrade",
+            },
+            {
               text: "📦 uv sync 安装失败",
               link: "/troubleshooting/uv-sync-failed",
+            },
+            {
+              text: "🔌 server 连接断开",
+              link: "/troubleshooting/serve-restart",
             },
           ],
         },
@@ -71,7 +82,9 @@ export default defineConfig({
           items: [
             { text: "🎬 项目介绍", link: "/guide/intro" },
             { text: "🚀 快速开始", link: "/guide/getting-started" },
+            { text: "📥 下载管理", link: "/guide/download" },
             { text: "⚙️ 设置说明", link: "/guide/settings" },
+            { text: "📝 更新日志", link: "/guide/changelog" },
           ],
         },
         {
@@ -94,8 +107,16 @@ export default defineConfig({
               link: "/troubleshooting/low-quality-360p",
             },
             {
+              text: "🎚️ 画质菜单与自动降级",
+              link: "/troubleshooting/quality-auto-downgrade",
+            },
+            {
               text: "📦 uv sync 安装失败",
               link: "/troubleshooting/uv-sync-failed",
+            },
+            {
+              text: "🔌 server 连接断开",
+              link: "/troubleshooting/serve-restart",
             },
           ],
         },

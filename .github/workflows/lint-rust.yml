@@ -13,6 +13,10 @@ on:
       - "justfile"
       - ".github/workflows/lint-rust.yml"
   workflow_dispatch:
+  schedule:
+    # 每周重新预热 dev 分支的 rust 缓存：stable 工具链升级会改变缓存 key 的
+    # 环境哈希；dev 长期没有 rust 改动时缓存过期，所有 PR 都退化为冷编译。
+    - cron: "0 3 * * 1"
 
 jobs:
   lint-and-fmt:
@@ -31,6 +35,9 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          # 只有 dev 分支的缓存对所有 PR 可见；PR 自己的 merge-ref 缓存互相
+          # 读不到，只会白占 10GB 配额 —— 恢复不受影响，PR 照常读 dev 缓存。
+          save-if: ${{ github.ref == 'refs/heads/dev' }}
 
       - name: Install system dependencies
         run: |

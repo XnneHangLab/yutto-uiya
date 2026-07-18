@@ -1,14 +1,12 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type {
-  DownloadOptions,
   EnvironmentProbe,
   ManagedPath,
   RuntimeEvent,
   RuntimeInspection,
-  RuntimeTaskRecord,
-  VideoMeta,
-  VideoParseResult,
+  ServeInfo,
+  ServeStatus,
 } from './runtime';
 
 export function probeEnvironment() {
@@ -27,31 +25,13 @@ export function inspectRuntime() {
   return invoke<RuntimeInspection>('inspect_runtime');
 }
 
-export function enqueueDownload(
-  target: string,
-  options: DownloadOptions,
-  label?: string,
-  dirOverride?: string,
-  selectIndex?: number,
-) {
-  return invoke<RuntimeTaskRecord>('enqueue_download', {
-    target,
-    label: label ?? null,
-    requireVideo: options.requireVideo,
-    requireAudio: options.requireAudio,
-    requireCover: options.requireCover,
-    requireSubtitle: options.requireSubtitle,
-    requireDanmaku: options.requireDanmaku,
-    videoQuality: options.videoQuality,
-    audioQuality: options.audioQuality,
-    dirOverride: dirOverride ?? null,
-    selectIndex: selectIndex ?? null,
-    audioFormat: options.audioFormat,
-  });
-}
-
-export function listDownloadTasks() {
-  return invoke<RuntimeTaskRecord[]>('list_download_tasks');
+/**
+ * Convert downloaded m4a/aac under the given downloads-root-relative
+ * directory to wav (the wire has no wav format; this is the retained uiya
+ * post-processing step).
+ */
+export function convertWavAudio(relativeDir: string) {
+  return invoke<void>('convert_wav_audio', { relativeDir });
 }
 
 export function listManagedFolders() {
@@ -92,6 +72,23 @@ export function uvSync() {
   return invoke<void>('uv_sync');
 }
 
+export function startServe() {
+  return invoke<ServeInfo>('serve_start');
+}
+
+export function stopServe() {
+  return invoke<void>('serve_stop');
+}
+
+export function getServeStatus() {
+  return invoke<ServeStatus>('serve_status');
+}
+
+/** Live Windows system proxy (WinINET), or null when disabled/unsupported. */
+export function getSystemProxy() {
+  return invoke<string | null>('get_system_proxy');
+}
+
 export function pickPythonPath() {
   return invoke<string | null>('pick_python_path_command');
 }
@@ -108,10 +105,6 @@ export function pickDownloadDir() {
   return invoke<string | null>('pick_download_dir_command');
 }
 
-export function cancelTask(taskId: string) {
-  return invoke<void>('cancel_task', { taskId });
-}
-
 export function startAuthLogin() {
   return invoke<void>('start_auth_login');
 }
@@ -124,20 +117,12 @@ export function logoutAuth() {
   return invoke<string>('logout_auth');
 }
 
-export function parseTarget(target: string) {
-  return invoke<VideoParseResult>('parse_target', { target });
-}
-
 export function openPath(path: string) {
   return invoke<void>('open_path_command', { path });
 }
 
 export function openUrl(url: string) {
   return invoke<void>('open_url_command', { url });
-}
-
-export function fetchVideoMeta(url: string) {
-  return invoke<VideoMeta>('fetch_video_meta', { url });
 }
 
 export function fetchCoverImage(url: string) {
@@ -183,4 +168,10 @@ export async function subscribeRuntimeEvents(
   return () => {
     unlistenCallbacks.forEach((cleanup) => cleanup());
   };
+}
+
+export function subscribeServeStatus(onStatus: (status: ServeStatus) => void) {
+  return listen<ServeStatus>('runtime:serve-status', (event) => {
+    onStatus(event.payload);
+  });
 }

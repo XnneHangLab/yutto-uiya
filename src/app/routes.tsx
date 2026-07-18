@@ -22,11 +22,6 @@ const SettingsPage = lazy(() =>
     default: m.SettingsPage,
   })),
 );
-const TroubleshootingPage = lazy(() =>
-  import('../pages/TroubleshootingPage/TroubleshootingPage').then((m) => ({
-    default: m.TroubleshootingPage,
-  })),
-);
 const VersionsPage = lazy(() =>
   import('../pages/VersionsPage/VersionsPage').then((m) => ({
     default: m.VersionsPage,
@@ -42,6 +37,7 @@ import type {
   RuntimeDriver,
   RuntimeInspection,
   RuntimeTaskRecord,
+  ServeStatus,
   VideoParseGroup,
   VideoParseItem,
 } from '../services/runtime/runtime';
@@ -74,6 +70,7 @@ interface RenderPageOptions {
   runtimeDriver: RuntimeDriver;
   scriptsReady: boolean;
   workspaceLocked: boolean;
+  jobsActive: boolean;
   workspaceRoot: string;
   environmentProbe: EnvironmentProbe | null;
   onChooseWorkspaceRoot: () => void;
@@ -105,6 +102,9 @@ interface RenderPageOptions {
     fetchWorkers: number,
   ) => void;
   onUvSync: () => Promise<void>;
+  serveStatus: ServeStatus | null;
+  serveBusy: boolean;
+  onServeReload: () => Promise<void>;
   onSetAutoScroll: (next: boolean) => void;
   onSetWrapLines: (next: boolean) => void;
   onClearLogs: () => void;
@@ -140,6 +140,7 @@ function renderLazyPage(
         <SettingsPage
           workspaceRoot={options.workspaceRoot}
           workspaceLocked={options.workspaceLocked}
+          jobsActive={options.jobsActive}
           environmentProbe={options.environmentProbe}
           onChooseWorkspaceRoot={options.onChooseWorkspaceRoot}
           onUseRepoWorkspaceRoot={options.onUseRepoWorkspaceRoot}
@@ -163,12 +164,13 @@ function renderLazyPage(
           onCloseAuthDialog={options.onCloseAuthDialog}
           onSave={options.onSave}
           onUvSync={options.onUvSync}
+          serveStatus={options.serveStatus}
+          serveBusy={options.serveBusy}
+          onServeReload={options.onServeReload}
           hotkey={options.hotkey}
           onSetHotkey={options.onSetHotkey}
         />
       );
-    case 'troubleshooting':
-      return <TroubleshootingPage />;
     case 'versions':
       return <VersionsPage />;
     case 'models':

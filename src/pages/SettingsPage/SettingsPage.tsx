@@ -11,12 +11,15 @@ import { pauseHotkey } from '../../services/runtime/bridge';
 import type {
   EnvironmentProbe,
   RuntimeDriver,
+  ServeStatus,
 } from '../../services/runtime/runtime';
 import '../../styles/settings.css';
 
 interface SettingsPageProps {
   workspaceRoot: string;
   workspaceLocked: boolean;
+  /** 有解析或下载在跑：保存会重启 serve 并把它们切断，提示但不拦截。 */
+  jobsActive?: boolean;
   environmentProbe: EnvironmentProbe | null;
   onChooseWorkspaceRoot: () => void;
   onUseRepoWorkspaceRoot: () => void;
@@ -48,6 +51,9 @@ interface SettingsPageProps {
     fetchWorkers: number,
   ) => void;
   onUvSync: () => Promise<void>;
+  serveStatus: ServeStatus | null;
+  serveBusy: boolean;
+  onServeReload: () => Promise<void>;
   hotkey: string;
   onSetHotkey: (shortcut: string) => Promise<void>;
 }
@@ -55,6 +61,7 @@ interface SettingsPageProps {
 export function SettingsPage({
   workspaceRoot,
   workspaceLocked,
+  jobsActive = false,
   environmentProbe,
   onChooseWorkspaceRoot,
   onUseRepoWorkspaceRoot,
@@ -78,6 +85,9 @@ export function SettingsPage({
   onCloseAuthDialog,
   onSave,
   onUvSync,
+  serveStatus,
+  serveBusy,
+  onServeReload,
   hotkey,
   onSetHotkey,
 }: SettingsPageProps) {
@@ -129,6 +139,24 @@ export function SettingsPage({
 
   const driverDisplayLabel =
     localDriver === 'conda' ? 'conda / 直接 Python' : 'uv';
+
+  const serveState = serveStatus?.status ?? 'stopped';
+  const serveLabel =
+    serveState === 'running'
+      ? '运行中'
+      : serveState === 'starting'
+        ? '启动中…'
+        : serveState === 'crashed'
+          ? serveStatus?.exitCode != null
+            ? `已崩溃（退出码 ${serveStatus.exitCode}）`
+            : '已崩溃'
+          : '未启动';
+  const serveBadgeClass =
+    serveState === 'running'
+      ? 'env-info-badge--ready'
+      : serveState === 'crashed'
+        ? 'env-info-badge--warn'
+        : '';
 
   async function handleBrowsePythonExe() {
     const picked = await onChoosePythonExe();
@@ -338,6 +366,33 @@ export function SettingsPage({
                   </div>
                 </div>
               ) : null}
+              <div className="env-info-row">
+                <span className="env-info-label">yutto server</span>
+                <span
+                  className={`env-info-badge ${serveBadgeClass}`}
+                  title={serveStatus?.message ?? undefined}
+                >
+                  {serveLabel}
+                </span>
+                {serveState === 'running' && serveStatus?.url ? (
+                  <span className="env-info-value env-info-mono">
+                    {serveStatus.url}
+                  </span>
+                ) : null}
+                <div className="workspace-actions">
+                  <button
+                    type="button"
+                    className="workspace-button"
+                    onClick={() => {
+                      void onServeReload();
+                    }}
+                    disabled={serveBusy || !envReady}
+                    title={envReady ? undefined : '环境未就绪'}
+                  >
+                    {serveBusy ? '重启中…' : '重启'}
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div className="group-title">环境配置</div>
@@ -625,6 +680,11 @@ export function SettingsPage({
             </SettingCard>
 
             <div className="settings-save-row">
+              {jobsActive ? (
+                <span className="settings-save-warn" role="status">
+                  正在解析/下载，保存会重启 serve 并中断当前任务
+                </span>
+              ) : null}
               <button
                 type="button"
                 className="settings-save-button"
