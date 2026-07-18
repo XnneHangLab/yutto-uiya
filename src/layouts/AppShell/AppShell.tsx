@@ -62,6 +62,10 @@ import {
   type VideoParseItem,
 } from '../../services/runtime/runtime';
 import {
+  createEventPacer,
+  type EventPacer,
+} from '../../services/runtime/pacer';
+import {
   readStoredTheme,
   type ThemeMode,
   toggleThemeMode,
@@ -615,25 +619,48 @@ export function AppShell() {
     }
   }
 
+  // parse.item 的排版缓冲：serve 并发抓取让条目一波波（~fetch_workers 条）
+  // 到达，直接上屏一次跳好几条；经节拍器逐条放行才有平滑增长的观感。
+  const parsePacerRef = useRef<EventPacer<RuntimeEvent> | null>(null);
+
+  function getParsePacer(): EventPacer<RuntimeEvent> {
+    if (!parsePacerRef.current) {
+      parsePacerRef.current = createEventPacer((events) => {
+        for (const event of events) {
+          setParseItems((current) => applyParseRuntimeEvent(current, event));
+          if (event.parseItem) {
+            setParseSelected((current) => {
+              const next = new Set(current);
+              next.add(event.parseItem!.index);
+              return next;
+            });
+          }
+        }
+      });
+    }
+    return parsePacerRef.current;
+  }
+
+  useEffect(() => () => parsePacerRef.current?.stop(), []);
+
   /**
    * Shared by the Tauri runtime:event subscription and the in-process
    * resolveParseTarget stream — both deliver parse.* RuntimeEvents.
    */
   function processParseRuntimeEvent(event: RuntimeEvent) {
     if (parsingTargetRef.current && event.target === parsingTargetRef.current) {
-      setParseItems((current) => applyParseRuntimeEvent(current, event));
-
-      if (event.event === 'parse.started') {
-        setParseSelected(new Set());
-        setParseGroups([]);
-        setParseDirOverride('');
-        setParseVideoQualities([]);
-      } else if (event.event === 'parse.item' && event.parseItem) {
-        setParseSelected((current) => {
-          const next = new Set(current);
-          next.add(event.parseItem!.index);
-          return next;
-        });
+      if (event.event === 'parse.item' && event.parseItem) {
+        // 列表条目走节拍器；控制台日志仍然即时。
+        getParsePacer().enqueue(event);
+      } else {
+        setParseItems((current) => applyParseRuntimeEvent(current, event));
+        if (event.event === 'parse.started') {
+          getParsePacer().stop();
+          setParseSelected(new Set());
+          setParseGroups([]);
+          setParseDirOverride('');
+          setParseVideoQualities([]);
+        }
       }
     }
 
@@ -683,6 +710,8 @@ export function AppShell() {
         network,
         onEvent: processParseRuntimeEvent,
       });
+      // 节拍器里未放行的条目直接丢弃：下面的权威重建会整体接管列表。
+      getParsePacer().stop();
       const nextGroups = normalizeParseGroups(result.groups ?? []);
       const nextItems = collectParseItems(result.items, nextGroups);
       setParseItems(result.items);
@@ -705,6 +734,8 @@ export function AppShell() {
       }
       return result.items;
     } catch (error) {
+      // 解析失败没有权威重建：把节拍器里的积压立即放行，别弄丢已解析的尾巴。
+      getParsePacer().flush();
       const message = toErrorMessage(error);
       setLogs((current) => {
         const next = [
