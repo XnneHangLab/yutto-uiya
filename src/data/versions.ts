@@ -7,18 +7,29 @@ export interface VersionEntry {
 }
 
 export const CURRENT_VERSION = {
-  version: 'v2.2.0',
-  date: '2026-07-18',
+  version: 'v2.2.1',
+  date: '2026-07-19',
   channel: '稳定版',
-  summary:
-    'serve 架构：常驻 yutto server 驱动解析与下载，实时进度条与流式解析列表',
+  summary: '修复自定义 FFmpeg 路径不一致问题，音频转码逻辑下沉到内核',
 };
 
 export const VERSION_TIMELINE: VersionEntry[] = [
   {
+    date: '2026-07-19',
+    version: 'v2.2.1',
+    badge: '当前',
+    title: 'FFmpeg 路径修复与内核升级',
+    highlights: [
+      '修复自定义 FFmpeg 路径环境检查与 serve 使用不一致的问题（#77）',
+      '音频-only mp3/flac 转码逻辑下沉到 uiya-yutto 内核，前端不再需要显式覆盖编码（#74）',
+      '内核升级至 uiya-yutto 0.2.4',
+      '项目以 AGPL-3.0-only 许可证发布',
+    ],
+  },
+  {
     date: '2026-07-18',
     version: 'v2.2.0',
-    badge: '当前',
+    badge: '',
     title: '迁移到常驻 yutto server',
     highlights: [
       '解析与下载全面迁移到常驻 yutto server（内核 uiya-yutto 0.2.1），结构化事件取代日志抓取',
