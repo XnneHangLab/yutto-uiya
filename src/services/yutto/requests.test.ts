@@ -17,14 +17,14 @@ function audioOnlyRequest(audioFormat: string) {
 }
 
 describe('buildDownloadRequest audio-only formats', () => {
-  it('requests transcoding for mp3 and flac (AAC cannot be stream-copied)', () => {
+  it('sets audio_only_format without overriding codec (backend auto-infers)', () => {
     const mp3 = audioOnlyRequest('mp3');
     expect(mp3.output).toEqual({ audio_only_format: 'mp3' });
-    expect(mp3.stream).toMatchObject({ audio_save_codec: 'mp3' });
+    expect(mp3.stream).not.toHaveProperty('audio_save_codec');
 
     const flac = audioOnlyRequest('flac');
     expect(flac.output).toEqual({ audio_only_format: 'flac' });
-    expect(flac.stream).toMatchObject({ audio_save_codec: 'flac' });
+    expect(flac.stream).not.toHaveProperty('audio_save_codec');
   });
 
   it('keeps the copy codec for m4a and wav (wire downloads m4a)', () => {
