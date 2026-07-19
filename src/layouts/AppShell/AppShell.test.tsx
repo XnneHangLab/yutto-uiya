@@ -668,7 +668,7 @@ describe('AppShell', () => {
       await screen.findByRole('button', { name: '保存并重新检测' }),
     );
 
-    // 保存成功后 serve 必须重启：--download-root、ffmpeg PATH 和 python
+    // 保存成功后 serve 必须重启：--download-root、--ffmpeg-path 和 python
     // 解释器都在 serve 启动时固定，不重启新配置不会生效。
     await waitFor(() => expect(runtimeBridge.stopServe).toHaveBeenCalled());
     const saveOrder = vi.mocked(runtimeBridge.setRuntimeDriver).mock

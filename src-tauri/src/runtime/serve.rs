@@ -182,6 +182,11 @@ pub fn start_serve(app: &AppHandle, state: &RuntimeState) -> Result<ServeInfo, S
     }
 
     let ffmpeg_path = state.current_ffmpeg_path();
+    let ffmpeg_path = if ffmpeg_path.trim().is_empty() {
+        "ffmpeg".to_string()
+    } else {
+        ffmpeg_path
+    };
     let mut args: Vec<String> = vec![
         "-m".into(),
         "yutto".into(),
