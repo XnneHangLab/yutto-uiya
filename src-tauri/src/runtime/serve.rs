@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 use std::io::{BufRead, BufReader};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
@@ -181,6 +181,7 @@ pub fn start_serve(app: &AppHandle, state: &RuntimeState) -> Result<ServeInfo, S
         return fail_start(app, state, generation, format!("创建下载目录失败: {error}"));
     }
 
+    let ffmpeg_path = state.current_ffmpeg_path();
     let mut args: Vec<String> = vec![
         "-m".into(),
         "yutto".into(),
@@ -189,6 +190,8 @@ pub fn start_serve(app: &AppHandle, state: &RuntimeState) -> Result<ServeInfo, S
         "0".into(),
         "--download-root".into(),
         download_root.to_string_lossy().into_owned(),
+        "--ffmpeg-path".into(),
+        ffmpeg_path,
     ];
     for origin in ALLOWED_ORIGINS {
         args.push("--allow-origin".into());
@@ -205,21 +208,6 @@ pub fn start_serve(app: &AppHandle, state: &RuntimeState) -> Result<ServeInfo, S
         .env("YUTTO_SERVER_TOKEN", &token)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
-
-    // yutto serve resolves `ffmpeg` from PATH (no CLI flag), so a custom
-    // ffmpeg path must be exposed through the child's PATH.
-    let ffmpeg_path = state.current_ffmpeg_path();
-    if ffmpeg_path != "ffmpeg" && !ffmpeg_path.trim().is_empty() {
-        if let Some(dir) = Path::new(&ffmpeg_path).parent() {
-            let mut paths = vec![dir.to_path_buf()];
-            paths.extend(std::env::split_paths(
-                &std::env::var_os("PATH").unwrap_or_default(),
-            ));
-            if let Ok(joined) = std::env::join_paths(paths) {
-                command.env("PATH", joined);
-            }
-        }
-    }
 
     emit_raw_log(app, "[serve] 正在启动 yutto server …");
     let mut child = match command.spawn() {
