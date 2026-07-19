@@ -476,7 +476,7 @@ wheels = [
 
 [[package]]
 name = "uiya-yutto"
-version = "0.2.3"
+version = "0.2.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiofiles" },
@@ -490,9 +490,9 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "websockets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ab/d4/49160389f434d603a5605c43a980e0c167ccd474ba5d5065e2779aa2b9e2/uiya_yutto-0.2.3.tar.gz", hash = "sha256:096cf69518f718953fcb40e79a0dc5fe800bbe3046d03b0a4e784a9e731974e1", size = 119297, upload-time = "2026-07-19T02:38:16.831Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/be/f4/ae31afb2042b13421a2de3a099deab1e07204108db080967ad3bbff27738/uiya_yutto-0.2.4.tar.gz", hash = "sha256:481ebac88e0fdcd6a36d65e2de15f9337bc57e4397c57998670d5d30a7dd8db8", size = 119676, upload-time = "2026-07-19T11:30:47.478Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8e/bc/3263aea923a7ee162ede368ba6f6dc120b02ce8145429628aa28118ce48a/uiya_yutto-0.2.3-py3-none-any.whl", hash = "sha256:d02dc5f74cebe62bbd3494ef6cffaa8ea1e8682b1eb435e1370ac71a78202942", size = 159727, upload-time = "2026-07-19T02:38:15.462Z" },
+    { url = "https://files.pythonhosted.org/packages/ca/d9/bb1b611b31539363ecf6e47dae54c9e28b90b310495ad02917424bd6760d/uiya_yutto-0.2.4-py3-none-any.whl", hash = "sha256:acbdaa4629e9ea78970f2da0fe769b4adc256cf3323da0241481f74d96fa7e4f", size = 160099, upload-time = "2026-07-19T11:30:46.317Z" },
 ]
 
 [[package]]
@@ -620,7 +620,7 @@ requires-dist = [
     { name = "natsort", specifier = ">=8.4.0" },
     { name = "pydantic", specifier = ">=2.10.6" },
     { name = "tomli-w", specifier = ">=1.2.0" },
-    { name = "uiya-yutto", specifier = "==0.2.3" },
+    { name = "uiya-yutto", specifier = "==0.2.4" },
 ]
 
 [package.metadata.requires-dev]

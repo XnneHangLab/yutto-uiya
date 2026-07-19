@@ -997,7 +997,7 @@ export function AppShell() {
           setFolders(buildFolderItemsFromPaths(paths));
         }
       }
-      // serve 在启动时固定 --download-root、PATH 里的 ffmpeg 和 python 解释器，
+      // serve 在启动时固定 --download-root、--ffmpeg-path 和 python 解释器，
       // 保存设置后无条件重启，让新配置立即生效（不区分哪些项需要重启）。
       await handleServeReload();
     } catch (error) {
