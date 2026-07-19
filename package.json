@@ -2,6 +2,7 @@
   "name": "yutto-uiya",
   "private": true,
   "version": "2.2.0",
+  "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
     "dev": "vite",
