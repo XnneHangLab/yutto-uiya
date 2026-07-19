@@ -2,6 +2,15 @@
 
 各版本的下载地址见 [GitHub Releases](https://github.com/XnneHangLab/yutto-uiya/releases)。
 
+## v2.2.1（2026-07-19）
+
+**FFmpeg 路径修复与内核升级**
+
+- 修复自定义 FFmpeg 路径：环境检查与 serve 现在使用同一个可执行文件，不再依赖文件名必须为 `ffmpeg`（[#77](https://github.com/XnneHangLab/yutto-uiya/issues/77)）；
+- 音频-only mp3/flac 转码逻辑下沉到 uiya-yutto 内核的 `resolve_audio_save_codec`，前端不再显式覆盖编码（[#74](https://github.com/XnneHangLab/yutto-uiya/issues/74)）；
+- 内核升级至 uiya-yutto 0.2.4；
+- 项目以 AGPL-3.0-only 许可证发布。
+
 ## v2.2.0（2026-07-18）
 
 **迁移到常驻 yutto server** —— 解析与下载不再逐次启动子进程抓日志，改由一个随应用
