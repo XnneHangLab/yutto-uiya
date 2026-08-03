@@ -194,18 +194,22 @@ export function wireItemToParseItem(
   index: number,
   outputDirectory?: string,
 ): VideoParseItem {
-  // Grouped items (合集/多P) display their episode name; standalone videos
-  // display the video title — the wire `name` of a single video is often the
-  // raw uploaded filename (e.g. lv_0_xxx / mmexport_xxx), useless in lists.
+  // Grouped items (合集/多P) and PGC episodes display their episode name.
+  // Standalone UGC videos display the video title — their wire `name` is often
+  // the raw uploaded filename (e.g. lv_0_xxx / mmexport_xxx), useless in lists.
   const grouped =
     typeof data.display_group === 'string' && data.display_group !== '';
-  const displayTitle = grouped
-    ? (data.name ?? data.title)
-    : (data.title ?? data.name);
+  const url = String(data.url ?? '');
+  const pgcEpisode =
+    /\/\/(?:www\.)?bilibili\.com\/(?:bangumi|cheese)\/play\/ep\d+/.test(url);
+  const displayTitle =
+    grouped || pgcEpisode
+      ? (data.name ?? data.title)
+      : (data.title ?? data.name);
   const item: VideoParseItem = {
     index,
     title: String(displayTitle ?? ''),
-    url: String(data.url ?? ''),
+    url,
     dir: relativeParentDir(
       typeof data.planned_path === 'string' ? data.planned_path : '',
       outputDirectory,
