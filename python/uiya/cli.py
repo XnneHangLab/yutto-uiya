@@ -219,8 +219,7 @@ def cmd_fetch_cover(url: str) -> None:
         emit_payload(
             {
                 "error": (
-                    f"封面图片加载失败（{proxy_mode}，{_safe_cover_url(url)}）："
-                    f"{_cover_fetch_error_message(error)}"
+                    f"封面图片加载失败（{proxy_mode}，{_safe_cover_url(url)}）：{_cover_fetch_error_message(error)}"
                 )
             }
         )

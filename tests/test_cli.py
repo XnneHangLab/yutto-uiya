@@ -96,7 +96,9 @@ def test_cover_fetch_error_message_preserves_http_diagnostics_without_url():
     assert "secret" not in message
 
 
-def test_cmd_fetch_cover_returns_detailed_safe_error(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]):
+def test_cmd_fetch_cover_returns_detailed_safe_error(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+):
     monkeypatch.setattr("uiya.cli._load_no_proxy_setting", lambda: True)
     monkeypatch.setattr(
         "uiya.cli._fetch_image_as_data_url",
