@@ -582,35 +582,49 @@ pub fn run_fetch_cover_command(
     url: &str,
     app: &AppHandle,
 ) -> Result<String, String> {
-    let output = build_python_command_for_driver(
-        repo_root,
-        workspace_root,
-        driver,
-        ["-m", "uiya.cli", "fetch-cover", url],
-    )
-    .output()
-    .map_err(|error| format!("failed to run fetch-cover: {error}"))?;
+    emit_raw_log(app, "[封面] 正在加载封面 …");
+    let result = (|| {
+        let output = build_python_command_for_driver(
+            repo_root,
+            workspace_root,
+            driver,
+            ["-m", "uiya.cli", "fetch-cover", url],
+        )
+        .output()
+        .map_err(|error| format!("failed to run fetch-cover: {error}"))?;
 
-    emit_stderr_lines(app, &output.stderr);
+        emit_stderr_lines(app, &output.stderr);
 
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let last_line = stdout
-        .lines()
-        .last()
-        .ok_or_else(|| "fetch-cover returned no output".to_string())?;
-    let envelope: PythonEnvelope = serde_json::from_str(last_line)
-        .map_err(|e| format!("failed to parse fetch-cover output: {e}"))?;
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let last_line = stdout
+            .lines()
+            .last()
+            .ok_or_else(|| "fetch-cover returned no output".to_string())?;
+        let envelope: PythonEnvelope = serde_json::from_str(last_line)
+            .map_err(|e| format!("failed to parse fetch-cover output: {e}"))?;
 
-    if let Some(error) = envelope.payload.get("error").and_then(|v| v.as_str()) {
-        return Err(error.to_string());
+        if let Some(error) = envelope.payload.get("error").and_then(|v| v.as_str()) {
+            return Err(error.to_string());
+        }
+
+        envelope
+            .payload
+            .get("dataUrl")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+            .ok_or_else(|| "fetch-cover payload missing dataUrl".to_string())
+    })();
+
+    match result {
+        Ok(data_url) => {
+            emit_raw_log(app, "[封面] 加载完成");
+            Ok(data_url)
+        }
+        Err(error) => {
+            emit_raw_log(app, &format!("[封面] 加载失败：{error}"));
+            Err(error)
+        }
     }
-
-    envelope
-        .payload
-        .get("dataUrl")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
-        .ok_or_else(|| "fetch-cover payload missing dataUrl".to_string())
 }
 
 pub fn run_convert_wav_command(
