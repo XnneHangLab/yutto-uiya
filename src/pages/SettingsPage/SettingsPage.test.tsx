@@ -86,6 +86,9 @@ describe('SettingsPage', () => {
     expect(screen.getByLabelText('解析并发数')).toHaveValue(8);
     expect(screen.getByRole('checkbox')).toBeChecked();
     expect(screen.getByText('已禁用')).toBeInTheDocument();
+    expect(
+      screen.getByText(/代理未运行或配置残留/),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '保存并重新检测' }));
     expect(onSave).toHaveBeenCalledWith('uv', '', 'system', '', true, '', 8);

@@ -581,7 +581,7 @@ export function SettingsPage({
 
               <SettingRow
                 name="禁用代理"
-                description="向 yutto 传递 --proxy no，忽略系统代理环境变量"
+                description="勾选后忽略系统代理；取消勾选时若代理未运行或配置残留，解析、下载和封面可能失败"
                 icon="🌐"
               >
                 <label className="toggle-label">
