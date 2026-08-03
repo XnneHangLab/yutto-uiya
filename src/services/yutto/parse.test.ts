@@ -264,6 +264,55 @@ describe('resolveParseTarget', () => {
     ]);
   });
 
+  it('uses episode names for a bangumi list', async () => {
+    const { socket, parsePromise } = await startParse();
+    await answerResolveStart(socket);
+    await answerSubscribe(socket, [
+      stateEvent(1, 'running'),
+      stateEvent(2, 'completed'),
+    ]);
+    await answerTaskGet(socket, {
+      task_id: 'task-1',
+      state: 'completed',
+      error: null,
+      created_at: '',
+      started_at: '',
+      finished_at: '',
+      last_event_seq: 2,
+      payload: { output: { directory: '/dl/root' } },
+      result: {
+        items: [
+          {
+            avid: 'av100',
+            cid: '1',
+            url: 'https://www.bilibili.com/bangumi/play/ep1001',
+            name: '第1话 初次见面',
+            title: '某部番剧',
+            cover_url: '',
+            planned_path: '/dl/root/某部番剧/第1话 初次见面.mp4',
+            display_group: null,
+          },
+          {
+            avid: 'av200',
+            cid: '2',
+            url: 'https://www.bilibili.com/bangumi/play/ep1002',
+            name: '第2话 再次相遇',
+            title: '某部番剧',
+            cover_url: '',
+            planned_path: '/dl/root/某部番剧/第2话 再次相遇.mp4',
+            display_group: null,
+          },
+        ],
+      },
+    });
+
+    const result = await parsePromise;
+    expect(result.items.map((item) => item.title)).toEqual([
+      '第1话 初次见面',
+      '第2话 再次相遇',
+    ]);
+  });
+
   it('places ungrouped items into root items', async () => {
     const { socket, parsePromise } = await startParse();
     await answerResolveStart(socket);

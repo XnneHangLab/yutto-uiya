@@ -107,6 +107,27 @@ describe('createTaskEventTranslator (resolve tasks)', () => {
     expect(event.parseItem).toMatchObject({ title: '真实的视频标题' });
   });
 
+  it.each([
+    ['番剧', 'https://www.bilibili.com/bangumi/play/ep123'],
+    ['课程', 'https://www.bilibili.com/cheese/play/ep456'],
+  ])('prefers the episode name for standalone %s items', (_, url) => {
+    const translate = createTaskEventTranslator(context);
+    const [event] = translate(
+      wireEvent({
+        seq: 10,
+        kind: 'item_listed',
+        data: {
+          url,
+          name: '第1话 分集标题',
+          title: '系列总标题',
+          planned_path: '/dl/root/系列总标题/第1话 分集标题.mp4',
+          display_group: null,
+        },
+      }),
+    );
+    expect(event.parseItem).toMatchObject({ title: '第1话 分集标题' });
+  });
+
   it('carries uploader, description and tags from the wire item', () => {
     const translate = createTaskEventTranslator(context);
     const [event] = translate(
