@@ -29,6 +29,10 @@ class TestSettings:
         index = self.settings.get_index("vip_strict")
         assert get_args(VipStrict)[index] == self.settings.vip_strict
 
+    def test_no_proxy_defaults_to_direct(self):
+        """新配置默认不读取可能残留的系统/环境代理。"""
+        assert UiyaSetting().no_proxy is True
+
     def test_fetch_workers_defaults_to_eight(self):
         """fetch_workers 缺省时默认为 8"""
         assert UiyaSetting().fetch_workers == 8
@@ -106,6 +110,7 @@ class TestSettings:
 
         assert settings.ffmpeg_path == "repo-ffmpeg"
         assert not runtime_config.exists()
+
 
 if __name__ == "__main__":
     pytest.main()

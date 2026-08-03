@@ -508,7 +508,7 @@ pub async fn set_runtime_driver(
         None => "ffmpeg".to_string(),
     };
 
-    let resolved_no_proxy = no_proxy.unwrap_or(false);
+    let resolved_no_proxy = no_proxy.unwrap_or(true);
 
     let resolved_fetch_workers = fetch_workers.unwrap_or(8).max(1);
 

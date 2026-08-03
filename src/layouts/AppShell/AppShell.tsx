@@ -110,7 +110,7 @@ export function AppShell() {
   const [pythonExePath, setPythonExePath] = useState('');
   const [ffmpegMode, setFfmpegMode] = useState<'system' | 'local'>('system');
   const [ffmpegExePath, setFfmpegExePath] = useState('');
-  const [noProxy, setNoProxy] = useState(false);
+  const [noProxy, setNoProxy] = useState(true);
   const [fetchWorkers, setFetchWorkers] = useState(8);
   // 有解析在跑（下载看 tasks 队列）——设置页据此提示「保存会中断任务」。
   const [parseBusy, setParseBusy] = useState(false);
@@ -203,7 +203,7 @@ export function AppShell() {
         setFfmpegMode('local');
         setFfmpegExePath(nextInspection.ffmpegPath ?? '');
       }
-      setNoProxy(nextInspection.noProxy ?? false);
+      setNoProxy(nextInspection.noProxy ?? true);
       setFetchWorkers(nextInspection.fetchWorkers ?? 8);
       setDownloadDirSetting(nextInspection.downloadDirSetting ?? './downloads');
       void autoStartServe();
@@ -247,7 +247,7 @@ export function AppShell() {
           setFfmpegMode('local');
           setFfmpegExePath(nextInspection.ffmpegPath ?? '');
         }
-        setNoProxy(nextInspection.noProxy ?? false);
+        setNoProxy(nextInspection.noProxy ?? true);
         setFetchWorkers(nextInspection.fetchWorkers ?? 8);
         setDownloadDirSetting(
           nextInspection.downloadDirSetting ?? './downloads',
@@ -785,7 +785,7 @@ export function AppShell() {
       setFfmpegMode('local');
       setFfmpegExePath(nextInspection.ffmpegPath ?? '');
     }
-    setNoProxy(nextInspection.noProxy ?? false);
+    setNoProxy(nextInspection.noProxy ?? true);
     setFetchWorkers(nextInspection.fetchWorkers ?? 8);
   }
 

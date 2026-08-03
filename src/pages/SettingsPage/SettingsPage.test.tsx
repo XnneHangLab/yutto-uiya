@@ -40,7 +40,7 @@ describe('SettingsPage', () => {
         ffmpegMode="system"
         ffmpegExePath=""
         onChooseFfmpegExe={onChooseFfmpegExe}
-        noProxy={false}
+        noProxy={true}
         fetchWorkers={8}
         downloadDir=""
         authBusy={false}
@@ -84,9 +84,11 @@ describe('SettingsPage', () => {
     expect(onUseRepoWorkspaceRoot).toHaveBeenCalledTimes(1);
 
     expect(screen.getByLabelText('解析并发数')).toHaveValue(8);
+    expect(screen.getByRole('checkbox')).toBeChecked();
+    expect(screen.getByText('直连')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '保存并重新检测' }));
-    expect(onSave).toHaveBeenCalledWith('uv', '', 'system', '', false, '', 8);
+    expect(onSave).toHaveBeenCalledWith('uv', '', 'system', '', true, '', 8);
 
     await user.click(screen.getByRole('tab', { name: '关于' }));
     expect(screen.getByRole('tabpanel', { name: '关于' })).toHaveAttribute(

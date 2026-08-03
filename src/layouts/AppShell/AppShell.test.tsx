@@ -57,7 +57,7 @@ const { readyProbe, defaultInspection, defaultManagedFolders } = vi.hoisted(
       downloadDir: '/repo/downloads',
       sessData: false,
       ffmpegPath: 'ffmpeg',
-      noProxy: false,
+      noProxy: true,
       fetchWorkers: 8,
       runtimeDriver: 'uv',
       pythonPath: '',
@@ -180,7 +180,7 @@ describe('AppShell', () => {
     await waitFor(() =>
       expect(resolveParseTarget).toHaveBeenCalledWith(
         expect.objectContaining({
-          network: { proxy: 'auto', fetchWorkers: 8 },
+          network: { proxy: 'no', fetchWorkers: 8 },
         }),
       ),
     );
@@ -202,7 +202,7 @@ describe('AppShell', () => {
           target: 'https://www.bilibili.com/video/BV1xx411c7mD',
           label: '测试视频',
           dir: '',
-          network: { proxy: 'auto', fetchWorkers: 8 },
+          network: { proxy: 'no', fetchWorkers: 8 },
         }),
       ),
     );
@@ -213,10 +213,10 @@ describe('AppShell', () => {
     );
   });
 
-  it('passes no to yutto when proxy use is disabled', async () => {
+  it('passes auto to yutto when automatic proxy use is enabled', async () => {
     vi.mocked(runtimeBridge.inspectRuntime).mockResolvedValue({
       ...defaultInspection,
-      noProxy: true,
+      noProxy: false,
     });
     vi.mocked(resolveParseTarget).mockResolvedValue({
       dir: '',
@@ -236,7 +236,7 @@ describe('AppShell', () => {
     await waitFor(() =>
       expect(resolveParseTarget).toHaveBeenCalledWith(
         expect.objectContaining({
-          network: { proxy: 'no', fetchWorkers: 8 },
+          network: { proxy: 'auto', fetchWorkers: 8 },
         }),
       ),
     );
