@@ -68,7 +68,6 @@ pub fn run() {
             runtime::commands::serve_start,
             runtime::commands::serve_stop,
             runtime::commands::serve_status,
-            runtime::commands::get_system_proxy,
             runtime::commands::convert_wav_audio,
         ])
         .build(tauri::generate_context!())

@@ -6,8 +6,8 @@ use std::os::windows::process::CommandExt;
 
 use super::process::{
     ensure_environment_ready, kill_process, open_path, open_url, pick_download_dir,
-    pick_ffmpeg_path, pick_python_path, pick_workspace_root, read_system_proxy,
-    resolve_managed_path, run_auth_login_command, run_auth_logout_command, run_convert_wav_command,
+    pick_ffmpeg_path, pick_python_path, pick_workspace_root, resolve_managed_path,
+    run_auth_login_command, run_auth_logout_command, run_convert_wav_command,
     run_fetch_cover_command, run_inspect_command, run_probe_command, run_save_settings_command,
     run_uv_sync_command, write_console_log,
 };
@@ -304,11 +304,6 @@ pub fn serve_status(state: State<'_, RuntimeState>) -> super::serve::ServeStatus
 }
 
 #[tauri::command]
-pub fn get_system_proxy() -> Option<String> {
-    read_system_proxy()
-}
-
-#[tauri::command]
 pub async fn convert_wav_audio(
     app: AppHandle,
     state: State<'_, RuntimeState>,
@@ -513,7 +508,7 @@ pub async fn set_runtime_driver(
         None => "ffmpeg".to_string(),
     };
 
-    let resolved_no_proxy = no_proxy.unwrap_or(false);
+    let resolved_no_proxy = no_proxy.unwrap_or(true);
 
     let resolved_fetch_workers = fetch_workers.unwrap_or(8).max(1);
 

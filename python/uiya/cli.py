@@ -38,14 +38,14 @@ _BILIBILI_HEADERS = {
 
 
 def _load_no_proxy_setting() -> bool:
-    """uiya.toml 的 不使用代理 开关；读取失败时按未开启处理。"""
+    """uiya.toml 的 不使用代理 开关；读取失败时按默认直连处理。"""
     try:
         from uiya.utils.config import UiyaSetting, load_settings_file
 
         settings = load_settings_file("uiya.toml", UiyaSetting)
         return bool(getattr(settings, "no_proxy", False))
     except Exception:
-        return False
+        return True
 
 
 def _safe_cover_url(url: str) -> str:
@@ -458,7 +458,7 @@ def main() -> None:
 
     save_parser = subparsers.add_parser("save-settings")
     save_parser.add_argument("--ffmpeg-path", default="ffmpeg")
-    save_parser.add_argument("--no-proxy", default="false")
+    save_parser.add_argument("--no-proxy", default="true")
     save_parser.add_argument("--download-dir", default=None)
     save_parser.add_argument("--fetch-workers", type=int, default=None)
 
