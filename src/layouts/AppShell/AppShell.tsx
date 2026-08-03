@@ -16,7 +16,6 @@ import {
   exportConsoleLogs,
   getHotkey,
   getServeStatus,
-  getSystemProxy,
   inspectRuntime,
   listManagedFolders,
   logoutAuth,
@@ -445,18 +444,9 @@ export function AppShell() {
     };
   }, []);
 
-  /**
-   * uiya owns the proxy decision: 直连, or the LIVE Windows system proxy
-   * (read per operation so toggling the proxy client applies immediately).
-   * Never 'auto' — environment variables are launch-time snapshots and must
-   * not silently decide the route.
-   */
-  async function resolveNetworkPreferences(): Promise<NetworkPreferences> {
-    let proxy = 'no';
-    if (!noProxy) {
-      proxy = (await getSystemProxy().catch(() => null)) ?? 'no';
-    }
-    return { proxy, fetchWorkers };
+  /** Follow yutto's proxy contract: auto trusts platform/environment proxy settings; no forces direct access. */
+  function resolveNetworkPreferences(): NetworkPreferences {
+    return { proxy: noProxy ? 'no' : 'auto', fetchWorkers };
   }
 
   function consoleEntryForDownloadEvent(event: RuntimeEvent) {
@@ -551,7 +541,7 @@ export function AppShell() {
       // boots one first; the server task service does the queueing.
       const serveInfo = await startServe();
       serveTokenRef.current = serveInfo.token;
-      const network = await resolveNetworkPreferences();
+      const network = resolveNetworkPreferences();
       const record = await startDownload({
         serve: serveInfo,
         target: url,
@@ -693,14 +683,14 @@ export function AppShell() {
       // boots one first — which also revives a crashed serve before parsing.
       const serveInfo = await startServe();
       serveTokenRef.current = serveInfo.token;
-      const network = await resolveNetworkPreferences();
+      const network = resolveNetworkPreferences();
       setLogs((current) => [
         ...current,
         createConsoleLog(
           'system',
           network.proxy === 'no'
             ? '[解析] 网络：直连'
-            : `[解析] 网络：系统代理 ${network.proxy}`,
+            : '[解析] 网络：自动（跟随系统/环境代理）',
         ),
       ]);
       parsingTargetRef.current = url;

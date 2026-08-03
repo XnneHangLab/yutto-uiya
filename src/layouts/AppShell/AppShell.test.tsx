@@ -100,7 +100,6 @@ vi.mock('../../services/runtime/bridge', async () => {
       message: null,
     }),
     subscribeServeStatus: vi.fn().mockResolvedValue(() => {}),
-    getSystemProxy: vi.fn().mockResolvedValue(null),
     startAuthLogin: vi.fn().mockResolvedValue(undefined),
     cancelAuthLogin: vi.fn().mockResolvedValue(undefined),
     logoutAuth: vi.fn().mockResolvedValue('已退出登录'),
@@ -178,6 +177,14 @@ describe('AppShell', () => {
 
     await user.click(screen.getByRole('button', { name: '解析' }));
 
+    await waitFor(() =>
+      expect(resolveParseTarget).toHaveBeenCalledWith(
+        expect.objectContaining({
+          network: { proxy: 'auto', fetchWorkers: 8 },
+        }),
+      ),
+    );
+
     // Parsed item appears; click 下载所选
     await screen.findAllByText('测试视频');
     vi.mocked(startDownload).mockResolvedValue(
@@ -195,6 +202,7 @@ describe('AppShell', () => {
           target: 'https://www.bilibili.com/video/BV1xx411c7mD',
           label: '测试视频',
           dir: '',
+          network: { proxy: 'auto', fetchWorkers: 8 },
         }),
       ),
     );
@@ -202,6 +210,35 @@ describe('AppShell', () => {
     // Task should appear in queue
     await waitFor(() =>
       expect(screen.getByText('已进入下载队列')).toBeInTheDocument(),
+    );
+  });
+
+  it('passes no to yutto when proxy use is disabled', async () => {
+    vi.mocked(runtimeBridge.inspectRuntime).mockResolvedValue({
+      ...defaultInspection,
+      noProxy: true,
+    });
+    vi.mocked(resolveParseTarget).mockResolvedValue({
+      dir: '',
+      items: [],
+      groups: [],
+      videoQualities: [],
+      audioQualities: [],
+    });
+
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: '下载管理' }));
+    const urlInput = await screen.findByLabelText('Bilibili 视频链接');
+    await user.type(urlInput, 'https://www.bilibili.com/bangumi/play/ep779775');
+    await user.click(screen.getByRole('button', { name: '解析' }));
+
+    await waitFor(() =>
+      expect(resolveParseTarget).toHaveBeenCalledWith(
+        expect.objectContaining({
+          network: { proxy: 'no', fetchWorkers: 8 },
+        }),
+      ),
     );
   });
 
