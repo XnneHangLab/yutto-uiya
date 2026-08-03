@@ -20,8 +20,10 @@ import json
 import os
 import subprocess
 import sys
+import urllib.error
 import urllib.request
 from typing import TYPE_CHECKING, Any, NoReturn, cast
+from urllib.parse import SplitResult, urlsplit, urlunsplit
 
 if TYPE_CHECKING:
     import pathlib
@@ -46,29 +48,48 @@ def _load_no_proxy_setting() -> bool:
         return False
 
 
+def _safe_cover_url(url: str) -> str:
+    """Return a log-safe URL without credentials, query parameters, or fragments."""
+    parsed = urlsplit(url)
+    host = parsed.hostname or ""
+    if ":" in host and not host.startswith("["):
+        host = f"[{host}]"
+    try:
+        port = parsed.port
+    except ValueError:
+        port = None
+    netloc = f"{host}:{port}" if port is not None else host
+    return urlunsplit(SplitResult(parsed.scheme, netloc, parsed.path, "", ""))
+
+
+def _cover_fetch_error_message(error: Exception) -> str:
+    """Describe a cover fetch failure without echoing the possibly sensitive URL."""
+    if isinstance(error, urllib.error.HTTPError):
+        return f"HTTP {error.code} {error.reason}"
+    if isinstance(error, urllib.error.URLError):
+        reason = error.reason
+        return f"{type(reason).__name__}: {reason}"
+    return f"{type(error).__name__}: {error}"
+
+
 def _fetch_image_as_data_url(url: str, no_proxy: bool = False) -> str:
     """Download an image with Bilibili referer and return a base64 data URL.
 
     no_proxy 时强制直连（绕过环境变量与系统注册表代理），与解析/下载的
-    不使用代理 行为保持一致。
+    不使用代理 行为保持一致。网络异常交由调用方记录具体诊断信息。
     """
-    try:
-        req = urllib.request.Request(
-            url,
-            headers={
-                **_BILIBILI_HEADERS,
-                "Referer": "https://www.bilibili.com",
-            },
-        )
-        opener = (
-            urllib.request.build_opener(urllib.request.ProxyHandler({})) if no_proxy else urllib.request.build_opener()
-        )
-        with opener.open(req, timeout=10) as resp:
-            img_bytes = resp.read()
-            mime = resp.headers.get_content_type() or "image/jpeg"
-        return f"data:{mime};base64,{base64.b64encode(img_bytes).decode()}"
-    except Exception:
-        return ""
+    req = urllib.request.Request(
+        url,
+        headers={
+            **_BILIBILI_HEADERS,
+            "Referer": "https://www.bilibili.com",
+        },
+    )
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({})) if no_proxy else urllib.request.build_opener()
+    with opener.open(req, timeout=10) as resp:
+        img_bytes = resp.read()
+        mime = resp.headers.get_content_type() or "image/jpeg"
+    return f"data:{mime};base64,{base64.b64encode(img_bytes).decode()}"
 
 
 def _resolve_runtime_proxy(settings: Any) -> str:
@@ -190,11 +211,20 @@ def cmd_fetch_cover(url: str) -> None:
     def emit_payload(payload: dict[str, Any]) -> None:
         print(json.dumps({"kind": "payload", "payload": payload}, ensure_ascii=False), flush=True)
 
-    data_url = _fetch_image_as_data_url(url, no_proxy=_load_no_proxy_setting())
-    if data_url:
-        emit_payload({"dataUrl": data_url})
-    else:
-        emit_payload({"error": "封面图片加载失败"})
+    no_proxy = _load_no_proxy_setting()
+    try:
+        data_url = _fetch_image_as_data_url(url, no_proxy=no_proxy)
+    except Exception as error:
+        proxy_mode = "直连" if no_proxy else "系统/环境代理"
+        emit_payload(
+            {
+                "error": (
+                    f"封面图片加载失败（{proxy_mode}，{_safe_cover_url(url)}）：{_cover_fetch_error_message(error)}"
+                )
+            }
+        )
+        return
+    emit_payload({"dataUrl": data_url})
 
 
 def cmd_save_settings(
