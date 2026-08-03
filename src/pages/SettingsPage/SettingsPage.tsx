@@ -580,8 +580,8 @@ export function SettingsPage({
               ) : null}
 
               <SettingRow
-                name="不使用代理"
-                description="默认直连；取消勾选后自动跟随系统或环境代理配置"
+                name="禁用代理"
+                description="向 yutto 传递 --proxy no，忽略系统代理环境变量"
                 icon="🌐"
               >
                 <label className="toggle-label">
@@ -592,7 +592,7 @@ export function SettingsPage({
                     onChange={(e) => setLocalNoProxy(e.target.checked)}
                   />
                   <span className="toggle-text">
-                    {localNoProxy ? '直连' : '自动'}
+                    {localNoProxy ? '已禁用' : '自动'}
                   </span>
                 </label>
               </SettingRow>
