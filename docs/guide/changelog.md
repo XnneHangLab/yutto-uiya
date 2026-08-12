@@ -2,6 +2,16 @@
 
 各版本的下载地址见 [GitHub Releases](https://github.com/XnneHangLab/yutto-uiya/releases)。
 
+## v2.3.0（2026-08-12）
+
+**解析与网络体验修复**
+
+- 恢复 PGC / 番剧分集标题，解析结果不再显示通用视频标题（[#85](https://github.com/XnneHangLab/yutto-uiya/issues/85)）；
+- 封面抓取失败时提供更可用的诊断信息（[#87](https://github.com/XnneHangLab/yutto-uiya/issues/87)）；
+- 默认使用直连；需要时仍可启用系统或环境代理（[#88](https://github.com/XnneHangLab/yutto-uiya/issues/88)）；
+- 内核升级至 uiya-yutto 0.3.0（[#91](https://github.com/XnneHangLab/yutto-uiya/issues/91)）；
+- 明确封面与视频、音频同时下载时内嵌，单独下载时另存（[#93](https://github.com/XnneHangLab/yutto-uiya/issues/93)）。
+
 ## v2.2.1（2026-07-19）
 
 **FFmpeg 路径修复与内核升级**
