@@ -1,6 +1,6 @@
 [project]
 name = "yutto-uiya"
-version = "2.2.1"
+version = "2.3.0"
 description = "yutto-uiya: Tauri-based desktop frontend for yutto Bilibili downloader"
 readme = "README.md"
 requires-python = ">=3.11"

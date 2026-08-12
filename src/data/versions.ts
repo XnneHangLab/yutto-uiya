@@ -7,17 +7,30 @@ export interface VersionEntry {
 }
 
 export const CURRENT_VERSION = {
-  version: 'v2.2.1',
-  date: '2026-07-19',
+  version: 'v2.3.0',
+  date: '2026-08-12',
   channel: '稳定版',
-  summary: '修复自定义 FFmpeg 路径不一致问题，音频转码逻辑下沉到内核',
+  summary: '修复 PGC 标题与网络体验，升级 uiya-yutto 0.3.0',
 };
 
 export const VERSION_TIMELINE: VersionEntry[] = [
   {
+    date: '2026-08-12',
+    version: 'v2.3.0',
+    badge: '当前',
+    title: '解析与网络体验修复',
+    highlights: [
+      '恢复 PGC / 番剧分集标题，解析结果不再显示通用视频标题（#85）',
+      '封面抓取失败时提供更可用的诊断信息（#87）',
+      '默认使用直连；需要时仍可启用系统或环境代理（#88）',
+      '内核升级至 uiya-yutto 0.3.0（#91）',
+      '明确封面与视频、音频同时下载时内嵌，单独下载时另存（#93）',
+    ],
+  },
+  {
     date: '2026-07-19',
     version: 'v2.2.1',
-    badge: '当前',
+    badge: '',
     title: 'FFmpeg 路径修复与内核升级',
     highlights: [
       '修复自定义 FFmpeg 路径环境检查与 serve 使用不一致的问题（#77）',
