@@ -33,7 +33,7 @@ function downloadHint(opts: DownloadOptions): string {
   } = opts;
   let hint = '';
   if (requireVideo && requireAudio && requireCover)
-    hint = '视频 + 音频 + 封面（封面另存同目录）';
+    hint = '视频 + 音频 + 封面（封面内嵌，不另存）';
   else if (requireVideo && requireAudio) hint = '视频 + 音频，自动混流';
   else if (requireVideo && requireCover) hint = '仅视频流 + 封面';
   else if (requireAudio && requireCover) hint = '仅音频流 + 封面';
@@ -537,7 +537,9 @@ export function DownloadPage({
             <div className="dl-opts-row">
               <div className="dl-opts-text">
                 <span className="dl-opts-name">封面</span>
-                <span className="dl-opts-desc">下载封面图片，另存至同目录</span>
+                <span className="dl-opts-desc">
+                  与视频、音频同时选中时内嵌；单独下载时另存至同目录
+                </span>
               </div>
               <button
                 type="button"
