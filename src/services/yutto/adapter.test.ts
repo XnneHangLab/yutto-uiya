@@ -234,6 +234,48 @@ describe('createTaskEventTranslator (download tasks)', () => {
     });
   });
 
+  it('maps the final media selection without exposing candidate URLs', () => {
+    const translate = createTaskEventTranslator(context);
+    const [event] = translate(
+      wireEvent({
+        seq: 5,
+        kind: 'media_selected',
+        data: {
+          item: 'EP01',
+          video: {
+            codec: 'av1',
+            quality: 120,
+            width: 3840,
+            height: 2160,
+            save_codec: 'copy',
+          },
+          audio: {
+            codec: 'mp4a',
+            quality: 30280,
+            save_codec: 'copy',
+          },
+        },
+      }),
+    );
+
+    expect(event).toMatchObject({
+      event: 'download.media_selected',
+      message: '实际选择：视频 4K · AV1 · 3840×2160；音频 320 · MP4A',
+      selectedMedia: {
+        item: 'EP01',
+        video: {
+          codec: 'av1',
+          quality: 120,
+          width: 3840,
+          height: 2160,
+          saveCodec: 'copy',
+        },
+        audio: { codec: 'mp4a', quality: 30280, saveCodec: 'copy' },
+      },
+    });
+    expect(JSON.stringify(event)).not.toContain('url');
+  });
+
   it('keeps unknown kinds visible as generic download events', () => {
     const translate = createTaskEventTranslator(context);
     const [event] = translate(

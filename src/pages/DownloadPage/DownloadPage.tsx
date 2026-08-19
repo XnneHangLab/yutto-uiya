@@ -8,6 +8,10 @@ import type {
   VideoParseItem,
 } from '../../services/runtime/runtime';
 import { collectParseItems } from '../../services/runtime/runtime';
+import {
+  AUDIO_QUALITY_OPTIONS,
+  VIDEO_QUALITY_OPTIONS,
+} from '../../services/yutto/quality';
 import '../../styles/models.css';
 
 // 解析全部结束后，先让最终列表渲染安定，再发起封面抓取（子进程较重）。
@@ -33,7 +37,7 @@ function downloadHint(opts: DownloadOptions): string {
   } = opts;
   let hint = '';
   if (requireVideo && requireAudio && requireCover)
-    hint = '视频 + 音频 + 封面（封面内嵌，不另存）';
+    hint = '视频 + 音频 + 封面（封面内嵌，同时另存）';
   else if (requireVideo && requireAudio) hint = '视频 + 音频，自动混流';
   else if (requireVideo && requireCover) hint = '仅视频流 + 封面';
   else if (requireAudio && requireCover) hint = '仅音频流 + 封面';
@@ -59,6 +63,67 @@ function formatView(n: number): string {
   if (n >= 100_000_000) return `${(n / 100_000_000).toFixed(1)}亿`;
   if (n >= 10_000) return `${(n / 10_000).toFixed(1)}万`;
   return String(n);
+}
+
+function qualityLabel(options: QualityOption[], quality: number): string {
+  return (
+    options.find((option) => option.code === quality)?.label ?? `QN ${quality}`
+  );
+}
+
+function audioQualityLabel(quality: number): string {
+  const label = qualityLabel(AUDIO_QUALITY_OPTIONS, quality);
+  return /^\d+$/.test(label) ? `${label} kbps` : label;
+}
+
+function saveAction(codec: string): string {
+  return codec === 'copy'
+    ? '原流直封装 · 不重新编码'
+    : `FFmpeg 转码 ${codec.toUpperCase()}`;
+}
+
+function audioSaveAction(task: RuntimeTaskRecord, codec: string): string {
+  return task.needsWavConvert ? '下载后 FFmpeg 转码 WAV' : saveAction(codec);
+}
+
+function renderSelectedMedia(task: RuntimeTaskRecord) {
+  const media = task.selectedMedia;
+  if (!media) return null;
+
+  return (
+    <section className="models-page__media" aria-label="实际下载资源">
+      {media.video ? (
+        <section className="models-page__media-track" aria-label="实际视频资源">
+          <span className="models-page__media-kind">视频</span>
+          <span className="models-page__media-spec">
+            {qualityLabel(VIDEO_QUALITY_OPTIONS, media.video.quality)}
+            <b>{media.video.codec.toUpperCase()}</b>
+            <span>
+              {media.video.width}×{media.video.height}
+            </span>
+          </span>
+          <span className="models-page__media-action">
+            {saveAction(media.video.saveCodec)}
+          </span>
+        </section>
+      ) : null}
+      {media.audio ? (
+        <section className="models-page__media-track" aria-label="实际音频资源">
+          <span className="models-page__media-kind">音频</span>
+          <span className="models-page__media-spec">
+            {audioQualityLabel(media.audio.quality)}
+            <b>{media.audio.codec.toUpperCase()}</b>
+          </span>
+          <span className="models-page__media-action">
+            {audioSaveAction(task, media.audio.saveCodec)}
+          </span>
+        </section>
+      ) : null}
+      {!media.video && !media.audio ? (
+        <div className="models-page__media-empty">未选择音视频流</div>
+      ) : null}
+    </section>
+  );
 }
 
 interface DownloadPageProps {
@@ -776,6 +841,7 @@ export function DownloadPage({
                       </button>
                     ) : null}
                   </div>
+                  {renderSelectedMedia(task)}
                   {isRunning ? (
                     task.percent !== undefined ? (
                       <>

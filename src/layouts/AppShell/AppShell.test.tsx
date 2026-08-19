@@ -323,6 +323,36 @@ describe('AppShell', () => {
     expect(screen.getByText('开始下载')).toBeInTheDocument();
     expect(screen.getByText('解析中…')).toBeInTheDocument();
 
+    // 最终媒体选择写入任务详情状态，但不覆盖卡片的阶段消息。
+    act(() => {
+      downloadOnEvent?.({
+        ...downloadEvent(
+          'download.media_selected',
+          'downloading',
+          '实际选择：视频 4K · AV1 · 3840×2160；音频 320 · MP4A',
+        ),
+        selectedMedia: {
+          item: '测试视频',
+          video: {
+            codec: 'av1',
+            quality: 120,
+            width: 3840,
+            height: 2160,
+            saveCodec: 'copy',
+          },
+          audio: { codec: 'mp4a', quality: 30280, saveCodec: 'copy' },
+        },
+      });
+    });
+    expect(screen.getByText('开始下载')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '控制台' }));
+    expect(
+      await screen.findByText(
+        '[下载] 实际选择：视频 4K · AV1 · 3840×2160；音频 320 · MP4A',
+      ),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '下载管理' }));
+
     // 字节级 file_progress 驱动真实进度条。
     act(() => {
       downloadOnEvent?.({

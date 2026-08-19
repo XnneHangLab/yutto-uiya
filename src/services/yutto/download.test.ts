@@ -181,7 +181,8 @@ describe('startDownload', () => {
     });
     await answerDownloadStart(socket, 'task-wav');
     await answerSubscribe(socket, 'task-wav');
-    await promise;
+    const record = await promise;
+    expect(record).toMatchObject({ needsWavConvert: true });
 
     socket.receive({
       jsonrpc: '2.0',
