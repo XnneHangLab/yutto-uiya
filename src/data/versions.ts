@@ -7,17 +7,29 @@ export interface VersionEntry {
 }
 
 export const CURRENT_VERSION = {
-  version: 'v2.3.0',
-  date: '2026-08-12',
+  version: 'v2.3.1',
+  date: '2026-08-19',
   channel: '稳定版',
-  summary: '修复 PGC 标题与网络体验，升级 uiya-yutto 0.3.0',
+  summary: '支持 AV1 偏好与实际资源展示，补全番剧 PGC 分集详情',
 };
 
 export const VERSION_TIMELINE: VersionEntry[] = [
   {
+    date: '2026-08-19',
+    version: 'v2.3.1',
+    badge: '当前',
+    title: '实际资源与番剧详情',
+    highlights: [
+      '新增视频编码偏好：可主动选择 AV1；自动模式继续采用内核的兼容优先与回退策略（#96）',
+      '下载卡片与控制台显示最终选择的画质、编码、分辨率和转码动作（#97）',
+      '番剧详情补全发布方、剧情简介、标签、发布时间和分集时长（#98）',
+      '内核升级至 uiya-yutto 0.3.2，支持结构化的最终媒体选择事件',
+    ],
+  },
+  {
     date: '2026-08-12',
     version: 'v2.3.0',
-    badge: '当前',
+    badge: '',
     title: '解析与网络体验修复',
     highlights: [
       '恢复 PGC / 番剧分集标题，解析结果不再显示通用视频标题（#85）',
