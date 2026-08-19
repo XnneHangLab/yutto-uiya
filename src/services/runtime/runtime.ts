@@ -150,6 +150,7 @@ export interface DownloadOptions {
   requireDanmaku: boolean;
   videoQuality: number;
   audioQuality: number;
+  videoCodec: 'auto' | 'av1';
   audioFormat: string;
 }
 
@@ -161,6 +162,7 @@ export const DEFAULT_DOWNLOAD_OPTIONS: DownloadOptions = {
   requireDanmaku: false,
   videoQuality: 127,
   audioQuality: 30280,
+  videoCodec: 'auto',
   audioFormat: 'm4a',
 };
 

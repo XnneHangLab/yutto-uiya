@@ -65,6 +65,10 @@ export function buildDownloadRequest(
     video_quality: options.videoQuality,
     audio_quality: options.audioQuality,
   };
+  if (options.videoCodec === 'av1') {
+    stream.video_download_codec = 'av1';
+    stream.video_save_codec = 'copy';
+  }
   const request: DownloadRequestPayload = {
     source: { url: args.target },
     scope: { batch: false },

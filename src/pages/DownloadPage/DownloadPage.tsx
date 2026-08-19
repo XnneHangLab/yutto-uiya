@@ -617,6 +617,31 @@ export function DownloadPage({
               </div>
             ) : null}
 
+            {downloadOptions.requireVideo ? (
+              <div className="dl-opts-row">
+                <div className="dl-opts-text">
+                  <span className="dl-opts-name">视频编码</span>
+                  <span className="dl-opts-desc">
+                    优先下载所选编码，不可用时自动回退
+                  </span>
+                </div>
+                <select
+                  className="dl-opts-select"
+                  aria-label="视频编码"
+                  value={downloadOptions.videoCodec}
+                  onChange={(e) =>
+                    onDownloadOptionsChange({
+                      ...downloadOptions,
+                      videoCodec: e.target.value as 'auto' | 'av1',
+                    })
+                  }
+                >
+                  <option value="auto">自动（兼容优先）</option>
+                  <option value="av1">AV1</option>
+                </select>
+              </div>
+            ) : null}
+
             {downloadOptions.requireAudio && parseAudioQualities.length > 0 ? (
               <div className="dl-opts-row">
                 <div className="dl-opts-text">
