@@ -239,6 +239,14 @@ export function wireItemToParseItem(
       (tag): tag is string => typeof tag === 'string',
     );
   }
+  const pubdate = toFiniteNumber(data.pubdate);
+  if (pubdate > 0) {
+    item.pubdate = pubdate;
+  }
+  const duration = toFiniteNumber(data.duration);
+  if (duration > 0) {
+    item.duration = duration;
+  }
   return item;
 }
 

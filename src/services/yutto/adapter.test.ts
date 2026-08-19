@@ -128,7 +128,7 @@ describe('createTaskEventTranslator (resolve tasks)', () => {
     expect(event.parseItem).toMatchObject({ title: '第1话 分集标题' });
   });
 
-  it('carries uploader, description and tags from the wire item', () => {
+  it('carries stable metadata from the wire item', () => {
     const translate = createTaskEventTranslator(context);
     const [event] = translate(
       wireEvent({
@@ -143,6 +143,8 @@ describe('createTaskEventTranslator (resolve tasks)', () => {
           uploader: '某UP主',
           description: '这是视频简介',
           tags: ['音乐', '翻唱', 42],
+          pubdate: 1698148800,
+          duration: 1559,
         },
       }),
     );
@@ -150,7 +152,28 @@ describe('createTaskEventTranslator (resolve tasks)', () => {
       uploader: '某UP主',
       description: '这是视频简介',
       tags: ['音乐', '翻唱'],
+      pubdate: 1698148800,
+      duration: 1559,
     });
+  });
+
+  it('ignores invalid optional numeric metadata', () => {
+    const [event] = createTaskEventTranslator(context)(
+      wireEvent({
+        seq: 11,
+        kind: 'item_listed',
+        data: {
+          url: 'https://www.bilibili.com/bangumi/play/ep123',
+          name: '第1话',
+          title: '番剧',
+          planned_path: '/dl/root/第1话.mp4',
+          pubdate: 'invalid',
+          duration: -1,
+        },
+      }),
+    );
+    expect(event.parseItem).not.toHaveProperty('pubdate');
+    expect(event.parseItem).not.toHaveProperty('duration');
   });
 
   it('drops duplicated seqs from the replay/live overlap', () => {
