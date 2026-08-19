@@ -37,7 +37,7 @@ function downloadHint(opts: DownloadOptions): string {
   } = opts;
   let hint = '';
   if (requireVideo && requireAudio && requireCover)
-    hint = '视频 + 音频 + 封面（封面内嵌，不另存）';
+    hint = '视频 + 音频 + 封面（封面内嵌，同时另存）';
   else if (requireVideo && requireAudio) hint = '视频 + 音频，自动混流';
   else if (requireVideo && requireCover) hint = '仅视频流 + 封面';
   else if (requireAudio && requireCover) hint = '仅音频流 + 封面';

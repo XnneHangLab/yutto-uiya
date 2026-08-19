@@ -287,6 +287,41 @@ describe('DownloadPage', () => {
     });
   });
 
+  it('describes selected covers as embedded and separately saved', () => {
+    render(
+      <DownloadPage
+        tasks={[]}
+        onDownload={() => undefined}
+        onParse={vi.fn()}
+        scriptsReady
+        parseItems={[
+          {
+            index: 1,
+            title: '测试视频',
+            url: 'https://example.com/1',
+            dir: '',
+          },
+        ]}
+        parseGroups={[]}
+        parseSelected={new Set([1])}
+        onParseSelectedChange={() => undefined}
+        onClearParseItems={() => undefined}
+        downloadUrl=""
+        onDownloadUrlChange={() => undefined}
+        parseVideoQualities={[]}
+        parseAudioQualities={[]}
+        downloadOptions={{ ...DEFAULT_DOWNLOAD_OPTIONS, requireCover: true }}
+        onDownloadOptionsChange={() => undefined}
+        onCancelTask={() => undefined}
+        onOpenDownloadsFolder={() => undefined}
+      />,
+    );
+
+    expect(
+      screen.getByText('视频 + 音频 + 封面（封面内嵌，同时另存）'),
+    ).toBeInTheDocument();
+  });
+
   it('shows the final selected media tracks on download cards', () => {
     render(
       <DownloadPage
