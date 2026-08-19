@@ -77,7 +77,13 @@ function audioQualityLabel(quality: number): string {
 }
 
 function saveAction(codec: string): string {
-  return codec === 'copy' ? '直接封装' : `转码 ${codec.toUpperCase()}`;
+  return codec === 'copy'
+    ? '原流直封装 · 不重新编码'
+    : `FFmpeg 转码 ${codec.toUpperCase()}`;
+}
+
+function audioSaveAction(task: RuntimeTaskRecord, codec: string): string {
+  return task.needsWavConvert ? '下载后 FFmpeg 转码 WAV' : saveAction(codec);
 }
 
 function renderSelectedMedia(task: RuntimeTaskRecord) {
@@ -109,7 +115,7 @@ function renderSelectedMedia(task: RuntimeTaskRecord) {
             <b>{media.audio.codec.toUpperCase()}</b>
           </span>
           <span className="models-page__media-action">
-            {saveAction(media.audio.saveCodec)}
+            {audioSaveAction(task, media.audio.saveCodec)}
           </span>
         </section>
       ) : null}

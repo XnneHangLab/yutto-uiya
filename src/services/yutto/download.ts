@@ -172,6 +172,7 @@ export async function startDownload(
     progressTotal: 3,
     updatedAt: snapshot.created_at,
     saveDir: args.dir,
+    ...(needsWav ? { needsWavConvert: true } : {}),
   };
 }
 

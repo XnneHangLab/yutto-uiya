@@ -88,6 +88,7 @@ describe('runtime helpers', () => {
         progressCurrent: 0,
         progressTotal: 3,
         updatedAt: '1712300000',
+        needsWavConvert: true,
       },
     ];
 
@@ -114,6 +115,7 @@ describe('runtime helpers', () => {
         progressTotal: 3,
         updatedAt: '1712300001',
         saveDir: '',
+        needsWavConvert: true,
       },
     ]);
   });

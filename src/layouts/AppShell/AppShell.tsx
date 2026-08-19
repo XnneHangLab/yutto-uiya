@@ -571,6 +571,7 @@ export function AppShell() {
           ...next[index],
           label: record.label,
           saveDir: record.saveDir,
+          ...(record.needsWavConvert ? { needsWavConvert: true } : {}),
         };
         return next;
       });

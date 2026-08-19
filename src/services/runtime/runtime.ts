@@ -106,6 +106,8 @@ export interface RuntimeTaskRecord {
   speed?: string;
   stageDesc?: string;
   selectedMedia?: SelectedMedia;
+  /** uiya downloads m4a first, then performs its retained WAV conversion step. */
+  needsWavConvert?: boolean;
 }
 
 export interface RuntimeEvent {
@@ -237,6 +239,7 @@ export function applyRuntimeEvent(
     ...(previous?.selectedMedia
       ? { selectedMedia: previous.selectedMedia }
       : {}),
+    ...(previous?.needsWavConvert ? { needsWavConvert: true } : {}),
   };
 
   if (index === -1) {

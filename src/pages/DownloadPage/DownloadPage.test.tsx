@@ -360,6 +360,27 @@ describe('DownloadPage', () => {
             },
           },
           {
+            taskId: 'wav',
+            target: 'https://example.com/wav',
+            label: 'WAV 音频',
+            status: 'verifying',
+            message: '下载完成，正在转码为 wav …',
+            progressCurrent: 2,
+            progressTotal: 3,
+            updatedAt: '1712300004',
+            saveDir: '',
+            needsWavConvert: true,
+            selectedMedia: {
+              item: 'WAV 音频',
+              video: null,
+              audio: {
+                codec: 'mp4a',
+                quality: 30280,
+                saveCodec: 'copy',
+              },
+            },
+          },
+          {
             taskId: 'no-media',
             target: 'https://example.com/resources',
             label: '仅附件',
@@ -403,14 +424,23 @@ describe('DownloadPage', () => {
     );
 
     const resources = screen.getAllByLabelText('实际下载资源');
-    expect(resources).toHaveLength(4);
+    expect(resources).toHaveLength(5);
     expect(screen.getAllByLabelText('实际视频资源')).toHaveLength(2);
-    expect(screen.getAllByLabelText('实际音频资源')).toHaveLength(2);
-    expect(resources[0]).toHaveTextContent('视频4KAV13840×2160直接封装');
-    expect(resources[0]).toHaveTextContent('音频320 kbpsMP4A转码 AAC');
-    expect(resources[1]).toHaveTextContent('视频1080PHEVC1920×1080直接封装');
-    expect(resources[2]).toHaveTextContent('音频Hi-ResFLAC直接封装');
-    expect(resources[3]).toHaveTextContent('未选择音视频流');
+    expect(screen.getAllByLabelText('实际音频资源')).toHaveLength(3);
+    expect(resources[0]).toHaveTextContent(
+      '视频4KAV13840×2160原流直封装 · 不重新编码',
+    );
+    expect(resources[0]).toHaveTextContent('音频320 kbpsMP4AFFmpeg 转码 AAC');
+    expect(resources[1]).toHaveTextContent(
+      '视频1080PHEVC1920×1080原流直封装 · 不重新编码',
+    );
+    expect(resources[2]).toHaveTextContent(
+      '音频Hi-ResFLAC原流直封装 · 不重新编码',
+    );
+    expect(resources[3]).toHaveTextContent(
+      '音频320 kbpsMP4A下载后 FFmpeg 转码 WAV',
+    );
+    expect(resources[4]).toHaveTextContent('未选择音视频流');
     expect(
       screen
         .getByText('尚未选择')
