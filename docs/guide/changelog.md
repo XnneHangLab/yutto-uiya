@@ -2,6 +2,15 @@
 
 各版本的下载地址见 [GitHub Releases](https://github.com/XnneHangLab/yutto-uiya/releases)。
 
+## v2.3.1（2026-08-19）
+
+**实际资源与番剧详情**
+
+- 新增视频编码偏好：可主动选择 AV1；自动模式继续采用内核的兼容优先与回退策略（[#96](https://github.com/XnneHangLab/yutto-uiya/issues/96)）；
+- 下载卡片与控制台显示最终选择的画质、编码、分辨率和转码动作（[#97](https://github.com/XnneHangLab/yutto-uiya/issues/97)）；
+- 番剧详情补全发布方、剧情简介、标签、发布时间和分集时长（[#98](https://github.com/XnneHangLab/yutto-uiya/issues/98)）；
+- 内核升级至 uiya-yutto 0.3.2，支持结构化的最终媒体选择事件。
+
 ## v2.3.0（2026-08-12）
 
 **解析与网络体验修复**

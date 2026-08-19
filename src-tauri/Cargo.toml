@@ -1,6 +1,6 @@
 [package]
 name = "yutto-uiya"
-version = "2.3.0"
+version = "2.3.1"
 description = "yutto-uiya desktop launcher"
 authors = ["MrXnneHang"]
 license = "AGPL-3.0-only"
