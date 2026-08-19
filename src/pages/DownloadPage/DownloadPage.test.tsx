@@ -287,6 +287,138 @@ describe('DownloadPage', () => {
     });
   });
 
+  it('shows the final selected media tracks on download cards', () => {
+    render(
+      <DownloadPage
+        tasks={[
+          {
+            taskId: 'both',
+            target: 'https://example.com/both',
+            label: '双轨资源',
+            status: 'downloading',
+            message: '开始下载',
+            progressCurrent: 1,
+            progressTotal: 3,
+            updatedAt: '1712300001',
+            saveDir: '',
+            selectedMedia: {
+              item: '双轨资源',
+              video: {
+                codec: 'av1',
+                quality: 120,
+                width: 3840,
+                height: 2160,
+                saveCodec: 'copy',
+              },
+              audio: {
+                codec: 'mp4a',
+                quality: 30280,
+                saveCodec: 'aac',
+              },
+            },
+          },
+          {
+            taskId: 'video-only',
+            target: 'https://example.com/video',
+            label: '纯视频',
+            status: 'completed',
+            message: '下载完成',
+            progressCurrent: 3,
+            progressTotal: 3,
+            updatedAt: '1712300002',
+            saveDir: '',
+            selectedMedia: {
+              item: '纯视频',
+              video: {
+                codec: 'hevc',
+                quality: 80,
+                width: 1920,
+                height: 1080,
+                saveCodec: 'copy',
+              },
+              audio: null,
+            },
+          },
+          {
+            taskId: 'audio-only',
+            target: 'https://example.com/audio',
+            label: '纯音频',
+            status: 'completed',
+            message: '下载完成',
+            progressCurrent: 3,
+            progressTotal: 3,
+            updatedAt: '1712300003',
+            saveDir: '',
+            selectedMedia: {
+              item: '纯音频',
+              video: null,
+              audio: {
+                codec: 'flac',
+                quality: 30251,
+                saveCodec: 'copy',
+              },
+            },
+          },
+          {
+            taskId: 'no-media',
+            target: 'https://example.com/resources',
+            label: '仅附件',
+            status: 'completed',
+            message: '下载完成',
+            progressCurrent: 3,
+            progressTotal: 3,
+            updatedAt: '1712300004',
+            saveDir: '',
+            selectedMedia: { item: '仅附件', video: null, audio: null },
+          },
+          {
+            taskId: 'queued',
+            target: 'https://example.com/queued',
+            label: '尚未选择',
+            status: 'queued',
+            message: '已进入下载队列',
+            progressCurrent: 0,
+            progressTotal: 3,
+            updatedAt: '1712300005',
+            saveDir: '',
+          },
+        ]}
+        onDownload={() => undefined}
+        onParse={vi.fn()}
+        scriptsReady
+        parseItems={[]}
+        parseGroups={[]}
+        parseSelected={new Set()}
+        onParseSelectedChange={() => undefined}
+        onClearParseItems={() => undefined}
+        downloadUrl=""
+        onDownloadUrlChange={() => undefined}
+        parseVideoQualities={[]}
+        parseAudioQualities={[]}
+        downloadOptions={DEFAULT_DOWNLOAD_OPTIONS}
+        onDownloadOptionsChange={() => undefined}
+        onCancelTask={() => undefined}
+        onOpenDownloadsFolder={() => undefined}
+      />,
+    );
+
+    const resources = screen.getAllByLabelText('实际下载资源');
+    expect(resources).toHaveLength(4);
+    expect(screen.getAllByLabelText('实际视频资源')).toHaveLength(2);
+    expect(screen.getAllByLabelText('实际音频资源')).toHaveLength(2);
+    expect(resources[0]).toHaveTextContent('视频4KAV13840×2160直接封装');
+    expect(resources[0]).toHaveTextContent('音频320 kbpsMP4A转码 AAC');
+    expect(resources[1]).toHaveTextContent('视频1080PHEVC1920×1080直接封装');
+    expect(resources[2]).toHaveTextContent('音频Hi-ResFLAC直接封装');
+    expect(resources[3]).toHaveTextContent('未选择音视频流');
+    expect(
+      screen
+        .getByText('尚未选择')
+        .closest('.models-page__task')
+        ?.querySelector('.models-page__media'),
+    ).toBeNull();
+  });
+
   it('animates only the running task; queued tasks wait without a bar', () => {
     render(
       <DownloadPage

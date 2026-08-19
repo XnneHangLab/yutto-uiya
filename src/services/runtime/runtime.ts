@@ -68,6 +68,26 @@ export interface RuntimeInspection {
   appRoot: string;
 }
 
+export interface SelectedVideoStream {
+  codec: 'avc' | 'hevc' | 'av1';
+  quality: number;
+  width: number;
+  height: number;
+  saveCodec: string;
+}
+
+export interface SelectedAudioStream {
+  codec: 'mp4a' | 'flac' | 'eac3';
+  quality: number;
+  saveCodec: string;
+}
+
+export interface SelectedMedia {
+  item: string;
+  video: SelectedVideoStream | null;
+  audio: SelectedAudioStream | null;
+}
+
 export interface RuntimeTaskRecord {
   taskId: string;
   target: string;
@@ -85,6 +105,7 @@ export interface RuntimeTaskRecord {
   totalSize?: string;
   speed?: string;
   stageDesc?: string;
+  selectedMedia?: SelectedMedia;
 }
 
 export interface RuntimeEvent {
@@ -103,6 +124,7 @@ export interface RuntimeEvent {
   downloaded?: string;
   total?: string;
   speed?: string;
+  selectedMedia?: SelectedMedia;
   parseItem?: VideoParseItem;
   authQrDataUrl?: string;
 }
@@ -212,6 +234,9 @@ export function applyRuntimeEvent(
     progressTotal: event.progressTotal,
     updatedAt: event.timestamp,
     saveDir: previous?.saveDir ?? '',
+    ...(previous?.selectedMedia
+      ? { selectedMedia: previous.selectedMedia }
+      : {}),
   };
 
   if (index === -1) {
@@ -220,6 +245,22 @@ export function applyRuntimeEvent(
     next[index] = task;
   }
 
+  return next;
+}
+
+export function applyDownloadMediaSelectedEvent(
+  current: RuntimeTaskRecord[],
+  event: RuntimeEvent,
+): RuntimeTaskRecord[] {
+  if (event.event !== 'download.media_selected' || !event.selectedMedia) {
+    return current;
+  }
+  const index = current.findIndex((item) => item.taskId === event.taskId);
+  if (index === -1) {
+    return current;
+  }
+  const next = [...current];
+  next[index] = { ...current[index], selectedMedia: event.selectedMedia };
   return next;
 }
 

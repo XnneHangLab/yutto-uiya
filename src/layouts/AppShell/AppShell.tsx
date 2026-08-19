@@ -40,6 +40,7 @@ import {
   type EventPacer,
 } from '../../services/runtime/pacer';
 import {
+  applyDownloadMediaSelectedEvent,
   applyDownloadProgressEvent,
   applyDownloadStageEvent,
   applyParseRuntimeEvent,
@@ -455,6 +456,8 @@ export function AppShell() {
         return createConsoleLog('system', `[下载] 开始：${event.target}`);
       case 'download.converting':
         return createConsoleLog('system', `[下载] ${event.message}`);
+      case 'download.media_selected':
+        return createConsoleLog('system', `[下载] ${event.message}`);
       case 'download.completed':
         return createConsoleLog('system', `[下载] 完成：${event.target}`);
       case 'download.failed':
@@ -483,6 +486,8 @@ export function AppShell() {
     // 队列行沿用三段式状态，字节级 file_progress 只更新进度条字段。
     if (taskCardEvents.has(event.event)) {
       setTasks((current) => applyRuntimeEvent(current, event));
+    } else if (event.event === 'download.media_selected') {
+      setTasks((current) => applyDownloadMediaSelectedEvent(current, event));
     } else if (event.event === 'download.file_progress') {
       setTasks((current) => applyDownloadProgressEvent(current, event));
     } else if (event.event === 'download.stage') {

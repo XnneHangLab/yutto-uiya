@@ -1,6 +1,7 @@
 import { listen } from '@tauri-apps/api/event';
 import { subscribeRuntimeEvents } from './bridge';
 import {
+  applyDownloadMediaSelectedEvent,
   applyDownloadProgressEvent,
   applyDownloadStageEvent,
   applyParseRuntimeEvent,
@@ -131,6 +132,48 @@ describe('runtime helpers', () => {
         saveDir: '',
       },
     ];
+    const selected = applyDownloadMediaSelectedEvent(current, {
+      event: 'download.media_selected',
+      taskId: 'task-1',
+      target: 'https://www.bilibili.com/video/BV1xx411c7mD',
+      status: 'downloading',
+      message: '实际选择：视频 4K · AV1 · 3840×2160',
+      progressCurrent: 0,
+      progressTotal: 0,
+      progressUnit: '',
+      timestamp: '1712300001',
+      selectedMedia: {
+        item: 'EP01',
+        video: {
+          codec: 'av1',
+          quality: 120,
+          width: 3840,
+          height: 2160,
+          saveCodec: 'copy',
+        },
+        audio: null,
+      },
+    });
+    expect(selected[0].selectedMedia?.video?.codec).toBe('av1');
+    expect(
+      applyDownloadMediaSelectedEvent([], {
+        event: 'download.media_selected',
+        taskId: 'unknown',
+        target: '',
+        status: 'downloading',
+        message: '',
+        progressCurrent: 0,
+        progressTotal: 0,
+        progressUnit: '',
+        timestamp: '',
+        selectedMedia: {
+          item: 'EP01',
+          video: null,
+          audio: null,
+        },
+      }),
+    ).toEqual([]);
+
     const progressEvent = {
       event: 'download.file_progress',
       taskId: 'task-1',

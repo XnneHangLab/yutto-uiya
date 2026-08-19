@@ -7,11 +7,19 @@
  * Wire event vocabulary (yutto src/yutto/core/task_service.py):
  *   state{from,to,error?} · batch_started{total} · request_queued{url,index,total}
  *   stage{name,item?} · progress{phase,current,total,speed_per_second,unit}
- *   item_skipped{item,reason} · artifact_created{path,item}
+ *   media_selected{item,video,audio} · item_skipped{item,reason}
+ *   artifact_created{path,item}
  *   item_listed{avid,cid,url,name,title,cover_url,planned_path,display_group}
  */
 
-import type { RuntimeEvent, VideoParseItem } from '../runtime/runtime';
+import type {
+  RuntimeEvent,
+  SelectedAudioStream,
+  SelectedMedia,
+  SelectedVideoStream,
+  VideoParseItem,
+} from '../runtime/runtime';
+import { AUDIO_QUALITY_OPTIONS, VIDEO_QUALITY_OPTIONS } from './quality';
 import type { TaskEventPayload, TaskSnapshot } from './rpc';
 
 export type YuttoTaskKind = 'resolve' | 'download';
@@ -65,6 +73,8 @@ export function createTaskEventTranslator(
         return [genericEvent(context, event, describeData(event.data))];
       case 'progress':
         return translateProgress(context, event);
+      case 'media_selected':
+        return translateMediaSelected(context, event);
       case 'stage': {
         const stageEvent = genericEvent(
           context,
@@ -250,6 +260,103 @@ function translateItemListed(
       parseItem: item,
     },
   ];
+}
+
+function translateMediaSelected(
+  context: TaskEventAdapterContext,
+  event: TaskEventPayload,
+): RuntimeEvent[] {
+  const selectedMedia = parseSelectedMedia(event.data);
+  if (!selectedMedia) {
+    return [genericEvent(context, event, describeData(event.data))];
+  }
+  return [
+    {
+      ...baseEvent(
+        context,
+        event,
+        `${eventPrefix(context)}.media_selected`,
+        'downloading',
+        describeSelectedMedia(selectedMedia),
+      ),
+      selectedMedia,
+    },
+  ];
+}
+
+function parseSelectedMedia(
+  data: Record<string, unknown>,
+): SelectedMedia | null {
+  const item = typeof data.item === 'string' ? data.item : '';
+  const video = parseSelectedVideo(data.video);
+  const audio = parseSelectedAudio(data.audio);
+  if (
+    !item ||
+    (data.video !== null && !video) ||
+    (data.audio !== null && !audio)
+  ) {
+    return null;
+  }
+  return { item, video, audio };
+}
+
+function parseSelectedVideo(value: unknown): SelectedVideoStream | null {
+  if (value === null) return null;
+  if (typeof value !== 'object') return null;
+  const stream = value as Record<string, unknown>;
+  if (
+    stream.codec !== 'avc' &&
+    stream.codec !== 'hevc' &&
+    stream.codec !== 'av1'
+  ) {
+    return null;
+  }
+  return {
+    codec: stream.codec,
+    quality: toFiniteNumber(stream.quality),
+    width: toFiniteNumber(stream.width),
+    height: toFiniteNumber(stream.height),
+    saveCodec: String(stream.save_codec ?? ''),
+  };
+}
+
+function parseSelectedAudio(value: unknown): SelectedAudioStream | null {
+  if (value === null) return null;
+  if (typeof value !== 'object') return null;
+  const stream = value as Record<string, unknown>;
+  if (
+    stream.codec !== 'mp4a' &&
+    stream.codec !== 'flac' &&
+    stream.codec !== 'eac3'
+  ) {
+    return null;
+  }
+  return {
+    codec: stream.codec,
+    quality: toFiniteNumber(stream.quality),
+    saveCodec: String(stream.save_codec ?? ''),
+  };
+}
+
+function describeSelectedMedia(media: SelectedMedia): string {
+  const parts: string[] = [];
+  if (media.video) {
+    const quality =
+      VIDEO_QUALITY_OPTIONS.find(
+        (option) => option.code === media.video?.quality,
+      )?.label ?? `QN ${media.video.quality}`;
+    parts.push(
+      `视频 ${quality} · ${media.video.codec.toUpperCase()} · ${media.video.width}×${media.video.height}`,
+    );
+  }
+  if (media.audio) {
+    const quality =
+      AUDIO_QUALITY_OPTIONS.find(
+        (option) => option.code === media.audio?.quality,
+      )?.label ?? `QN ${media.audio.quality}`;
+    parts.push(`音频 ${quality} · ${media.audio.codec.toUpperCase()}`);
+  }
+  return `实际选择：${parts.join('；') || '无音视频流'}`;
 }
 
 function translateProgress(
