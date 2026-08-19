@@ -241,6 +241,52 @@ describe('DownloadPage', () => {
     expect(screen.getByText('用相机拍古诗词')).toBeInTheDocument();
   });
 
+  it('offers AV1 as an explicit non-default codec choice', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+
+    render(
+      <DownloadPage
+        tasks={[]}
+        onDownload={() => undefined}
+        onParse={vi.fn()}
+        scriptsReady
+        parseItems={[
+          {
+            index: 1,
+            title: '测试视频',
+            url: 'https://example.com/1',
+            dir: '',
+          },
+        ]}
+        parseGroups={[]}
+        parseSelected={new Set([1])}
+        onParseSelectedChange={() => undefined}
+        onClearParseItems={() => undefined}
+        downloadUrl=""
+        onDownloadUrlChange={() => undefined}
+        parseVideoQualities={[]}
+        parseAudioQualities={[]}
+        downloadOptions={DEFAULT_DOWNLOAD_OPTIONS}
+        onDownloadOptionsChange={onChange}
+        onCancelTask={() => undefined}
+        onOpenDownloadsFolder={() => undefined}
+      />,
+    );
+
+    const codec = screen.getByRole('combobox', { name: '视频编码' });
+    expect(codec).toHaveValue('auto');
+    expect(
+      screen.getByText('优先下载所选编码，不可用时自动回退'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'AV1' })).toBeInTheDocument();
+    await user.selectOptions(codec, 'av1');
+    expect(onChange).toHaveBeenCalledWith({
+      ...DEFAULT_DOWNLOAD_OPTIONS,
+      videoCodec: 'av1',
+    });
+  });
+
   it('animates only the running task; queued tasks wait without a bar', () => {
     render(
       <DownloadPage

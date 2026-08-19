@@ -37,6 +37,30 @@ describe('buildDownloadRequest audio-only formats', () => {
     expect(wav.stream).not.toHaveProperty('audio_save_codec');
   });
 
+  it('prefers AV1 without disabling the backend codec fallback', () => {
+    const request = buildDownloadRequest({
+      target: TARGET,
+      dir: '',
+      options: { ...DEFAULT_DOWNLOAD_OPTIONS, videoCodec: 'av1' },
+    });
+    expect(request.stream).toMatchObject({
+      video_download_codec: 'av1',
+      video_save_codec: 'copy',
+    });
+    expect(request.stream).not.toHaveProperty('video_download_codec_priority');
+  });
+
+  it('does not override video codecs in automatic mode', () => {
+    const request = buildDownloadRequest({
+      target: TARGET,
+      dir: '',
+      options: DEFAULT_DOWNLOAD_OPTIONS,
+    });
+    expect(request.stream).not.toHaveProperty('video_download_codec');
+    expect(request.stream).not.toHaveProperty('video_download_codec_priority');
+    expect(request.stream).not.toHaveProperty('video_save_codec');
+  });
+
   it('never overrides the codec for video downloads', () => {
     const request = buildDownloadRequest({
       target: TARGET,
