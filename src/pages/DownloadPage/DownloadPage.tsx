@@ -59,10 +59,26 @@ function formatDuration(seconds: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
+function formatPublicationDate(timestamp: number): string {
+  const date = new Date(timestamp * 1000);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function formatView(n: number): string {
   if (n >= 100_000_000) return `${(n / 100_000_000).toFixed(1)}亿`;
   if (n >= 10_000) return `${(n / 10_000).toFixed(1)}万`;
   return String(n);
+}
+
+function detailStats(item: VideoParseItem): string[] {
+  const stats: string[] = [];
+  if (item.view) stats.push(`${formatView(item.view)} 次播放`);
+  if (item.duration) stats.push(formatDuration(item.duration));
+  if (item.pubdate) stats.push(`发布于 ${formatPublicationDate(item.pubdate)}`);
+  return stats;
 }
 
 function qualityLabel(options: QualityOption[], quality: number): string {
@@ -359,6 +375,7 @@ export function DownloadPage({
 
   function renderDetailPanel(item: VideoParseItem) {
     const coverState = covers.get(item.index);
+    const stats = detailStats(item);
     const coverNode =
       typeof coverState === 'string' &&
       coverState !== 'loading' &&
@@ -378,12 +395,8 @@ export function DownloadPage({
           {item.uploader ? (
             <p className="parse-detail__uploader">{item.uploader}</p>
           ) : null}
-          {item.view || item.duration ? (
-            <p className="parse-detail__stats">
-              {item.view ? `${formatView(item.view)} 次播放` : ''}
-              {item.view && item.duration ? ' · ' : ''}
-              {item.duration ? formatDuration(item.duration) : ''}
-            </p>
+          {stats.length > 0 ? (
+            <p className="parse-detail__stats">{stats.join(' · ')}</p>
           ) : null}
           {item.description ? (
             <p className="parse-detail__desc">{item.description}</p>

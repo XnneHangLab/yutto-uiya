@@ -178,6 +178,11 @@ describe('resolveParseTarget', () => {
             cover_url: 'https://i0.hdslb.com/1.jpg',
             planned_path: '/dl/root/某合集/EP01.mp4',
             display_group: '某合集',
+            uploader: '哔哩哔哩番剧',
+            description: '寿命逾千年的魔法使芙莉莲，踏上了了解人类的旅途。',
+            tags: ['漫画改', '奇幻', '治愈', '冒险'],
+            pubdate: 1698148800,
+            duration: 1559,
           },
           {
             avid: 'av1',
@@ -201,6 +206,13 @@ describe('resolveParseTarget', () => {
       dir: '某合集',
     });
     expect(result.groups?.[0].items.map((item) => item.index)).toEqual([1, 2]);
+    expect(result.groups?.[0].items[0]).toMatchObject({
+      uploader: '哔哩哔哩番剧',
+      description: '寿命逾千年的魔法使芙莉莲，踏上了了解人类的旅途。',
+      tags: ['漫画改', '奇幻', '治愈', '冒险'],
+      pubdate: 1698148800,
+      duration: 1559,
+    });
     expect(result.dir).toBe('某合集');
     expect(result.videoQualities).toEqual(VIDEO_QUALITY_OPTIONS);
     expect(result.audioQualities).toEqual(AUDIO_QUALITY_OPTIONS);

@@ -202,7 +202,7 @@ describe('DownloadPage', () => {
     expect(screen.getByRole('button', { name: '下载所选 (2)' })).toBeEnabled();
   });
 
-  it('shows embedded metadata in detail panel without async fetch', async () => {
+  it('shows PGC episode metadata in the existing detail panel', () => {
     render(
       <DownloadPage
         tasks={[]}
@@ -212,13 +212,15 @@ describe('DownloadPage', () => {
         parseItems={[
           {
             index: 1,
-            title: '不是AI，我用相机实拍了40首古诗词里的中国',
-            url: 'https://www.bilibili.com/video/BV1xx411c7mD?p=1',
+            title: '第1话 冒险的结束',
+            url: 'https://www.bilibili.com/bangumi/play/ep779775',
             dir: '',
-            uploader: '影视飓风',
-            description: '用相机拍古诗词',
-            duration: 754,
-            view: 1200000,
+            uploader: '哔哩哔哩番剧',
+            description: '寿命逾千年的魔法使芙莉莲，踏上了了解人类的旅途。',
+            pubdate: 1698148800,
+            duration: 1559,
+            cover: 'https://i0.hdslb.com/cover.png',
+            tags: ['漫画改', '奇幻', '治愈', '冒险'],
           },
         ]}
         parseGroups={[]}
@@ -236,9 +238,18 @@ describe('DownloadPage', () => {
       />,
     );
 
-    // Detail auto-expands for the last parsed item — no click needed.
-    expect(screen.getByText('影视飓风')).toBeInTheDocument();
-    expect(screen.getByText('用相机拍古诗词')).toBeInTheDocument();
+    expect(screen.getAllByText('第1话 冒险的结束')[0]).toBeInTheDocument();
+    expect(screen.getByText('哔哩哔哩番剧')).toBeInTheDocument();
+    expect(
+      screen.getByText('寿命逾千年的魔法使芙莉莲，踏上了了解人类的旅途。'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('25:59 · 发布于 2023-10-24')).toBeInTheDocument();
+    for (const tag of ['漫画改', '奇幻', '治愈', '冒险']) {
+      expect(screen.getByText(tag)).toBeInTheDocument();
+    }
+    expect(
+      screen.getByRole('button', { name: '查看封面' }),
+    ).toBeInTheDocument();
   });
 
   it('offers AV1 as an explicit non-default codec choice', async () => {
