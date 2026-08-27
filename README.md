@@ -45,7 +45,7 @@
 - 📊 **下载队列** — 实时进度、实际画质/编码/转码动作、取消任务与完成后直接打开目录
 - 🔑 **Bilibili 账号登录** — 扫码登录，支持大会员内容
 - 📋 **控制台日志** — 实时输出、自动滚动、一键导出
-- 🔍 **环境配置** — 正式版内置 Python 与 FFmpeg；开发构建支持 uv / 自定义 Python
+- 🔍 **环境配置** — portable 默认使用内置 Python 与 FFmpeg，也可切换 uv / 自定义 Python
 - 🌐 **代理设置** — 一键关闭系统代理
 
 ## 📖 使用指南
@@ -67,7 +67,7 @@ GitHub Releases 提供 Windows x86_64 与 macOS Apple Silicon portable 包，均
 | 🖥️ 桌面壳层 | Tauri 2 |
 | 🎨 前端 | React 18 + TypeScript + Vite |
 | ⚙️ 后端命令 | Rust |
-| 🐍 运行时 | 正式版内置 Python ≥ 3.11；开发环境通过 `uv` 管理 |
+| 🐍 运行时 | portable 内置 Python ≥ 3.11，支持切换至 `uv` 或自定义 Python |
 | 📥 下载核心 | [yutto](https://github.com/yutto-dev/yutto) |
 
 ## 🚀 开发

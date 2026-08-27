@@ -204,13 +204,12 @@ describe('SettingsPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows bundled Python and hides development runtime controls in release mode', () => {
+  it('shows a portable env as direct Python without changing runtime controls', () => {
     render(
       <SettingsPage
         workspaceRoot="/app"
         workspaceLocked={false}
         environmentProbe={null}
-        bundledRuntime
         onChooseWorkspaceRoot={() => undefined}
         onUseRepoWorkspaceRoot={() => undefined}
         runtimeDriver="conda"
@@ -234,20 +233,14 @@ describe('SettingsPage', () => {
       />,
     );
 
-    expect(screen.getByText('Python 运行环境')).toBeInTheDocument();
-    expect(screen.getByText('/app/env/bin/python')).toBeInTheDocument();
-    expect(screen.queryByText('Python 运行方式')).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'uv' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'conda' }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText('Python 运行方式')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'uv' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'conda' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Python 可执行文件路径')).toHaveValue(
+      '/app/env/bin/python',
+    );
     expect(
       screen.queryByRole('button', { name: 'uv sync' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByLabelText('Python 可执行文件路径'),
     ).not.toBeInTheDocument();
   });
 

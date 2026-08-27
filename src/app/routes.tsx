@@ -73,7 +73,6 @@ interface RenderPageOptions {
   jobsActive: boolean;
   workspaceRoot: string;
   environmentProbe: EnvironmentProbe | null;
-  bundledRuntime: boolean;
   onChooseWorkspaceRoot: () => void;
   onUseRepoWorkspaceRoot: () => void;
   pythonExePath: string;
@@ -143,7 +142,6 @@ function renderLazyPage(
           workspaceLocked={options.workspaceLocked}
           jobsActive={options.jobsActive}
           environmentProbe={options.environmentProbe}
-          bundledRuntime={options.bundledRuntime}
           onChooseWorkspaceRoot={options.onChooseWorkspaceRoot}
           onUseRepoWorkspaceRoot={options.onUseRepoWorkspaceRoot}
           runtimeDriver={options.runtimeDriver}

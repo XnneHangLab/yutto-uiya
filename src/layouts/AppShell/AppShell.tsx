@@ -990,6 +990,8 @@ export function AppShell() {
             listManagedFolders(),
           ]);
           setInspection(nextInspection);
+          setRuntimeDriver(nextInspection.runtimeDriver);
+          setPythonExePath(nextInspection.pythonPath ?? '');
           setFolders(buildFolderItemsFromPaths(paths));
         }
       }
@@ -1114,7 +1116,6 @@ export function AppShell() {
               jobsActive,
               workspaceRoot: environmentProbe?.workspaceRoot ?? '',
               environmentProbe,
-              bundledRuntime: !import.meta.env.DEV,
               onChooseWorkspaceRoot: handleChooseWorkspaceRoot,
               onUseRepoWorkspaceRoot: handleUseRepoWorkspaceRoot,
               pythonExePath,
