@@ -6,7 +6,7 @@
 
 ## 📥 下载安装
 
-前往 [GitHub Releases](https://github.com/XnneHangLab/yutto-uiya/releases) 下载对应平台的最新版 portable 一键包。目前提供 Windows x86_64 与 macOS Apple Silicon 版本；Linux 暂不支持。
+前往 [GitHub Releases](https://github.com/XnneHangLab/yutto-uiya/releases) 下载对应平台的最新版 portable 一键包。目前提供 Windows x86_64 与 macOS Apple Silicon 版本。Debian portable 版本计划在树莓派 4B 测试环境恢复后适配并发布。
 
 - Windows：解压后双击 `yutto-uiya.exe`
 - macOS：解压后打开 `yutto-uiya.app`

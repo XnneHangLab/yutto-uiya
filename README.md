@@ -58,7 +58,7 @@
 
 ## 📦 发行支持
 
-GitHub Releases 提供 Windows x86_64 与 macOS Apple Silicon portable 包，均内置 Python 运行环境、依赖和 FFmpeg，用户无需安装 uv、Conda 或 Python。Linux 当前暂不支持，也不提供 Release 产物。
+GitHub Releases 提供 Windows x86_64 与 macOS Apple Silicon portable 包，均内置 Python 运行环境、依赖和 FFmpeg，用户无需安装 uv、Conda 或 Python。Debian portable 版本计划在树莓派 4B 测试环境恢复后适配并发布。
 
 ## 🛠️ 技术栈
 
