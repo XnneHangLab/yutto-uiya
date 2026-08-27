@@ -21,6 +21,7 @@ interface SettingsPageProps {
   /** 有解析或下载在跑：保存会重启 serve 并把它们切断，提示但不拦截。 */
   jobsActive?: boolean;
   environmentProbe: EnvironmentProbe | null;
+  bundledRuntime?: boolean;
   onChooseWorkspaceRoot: () => void;
   onUseRepoWorkspaceRoot: () => void;
   runtimeDriver: RuntimeDriver;
@@ -63,6 +64,7 @@ export function SettingsPage({
   workspaceLocked,
   jobsActive = false,
   environmentProbe,
+  bundledRuntime = false,
   onChooseWorkspaceRoot,
   onUseRepoWorkspaceRoot,
   runtimeDriver,
@@ -342,7 +344,7 @@ export function SettingsPage({
                   </div>
                 </div>
               ) : null}
-              {localDriver === 'uv' ? (
+              {!bundledRuntime && localDriver === 'uv' ? (
                 <div className="env-info-row">
                   <span className="env-info-label">依赖同步</span>
                   <div className="workspace-actions">
@@ -459,30 +461,42 @@ export function SettingsPage({
                 </div>
               </SettingRow>
 
-              <SettingRow
-                name="Python 运行方式"
-                description="uv 为推荐方式；conda 可指定自有环境"
-                icon="🐍"
-              >
-                <div className="driver-select-wrap">
-                  <button
-                    type="button"
-                    className={`driver-option ${localDriver === 'uv' ? 'driver-option--active' : ''}`}
-                    onClick={() => setLocalDriver('uv')}
-                  >
-                    uv
-                  </button>
-                  <button
-                    type="button"
-                    className={`driver-option ${localDriver === 'conda' ? 'driver-option--active' : ''}`}
-                    onClick={() => setLocalDriver('conda')}
-                  >
-                    conda
-                  </button>
-                </div>
-              </SettingRow>
+              {bundledRuntime ? (
+                <SettingRow
+                  name="Python 运行环境"
+                  description="正式版固定使用随应用提供的 Python 环境"
+                  icon="🐍"
+                >
+                  <span className="env-info-value env-info-mono">
+                    {pythonExePath || '内置 Python'}
+                  </span>
+                </SettingRow>
+              ) : (
+                <SettingRow
+                  name="Python 运行方式"
+                  description="uv 为推荐方式；conda 可指定自有环境"
+                  icon="🐍"
+                >
+                  <div className="driver-select-wrap">
+                    <button
+                      type="button"
+                      className={`driver-option ${localDriver === 'uv' ? 'driver-option--active' : ''}`}
+                      onClick={() => setLocalDriver('uv')}
+                    >
+                      uv
+                    </button>
+                    <button
+                      type="button"
+                      className={`driver-option ${localDriver === 'conda' ? 'driver-option--active' : ''}`}
+                      onClick={() => setLocalDriver('conda')}
+                    >
+                      conda
+                    </button>
+                  </div>
+                </SettingRow>
+              )}
 
-              {localDriver === 'conda' ? (
+              {!bundledRuntime && localDriver === 'conda' ? (
                 <SettingRow
                   name="Python 可执行文件"
                   description="指定 conda 环境中的 python 或 python.exe 路径"

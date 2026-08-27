@@ -1114,6 +1114,7 @@ export function AppShell() {
               jobsActive,
               workspaceRoot: environmentProbe?.workspaceRoot ?? '',
               environmentProbe,
+              bundledRuntime: !import.meta.env.DEV,
               onChooseWorkspaceRoot: handleChooseWorkspaceRoot,
               onUseRepoWorkspaceRoot: handleUseRepoWorkspaceRoot,
               pythonExePath,

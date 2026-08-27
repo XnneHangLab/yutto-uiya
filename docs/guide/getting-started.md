@@ -6,9 +6,12 @@
 
 ## 📥 下载安装
 
-前往 [GitHub Releases](https://github.com/XnneHangLab/yutto-uiya/releases) 下载最新版一键包。
+前往 [GitHub Releases](https://github.com/XnneHangLab/yutto-uiya/releases) 下载对应平台的最新版 portable 一键包。目前提供 Windows x86_64 与 macOS Apple Silicon 版本；Linux 暂不支持。
 
-解压后双击 `yutto-uiya.exe` 即可运行~
+- Windows：解压后双击 `yutto-uiya.exe`
+- macOS：解压后打开 `yutto-uiya.app`
+
+一键包已经内置 Python 运行环境、依赖和 FFmpeg，无需另行安装 uv、Conda、Python 或 FFmpeg。
 
 ::: warning 注意路径
 请勿将程序解压到 `C:\Program Files` 等需要管理员权限的目录，否则可能出现 [拒绝访问](/troubleshooting/folder-cannot-access) 错误。

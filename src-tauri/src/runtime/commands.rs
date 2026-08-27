@@ -18,6 +18,51 @@ use super::state::{
     RuntimeState, DEFAULT_DOWNLOAD_DIR, DEFAULT_HOTKEY,
 };
 
+fn resolve_startup_driver(
+    portable_python: &std::path::Path,
+    saved_driver: Option<RuntimeDriverConfig>,
+    release_build: bool,
+) -> Result<(RuntimeDriverConfig, Option<std::path::PathBuf>), String> {
+    let bundled_python = portable_python
+        .is_file()
+        .then(|| portable_python.to_path_buf());
+
+    if release_build {
+        let python_path = bundled_python.ok_or_else(|| {
+            format!(
+                "release bundle is missing its Python runtime: {}",
+                portable_python.display()
+            )
+        })?;
+        return Ok((
+            RuntimeDriverConfig::DirectPython {
+                python_path: python_path.clone(),
+            },
+            Some(python_path),
+        ));
+    }
+
+    Ok((
+        saved_driver.unwrap_or(RuntimeDriverConfig::Uv),
+        bundled_python,
+    ))
+}
+
+fn resolve_requested_driver(
+    requested_driver: RuntimeDriverConfig,
+    portable_python: Option<std::path::PathBuf>,
+    release_build: bool,
+) -> Result<RuntimeDriverConfig, String> {
+    if !release_build {
+        return Ok(requested_driver);
+    }
+
+    let python_path = portable_python
+        .filter(|path| path.is_file())
+        .ok_or_else(|| "release bundle is missing its bundled Python runtime".to_string())?;
+    Ok(RuntimeDriverConfig::DirectPython { python_path })
+}
+
 fn runtime_driver_api_value(driver: &RuntimeDriverConfig) -> &'static str {
     match driver {
         RuntimeDriverConfig::Uv => "uv",
@@ -444,30 +489,17 @@ pub fn build_runtime_state() -> Result<RuntimeState, String> {
     let workspace_root = resolve_workspace_root(&repo_root)?;
     let portable_python = resolve_portable_python_path(&repo_root);
     let portable_ffmpeg = resolve_portable_ffmpeg_path(&repo_root);
+    let saved_driver = read_saved_driver_config(&workspace_root);
+    let (driver, bundled_python) =
+        resolve_startup_driver(&portable_python, saved_driver, !cfg!(debug_assertions))?;
 
     let state = RuntimeState::new(repo_root, workspace_root.clone());
-    let has_portable_python = portable_python.is_file();
-    if has_portable_python {
-        state.set_portable_python_path(Some(portable_python.clone()));
-        if !cfg!(debug_assertions) {
-            state.set_driver_config(RuntimeDriverConfig::DirectPython {
-                python_path: portable_python,
-            });
-        }
-    }
+    state.set_driver_config(driver);
+    state.set_portable_python_path(bundled_python);
     // Auto-use bundled ffmpeg when it sits next to the executable.
     // Only applies in release mode so dev builds still fall through to PATH.
     if !cfg!(debug_assertions) && portable_ffmpeg.is_file() {
         state.set_ffmpeg_path(portable_ffmpeg.to_string_lossy().into_owned());
-    }
-    if let Some(saved) = read_saved_driver_config(&workspace_root) {
-        // In a portable release build the bundled ./env/python is the only
-        // reliable runtime; a saved "uv" preference must not override it
-        // because uv is not bundled and may not be installed.
-        let portable_release = has_portable_python && !cfg!(debug_assertions);
-        if !(portable_release && matches!(saved, RuntimeDriverConfig::Uv)) {
-            state.set_driver_config(saved);
-        }
     }
     let saved_hotkey =
         read_saved_hotkey(&workspace_root).unwrap_or_else(|| DEFAULT_HOTKEY.to_string());
@@ -490,17 +522,25 @@ pub async fn set_runtime_driver(
     download_dir: Option<String>,
     fetch_workers: Option<u32>,
 ) -> Result<serde_json::Value, String> {
-    let driver_config = match driver.as_str() {
-        "uv" => RuntimeDriverConfig::Uv,
-        "conda" => {
-            let path = python_path
-                .filter(|p| !p.is_empty())
-                .ok_or_else(|| "conda mode requires a python_path".to_string())?;
-            RuntimeDriverConfig::DirectPython {
-                python_path: std::path::PathBuf::from(path),
+    let driver_config = if cfg!(debug_assertions) {
+        match driver.as_str() {
+            "uv" => RuntimeDriverConfig::Uv,
+            "conda" => {
+                let path = python_path
+                    .filter(|p| !p.is_empty())
+                    .ok_or_else(|| "conda mode requires a python_path".to_string())?;
+                RuntimeDriverConfig::DirectPython {
+                    python_path: std::path::PathBuf::from(path),
+                }
             }
+            other => return Err(format!("unsupported runtime driver: {other}")),
         }
-        other => return Err(format!("unsupported runtime driver: {other}")),
+    } else {
+        resolve_requested_driver(
+            RuntimeDriverConfig::Uv,
+            state.current_portable_python_path(),
+            true,
+        )?
     };
 
     let next_ffmpeg = match ffmpeg_path {
@@ -674,7 +714,9 @@ async fn switch_workspace_root(
 
 #[cfg(test)]
 mod tests {
-    use super::{RuntimeDriverConfig, RuntimeState};
+    use super::{
+        resolve_requested_driver, resolve_startup_driver, RuntimeDriverConfig, RuntimeState,
+    };
     use std::path::PathBuf;
 
     #[test]
@@ -770,6 +812,104 @@ mod tests {
         assert_eq!(result["status"], "uv-unavailable");
         assert_eq!(state.current_driver_config(), RuntimeDriverConfig::Uv);
         assert_eq!(state.current_ffmpeg_path(), "ffmpeg");
+    }
+
+    #[test]
+    fn debug_startup_restores_saved_driver() {
+        let saved = RuntimeDriverConfig::DirectPython {
+            python_path: PathBuf::from("/workspace/python"),
+        };
+        let (driver, bundled_python) = resolve_startup_driver(
+            PathBuf::from("/missing/env/python").as_path(),
+            Some(saved.clone()),
+            false,
+        )
+        .unwrap();
+
+        assert_eq!(driver, saved);
+        assert_eq!(bundled_python, None);
+    }
+
+    #[test]
+    fn release_startup_ignores_saved_uv_and_external_python() {
+        let temp = std::env::temp_dir().join(format!(
+            "uiya-bundled-python-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&temp).unwrap();
+        let bundled = temp.join("python");
+        std::fs::write(&bundled, b"").unwrap();
+
+        for saved in [
+            RuntimeDriverConfig::Uv,
+            RuntimeDriverConfig::DirectPython {
+                python_path: PathBuf::from("/external/python"),
+            },
+        ] {
+            let (driver, bundled_python) =
+                resolve_startup_driver(&bundled, Some(saved), true).unwrap();
+            assert_eq!(
+                driver,
+                RuntimeDriverConfig::DirectPython {
+                    python_path: bundled.clone(),
+                }
+            );
+            assert_eq!(bundled_python, Some(bundled.clone()));
+        }
+
+        std::fs::remove_dir_all(&temp).ok();
+    }
+
+    #[test]
+    fn release_startup_fails_without_bundled_python() {
+        let missing = PathBuf::from("/missing/env/python");
+        let error =
+            resolve_startup_driver(&missing, Some(RuntimeDriverConfig::Uv), true).unwrap_err();
+
+        assert!(error.contains("release bundle is missing its Python runtime"));
+        assert!(error.contains(&missing.display().to_string()));
+    }
+
+    #[test]
+    fn release_settings_keep_bundled_python() {
+        let temp = std::env::temp_dir().join(format!(
+            "uiya-settings-bundled-python-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&temp).unwrap();
+        let bundled = temp.join("python");
+        std::fs::write(&bundled, b"").unwrap();
+
+        for requested in [
+            RuntimeDriverConfig::Uv,
+            RuntimeDriverConfig::DirectPython {
+                python_path: PathBuf::from("/external/python"),
+            },
+        ] {
+            let resolved =
+                resolve_requested_driver(requested, Some(bundled.clone()), true).unwrap();
+            assert_eq!(
+                resolved,
+                RuntimeDriverConfig::DirectPython {
+                    python_path: bundled.clone(),
+                }
+            );
+        }
+
+        std::fs::remove_dir_all(&temp).ok();
+    }
+
+    #[test]
+    fn debug_settings_keep_requested_driver() {
+        let requested = RuntimeDriverConfig::Uv;
+        let resolved = resolve_requested_driver(requested.clone(), None, false).unwrap();
+        assert_eq!(resolved, requested);
     }
 
     #[test]

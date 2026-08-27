@@ -204,6 +204,53 @@ describe('SettingsPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows bundled Python and hides development runtime controls in release mode', () => {
+    render(
+      <SettingsPage
+        workspaceRoot="/app"
+        workspaceLocked={false}
+        environmentProbe={null}
+        bundledRuntime
+        onChooseWorkspaceRoot={() => undefined}
+        onUseRepoWorkspaceRoot={() => undefined}
+        runtimeDriver="conda"
+        pythonExePath="/app/env/bin/python"
+        onChoosePythonExe={vi.fn().mockResolvedValue(null)}
+        ffmpegMode="local"
+        ffmpegExePath="/app/ffmpeg"
+        onChooseFfmpegExe={vi.fn().mockResolvedValue(null)}
+        noProxy={false}
+        fetchWorkers={8}
+        authBusy={false}
+        authDialogOpen={false}
+        authDialogStatus=""
+        authDialogQrDataUrl=""
+        onStartAuthLogin={() => undefined}
+        onLogoutAuth={() => undefined}
+        onCloseAuthDialog={() => undefined}
+        onSave={vi.fn()}
+        hotkey="Ctrl+Shift+Space"
+        onSetHotkey={async () => {}}
+      />,
+    );
+
+    expect(screen.getByText('Python 运行环境')).toBeInTheDocument();
+    expect(screen.getByText('/app/env/bin/python')).toBeInTheDocument();
+    expect(screen.queryByText('Python 运行方式')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'uv' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'conda' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'uv sync' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('Python 可执行文件路径'),
+    ).not.toBeInTheDocument();
+  });
+
   it('warns next to save while jobs are active, without blocking the button', () => {
     const baseProps = {
       workspaceRoot: '/repo',
