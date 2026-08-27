@@ -2,16 +2,15 @@
 
 ## 🔍 环境配置
 
-设置页面可以查看和配置运行环境：
+设置页面可以查看和配置运行环境。portable 包默认使用随应用提供的 Python 环境，也可以切换到 uv 或指定其他 Python：
 
 | 项目 | 说明 |
 |---|---|
-| 🐍 Python | 需要 Python ≥ 3.11，通过 `uv` 管理 |
-| 🎞️ FFmpeg | 用于合并音视频流，可自定义路径 |
-| 📦 uv | Python 包管理器 |
+| 🐍 Python | portable 包内置 Python ≥ 3.11 与所需依赖 |
+| 🎞️ FFmpeg | portable 包内置 FFmpeg，也可指定其他路径 |
 | 🛰️ yutto server | 解析与下载的常驻后台，随应用自动启动 / 退出，可一键重启 |
 
-如果环境检测不通过，可以手动指定可执行文件路径。
+应用旁存在 `env` 时，首次启动会自动选择其中的 Python（Windows 为 `env/python.exe`，macOS 为 `env/bin/python`）。它和手动指定的 conda Python 使用相同的直接 Python 运行方式。切换到 uv 或其他 Python 并保存后，下次启动会继续使用保存的选择；开发构建与 portable 的配置语义一致。
 
 ## 🛰️ yutto server
 
@@ -25,7 +24,7 @@
 ## 💾 保存并重新检测
 
 点击「保存并重新检测」除了写入配置，还会**自动重启 yutto server**，让下载目录、
-FFmpeg 路径、Python 运行方式的修改立即生效。
+FFmpeg、代理和 Python 运行方式等设置立即生效。
 
 ::: warning 会中断进行中的任务
 正在解析或下载时保存设置，这些任务会被切断（设置页会显示琥珀色提示，但不会拦截）。

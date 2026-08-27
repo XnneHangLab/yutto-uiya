@@ -461,7 +461,7 @@ export function SettingsPage({
 
               <SettingRow
                 name="Python 运行方式"
-                description="uv 为推荐方式；conda 可指定自有环境"
+                description="uv 使用开发环境；conda 可使用内置 env 或其他 Python"
                 icon="🐍"
               >
                 <div className="driver-select-wrap">

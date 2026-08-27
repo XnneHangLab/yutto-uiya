@@ -17,104 +17,6 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # ─────────────────────────── Linux x86_64 (UV) ───────────────────────────
-  build-linux:
-    name: Build · Linux x86_64 (UV)
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libgtk-3-dev \
-            libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
-            librsvg2-dev \
-            patchelf
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: npm
-
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri -> target
-
-      - run: npm install
-      - run: npm run tauri build -- --bundles appimage
-
-      - name: Package
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="${{ inputs.version }}"
-          else
-            VERSION="${GITHUB_REF_NAME#v}"
-          fi
-          DIST="yutto-uiya-${VERSION}-linux-x86_64-uv"
-          mkdir "$DIST"
-          cp src-tauri/target/release/bundle/appimage/yutto-uiya_*.AppImage "$DIST/yutto-uiya.AppImage"
-          chmod +x "$DIST/yutto-uiya.AppImage"
-          # Copy Python source, strip bytecode cache
-          cp -r python "$DIST/"
-          find "$DIST/python" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
-          cp pyproject.toml uv.lock "$DIST/"
-          tar czf "${DIST}.tar.gz" "$DIST"
-          rm -rf "$DIST"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: linux-uv
-          path: "*.tar.gz"
-
-  # ─────────────────────────── macOS Apple Silicon (UV) ───────────────────────────
-  build-macos-arm:
-    name: Build · macOS Apple Silicon (UV)
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: npm
-
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri -> target
-
-      - run: npm install
-
-      - name: Build
-        env:
-          APPLE_SIGNING_IDENTITY: '-'
-        run: npm run tauri build -- --bundles app
-
-      - name: Package
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="${{ inputs.version }}"
-          else
-            VERSION="${GITHUB_REF_NAME#v}"
-          fi
-          DIST="yutto-uiya-${VERSION}-macos-aarch64-uv"
-          mkdir "$DIST"
-          cp -r "src-tauri/target/release/bundle/macos/yutto-uiya.app" "$DIST/"
-          cp -r python "$DIST/"
-          find "$DIST/python" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
-          cp pyproject.toml uv.lock "$DIST/"
-          zip -r "${DIST}.zip" "$DIST"
-          rm -rf "$DIST"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: macos-arm-uv
-          path: "*.zip"
-
   # ─────────────────────────── macOS Apple Silicon (Portable) ───────────────────────────
   build-macos-portable:
     name: Build · macOS Apple Silicon (Portable)
@@ -167,66 +69,27 @@ jobs:
           else
             VERSION="${GITHUB_REF_NAME#v}"
           fi
-          CONTENTS="src-tauri/target/release/bundle/macos/yutto-uiya.app/Contents/MacOS"
+          APP="src-tauri/target/release/bundle/macos/yutto-uiya.app"
+          CONTENTS="$APP/Contents/MacOS"
           # Bundle Python env, source, and ffmpeg inside the .app
-          cp -r env "$CONTENTS/env"
-          cp -r python "$CONTENTS/python"
+          cp -R env "$CONTENTS/env"
+          cp -R python "$CONTENTS/python"
           find "$CONTENTS/python" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
           cp ffmpeg "$CONTENTS/ffmpeg"
-          # Zip the whole .app
+          # Adding bundled files invalidates the build-time signature.
+          codesign --force --deep --sign - "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          # ditto preserves macOS bundle metadata and symbolic links.
           DIST="yutto-uiya-${VERSION}-macos-aarch64-portable"
           mkdir "$DIST"
-          cp -r "src-tauri/target/release/bundle/macos/yutto-uiya.app" "$DIST/"
-          zip -r "${DIST}.zip" "$DIST"
+          cp -R "$APP" "$DIST/"
+          ditto -c -k --sequesterRsrc --keepParent "$DIST" "${DIST}.zip"
           rm -rf "$DIST"
 
       - uses: actions/upload-artifact@v4
         with:
           name: macos-portable
           path: "yutto-uiya-*.zip"
-
-  # ─────────────────────────── Windows x86_64 (UV) ───────────────────────────
-  build-windows-uv:
-    name: Build · Windows x86_64 (UV)
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: npm
-
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri -> target
-
-      - run: npm install
-      - run: npm run tauri build -- --no-bundle
-
-      - name: Package
-        shell: pwsh
-        run: |
-          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
-            $version = "${{ inputs.version }}"
-          } else {
-            $version = $env:GITHUB_REF_NAME -replace '^v', ''
-          }
-          $dist = "yutto-uiya-${version}-windows-x86_64-uv"
-          New-Item -ItemType Directory $dist
-          Copy-Item "src-tauri\target\release\yutto-uiya.exe" "$dist\"
-          Copy-Item -Recurse "python" "$dist\"
-          Get-ChildItem -Recurse "$dist\python" -Filter '__pycache__' -Directory |
-            Remove-Item -Recurse -Force
-          Copy-Item "pyproject.toml", "uv.lock" "$dist\"
-          Compress-Archive -Path $dist -DestinationPath "${dist}.zip"
-          Remove-Item -Recurse -Force $dist
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: windows-uv
-          path: "*.zip"
 
   # ─────────────────────────── Windows x86_64 (Portable) ───────────────────────────
   build-windows-portable:
@@ -317,10 +180,7 @@ jobs:
     name: Publish GitHub Release
     if: startsWith(github.ref, 'refs/tags/')
     needs:
-      - build-linux
-      - build-macos-arm
       - build-macos-portable
-      - build-windows-uv
       - build-windows-portable
     runs-on: ubuntu-latest
     permissions:
@@ -335,8 +195,5 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-') }}
           generate_release_notes: true
           files: |
-            linux-uv/*.tar.gz
-            macos-arm-uv/*.zip
             macos-portable/*.zip
-            windows-uv/*.zip
             windows-portable/*.zip

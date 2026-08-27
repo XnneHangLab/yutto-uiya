@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/平台-Windows%20%7C%20macOS%20%7C%20Linux-blue" />
+  <img src="https://img.shields.io/badge/平台-Windows%20%7C%20macOS-blue" />
   <img src="https://img.shields.io/badge/驱动-yutto-orange" />
   <img src="https://img.shields.io/badge/技术栈-Tauri%20%7C%20React%20%7C%20Python-6f42c1" />
   <img src="https://img.shields.io/badge/状态-WIP-ff69b4" />
@@ -45,7 +45,7 @@
 - 📊 **下载队列** — 实时进度、实际画质/编码/转码动作、取消任务与完成后直接打开目录
 - 🔑 **Bilibili 账号登录** — 扫码登录，支持大会员内容
 - 📋 **控制台日志** — 实时输出、自动滚动、一键导出
-- 🔍 **环境配置** — 检测 Python / FFmpeg / uv 环境状态，支持自定义路径
+- 🔍 **环境配置** — portable 默认使用内置 Python 与 FFmpeg，也可切换 uv / 自定义 Python
 - 🌐 **代理设置** — 一键关闭系统代理
 
 ## 📖 使用指南
@@ -56,6 +56,10 @@
 | 📖 文档站 | [yutto.xnnehang.top](https://yutto.xnnehang.top) |
 | 🔧 常见问题 | [FAQ](https://yutto.xnnehang.top/troubleshooting/ffmpeg-not-found) |
 
+## 📦 发行支持
+
+GitHub Releases 提供 Windows x86_64 与 macOS Apple Silicon portable 包，均内置 Python 运行环境、依赖和 FFmpeg，用户无需安装 uv、Conda 或 Python。macOS 包目前尚未经过实际设备测试，可能存在兼容性问题。Debian portable 版本计划在树莓派 4B 测试环境恢复后适配并发布。
+
 ## 🛠️ 技术栈
 
 | 层 | 技术 |
@@ -63,7 +67,7 @@
 | 🖥️ 桌面壳层 | Tauri 2 |
 | 🎨 前端 | React 18 + TypeScript + Vite |
 | ⚙️ 后端命令 | Rust |
-| 🐍 运行时 | Python ≥ 3.11，通过 `uv` 管理 |
+| 🐍 运行时 | portable 内置 Python ≥ 3.11，支持切换至 `uv` 或自定义 Python |
 | 📥 下载核心 | [yutto](https://github.com/yutto-dev/yutto) |
 
 ## 🚀 开发

@@ -990,6 +990,8 @@ export function AppShell() {
             listManagedFolders(),
           ]);
           setInspection(nextInspection);
+          setRuntimeDriver(nextInspection.runtimeDriver);
+          setPythonExePath(nextInspection.pythonPath ?? '');
           setFolders(buildFolderItemsFromPaths(paths));
         }
       }

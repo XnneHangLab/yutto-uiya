@@ -37,7 +37,7 @@ describe('App', () => {
 
     await user.click(screen.getByRole('button', { name: '设置' }));
 
-    expect(screen.getByLabelText('工作目录路径')).toBeInTheDocument();
+    expect(await screen.findByLabelText('工作目录路径')).toBeInTheDocument();
     const launcherRoot = document.querySelector('.launcher-root');
     const rootStyles = getComputedStyle(launcherRoot as Element);
 

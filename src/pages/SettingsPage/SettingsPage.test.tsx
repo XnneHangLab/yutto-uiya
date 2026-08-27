@@ -204,6 +204,46 @@ describe('SettingsPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows a portable env as direct Python without changing runtime controls', () => {
+    render(
+      <SettingsPage
+        workspaceRoot="/app"
+        workspaceLocked={false}
+        environmentProbe={null}
+        onChooseWorkspaceRoot={() => undefined}
+        onUseRepoWorkspaceRoot={() => undefined}
+        runtimeDriver="conda"
+        pythonExePath="/app/env/bin/python"
+        onChoosePythonExe={vi.fn().mockResolvedValue(null)}
+        ffmpegMode="local"
+        ffmpegExePath="/app/ffmpeg"
+        onChooseFfmpegExe={vi.fn().mockResolvedValue(null)}
+        noProxy={false}
+        fetchWorkers={8}
+        authBusy={false}
+        authDialogOpen={false}
+        authDialogStatus=""
+        authDialogQrDataUrl=""
+        onStartAuthLogin={() => undefined}
+        onLogoutAuth={() => undefined}
+        onCloseAuthDialog={() => undefined}
+        onSave={vi.fn()}
+        hotkey="Ctrl+Shift+Space"
+        onSetHotkey={async () => {}}
+      />,
+    );
+
+    expect(screen.getByText('Python 运行方式')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'uv' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'conda' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Python 可执行文件路径')).toHaveValue(
+      '/app/env/bin/python',
+    );
+    expect(
+      screen.queryByRole('button', { name: 'uv sync' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('warns next to save while jobs are active, without blocking the button', () => {
     const baseProps = {
       workspaceRoot: '/repo',
