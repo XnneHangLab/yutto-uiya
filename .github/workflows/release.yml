@@ -77,8 +77,14 @@ jobs:
           cp -R python "$CONTENTS/python"
           find "$CONTENTS/python" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
           cp ffmpeg "$CONTENTS/ffmpeg"
-          # Adding bundled files invalidates the build-time signature.
-          codesign --force --deep --sign - "$APP"
+          # Sign Mach-O files explicitly: --deep mistakes Python's dotted
+          # include/library directories for nested bundles.
+          while IFS= read -r -d '' binary; do
+            if file -b "$binary" | grep -q 'Mach-O'; then
+              codesign --force --sign - "$binary"
+            fi
+          done < <(find "$CONTENTS" -type f -print0)
+          codesign --force --sign - "$APP"
           codesign --verify --deep --strict --verbose=2 "$APP"
           # ditto preserves macOS bundle metadata and symbolic links.
           DIST="yutto-uiya-${VERSION}-macos-aarch64-portable"
