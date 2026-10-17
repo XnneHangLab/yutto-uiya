@@ -72,20 +72,25 @@ jobs:
           fi
           APP="src-tauri/target/release/bundle/macos/yutto-uiya.app"
           CONTENTS="$APP/Contents/MacOS"
-          # Bundle Python env, source, and ffmpeg inside the .app
-          cp -R env "$CONTENTS/env"
-          cp -R python "$CONTENTS/python"
-          find "$CONTENTS/python" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
+          RESOURCES="$APP/Contents/Resources"
+          # Keep support files in Resources; preserve the runtime's sibling paths.
+          cp -R env "$RESOURCES/env"
+          cp -R python "$RESOURCES/python"
+          find "$RESOURCES/python" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
+          ln -s ../Resources/env "$CONTENTS/env"
+          ln -s ../Resources/python "$CONTENTS/python"
           cp ffmpeg "$CONTENTS/ffmpeg"
-          # Sign Mach-O files explicitly: --deep mistakes Python's dotted
-          # include/library directories for nested bundles.
+          # Sign bundled Mach-O files before signing the outer app.
           while IFS= read -r -d '' binary; do
             if file -b "$binary" | grep -q 'Mach-O'; then
               codesign --force --sign - "$binary"
             fi
-          done < <(find "$CONTENTS" -type f -print0)
+          done < <(find "$RESOURCES/env" -type f -print0)
+          codesign --force --sign - "$CONTENTS/ffmpeg"
           codesign --force --sign - "$APP"
           codesign --verify --deep --strict --verbose=2 "$APP"
+          "$CONTENTS/env/bin/python" -c 'import yutto; import ssl'
+          test -f "$CONTENTS/python/uiya/cli.py"
           # ditto preserves macOS bundle metadata and symbolic links.
           DIST="yutto-uiya-${VERSION}-macos-aarch64-portable"
           mkdir "$DIST"
