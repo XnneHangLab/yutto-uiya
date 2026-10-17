@@ -293,7 +293,9 @@ describe('DownloadPage', () => {
     expect(
       screen.getByText('优先下载所选编码，不可用时自动回退'),
     ).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'AV1' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', { name: 'AV1（体积优先）' }),
+    ).toBeInTheDocument();
     await user.selectOptions(codec, 'av1');
     expect(onChange).toHaveBeenCalledWith({
       ...DEFAULT_DOWNLOAD_OPTIONS,

@@ -716,7 +716,7 @@ export function DownloadPage({
                   }
                 >
                   <option value="avc">H.264（兼容优先）</option>
-                  <option value="av1">AV1</option>
+                  <option value="av1">AV1（体积优先）</option>
                 </select>
               </div>
             ) : null}
