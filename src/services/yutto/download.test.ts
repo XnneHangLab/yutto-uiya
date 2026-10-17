@@ -113,7 +113,12 @@ describe('startDownload', () => {
           cover: false,
           save_cover: false,
         },
-        stream: { video_quality: 127, audio_quality: 30280 },
+        stream: {
+          video_quality: 127,
+          audio_quality: 30280,
+          video_download_codec: 'avc',
+          video_save_codec: 'copy',
+        },
         output: { directory: '某合集' },
         network: { proxy: 'no' },
       },

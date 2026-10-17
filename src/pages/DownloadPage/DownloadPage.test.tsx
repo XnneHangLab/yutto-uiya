@@ -286,7 +286,10 @@ describe('DownloadPage', () => {
     );
 
     const codec = screen.getByRole('combobox', { name: '视频编码' });
-    expect(codec).toHaveValue('auto');
+    expect(codec).toHaveValue('avc');
+    expect(
+      screen.getByRole('option', { name: 'H.264（兼容优先）' }),
+    ).toBeInTheDocument();
     expect(
       screen.getByText('优先下载所选编码，不可用时自动回退'),
     ).toBeInTheDocument();
@@ -295,6 +298,11 @@ describe('DownloadPage', () => {
     expect(onChange).toHaveBeenCalledWith({
       ...DEFAULT_DOWNLOAD_OPTIONS,
       videoCodec: 'av1',
+    });
+    await user.selectOptions(codec, 'avc');
+    expect(onChange).toHaveBeenLastCalledWith({
+      ...DEFAULT_DOWNLOAD_OPTIONS,
+      videoCodec: 'avc',
     });
   });
 
