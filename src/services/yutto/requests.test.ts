@@ -50,15 +50,17 @@ describe('buildDownloadRequest audio-only formats', () => {
     expect(request.stream).not.toHaveProperty('video_download_codec_priority');
   });
 
-  it('does not override video codecs in automatic mode', () => {
+  it('explicitly prefers H.264 by default while keeping codec fallback', () => {
     const request = buildDownloadRequest({
       target: TARGET,
       dir: '',
       options: DEFAULT_DOWNLOAD_OPTIONS,
     });
-    expect(request.stream).not.toHaveProperty('video_download_codec');
+    expect(request.stream).toMatchObject({
+      video_download_codec: 'avc',
+      video_save_codec: 'copy',
+    });
     expect(request.stream).not.toHaveProperty('video_download_codec_priority');
-    expect(request.stream).not.toHaveProperty('video_save_codec');
   });
 
   it('never overrides the codec for video downloads', () => {

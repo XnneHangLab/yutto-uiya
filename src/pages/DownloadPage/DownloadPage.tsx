@@ -710,11 +710,12 @@ export function DownloadPage({
                   onChange={(e) =>
                     onDownloadOptionsChange({
                       ...downloadOptions,
-                      videoCodec: e.target.value as 'auto' | 'av1',
+                      videoCodec: e.target
+                        .value as DownloadOptions['videoCodec'],
                     })
                   }
                 >
-                  <option value="auto">自动（兼容优先）</option>
+                  <option value="avc">H.264（兼容优先）</option>
                   <option value="av1">AV1</option>
                 </select>
               </div>
