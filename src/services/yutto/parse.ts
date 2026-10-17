@@ -139,6 +139,15 @@ function buildParseResult(
   outputDirectory?: string,
 ): VideoParseResult {
   const wireItems = extractResolvedItems(result);
+  const pagesByAvid = new Map<unknown, Set<unknown>>();
+  for (const item of wireItems) {
+    const page = item.cid || item.url;
+    if (item.avid && page) {
+      const pages = pagesByAvid.get(item.avid) ?? new Set<unknown>();
+      pages.add(page);
+      pagesByAvid.set(item.avid, pages);
+    }
+  }
   const rootItems: VideoParseItem[] = [];
   const groupOrder: string[] = [];
   const groupedItems = new Map<
@@ -153,7 +162,12 @@ function buildParseResult(
         ? wireItem.display_group
         : null;
     if (groupTitle === null) {
-      rootItems.push(item);
+      // Ordinary multi-P videos have no display_group in yutto's result.
+      rootItems.push(
+        (pagesByAvid.get(wireItem.avid)?.size ?? 0) > 1
+          ? { ...item, title: String(wireItem.name ?? item.title) }
+          : item,
+      );
       return;
     }
     const bucket = groupedItems.get(groupTitle);
@@ -167,15 +181,10 @@ function buildParseResult(
 
   const groups: VideoParseGroup[] = groupOrder.map((title) => {
     const entries = groupedItems.get(title) ?? [];
-    // 多P episodes of one video share an avid and display their page names;
-    // a group of DISTINCT videos (收藏夹/合集) shows each video's own title —
-    // the page name of a single-P upload is often a raw filename (lv_0_xxx).
-    const distinctAvids = new Set(
-      entries.map((entry) => String(entry.wire.avid ?? '')),
-    );
-    const episodeGroup = entries.length > 1 && distinctAvids.size === 1;
+    // Same-titled multi-P videos can share a display group. Decide per video,
+    // not per group, so their individual page names survive the merge.
     const items = entries.map(({ item, wire }) => {
-      if (episodeGroup) {
+      if ((pagesByAvid.get(wire.avid)?.size ?? 0) > 1) {
         return item;
       }
       const videoTitle = typeof wire.title === 'string' ? wire.title : '';

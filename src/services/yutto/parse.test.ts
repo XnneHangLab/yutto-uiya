@@ -227,6 +227,84 @@ describe('resolveParseTarget', () => {
     });
   });
 
+  it('preserves page names for ungrouped multi-P videos', async () => {
+    const { socket, parsePromise } = await startParse();
+    await answerResolveStart(socket);
+    await answerSubscribe(socket, [stateEvent(1, 'completed')]);
+    const names = ['01_课程简介', '02_前序知识', '04_电场_电势_电势能'];
+    await answerTaskGet(socket, {
+      task_id: 'task-1',
+      state: 'completed',
+      result: {
+        items: [
+          ...names.map((name, index) => ({
+            avid: 'BV1ho9vYFE7b',
+            cid: String(index + 1),
+            url: `https://www.bilibili.com/video/BV1ho9vYFE7b?p=${index + 1}`,
+            name,
+            title: '电子元器件+模拟电路硬件零基础入门',
+            display_group: null,
+          })),
+          {
+            avid: 'BV1other',
+            url: 'https://www.bilibili.com/video/BV1other?p=1',
+            name: 'lv_0_20260223215442',
+            title: '单 P 视频标题',
+            display_group: null,
+          },
+        ],
+      },
+    });
+
+    const result = await parsePromise;
+    expect(result.items.map((item) => item.title)).toEqual([
+      ...names,
+      '单 P 视频标题',
+    ]);
+    expect(result.groups).toEqual([]);
+  });
+
+  it.each([
+    null,
+    '同名视频',
+  ])('preserves page names in mixed lists with display_group=%s', async (displayGroup) => {
+    const { socket, parsePromise } = await startParse();
+    await answerResolveStart(socket);
+    await answerSubscribe(socket, [stateEvent(1, 'completed')]);
+    const items = ['BV1aa', 'BV1bb'].flatMap((avid) =>
+      [1, 2].map((page) => ({
+        avid,
+        cid: `${avid}-${page}`,
+        url: `https://www.bilibili.com/video/${avid}?p=${page}`,
+        name: `${avid} 第${page}课`,
+        title: '同名视频',
+        display_group: displayGroup,
+      })),
+    );
+    // The same single-P video may appear in multiple favourites folders.
+    const single = {
+      avid: 'BV1single',
+      cid: 'single-page',
+      url: 'https://www.bilibili.com/video/BV1single?p=1',
+      name: 'lv_0_raw_filename',
+      title: '单 P 视频标题',
+      display_group: displayGroup,
+    };
+    await answerTaskGet(socket, {
+      task_id: 'task-1',
+      state: 'completed',
+      result: { items: [...items, single, single] },
+    });
+
+    const result = await parsePromise;
+    const parsed = displayGroup ? result.groups?.[0].items : result.items;
+    expect(parsed?.map((item) => item.title)).toEqual([
+      ...items.map((item) => item.name),
+      single.title,
+      single.title,
+    ]);
+  });
+
   it('uses video titles for groups of distinct videos (收藏夹)', async () => {
     const { socket, parsePromise } = await startParse();
     await answerResolveStart(socket);
