@@ -2,6 +2,14 @@
 
 各版本的下载地址见 [GitHub Releases](https://github.com/XnneHangLab/yutto-uiya/releases)。
 
+## v2.3.2（2026-10-17）
+
+**多 P 标题与编码偏好修复**
+
+- 修复普通多 P、混合列表及同名分组中的分 P 标题显示（[#103](https://github.com/XnneHangLab/yutto-uiya/pull/103)）；
+- 视频编码明确提供 H.264（兼容优先）和 AV1（体积优先），不可用时自动回退（[#104](https://github.com/XnneHangLab/yutto-uiya/pull/104)、[#105](https://github.com/XnneHangLab/yutto-uiya/pull/105)）；
+- Windows 与 macOS 便携包内置 Python 环境、下载引擎和 FFmpeg（[#100](https://github.com/XnneHangLab/yutto-uiya/pull/100)）。
+
 ## v2.3.1（2026-08-19）
 
 **实际资源与番剧详情**

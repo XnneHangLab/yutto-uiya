@@ -7,17 +7,28 @@ export interface VersionEntry {
 }
 
 export const CURRENT_VERSION = {
-  version: 'v2.3.1',
-  date: '2026-08-19',
+  version: 'v2.3.2',
+  date: '2026-10-17',
   channel: '稳定版',
-  summary: '支持 AV1 偏好与实际资源展示，补全番剧 PGC 分集详情',
+  summary: '修复多 P 标题显示，明确编码偏好，提供完整便携包',
 };
 
 export const VERSION_TIMELINE: VersionEntry[] = [
   {
+    date: '2026-10-17',
+    version: 'v2.3.2',
+    badge: '当前',
+    title: '多 P 标题与编码偏好修复',
+    highlights: [
+      '修复普通多 P、混合列表及同名分组中的分 P 标题显示（#103）',
+      '视频编码明确提供 H.264（兼容优先）和 AV1（体积优先），不可用时自动回退（#104、#105）',
+      'Windows 与 macOS 便携包内置 Python 环境、下载引擎和 FFmpeg（#100）',
+    ],
+  },
+  {
     date: '2026-08-19',
     version: 'v2.3.1',
-    badge: '当前',
+    badge: '',
     title: '实际资源与番剧详情',
     highlights: [
       '新增视频编码偏好：可主动选择 AV1；自动模式继续采用内核的兼容优先与回退策略（#96）',
