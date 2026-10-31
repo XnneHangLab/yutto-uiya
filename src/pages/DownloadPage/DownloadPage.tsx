@@ -144,7 +144,12 @@ function renderSelectedMedia(task: RuntimeTaskRecord) {
 
 interface DownloadPageProps {
   tasks: RuntimeTaskRecord[];
-  onDownload: (url: string, label?: string, itemDir?: string) => void;
+  onDownload: (
+    url: string,
+    label?: string,
+    itemDir?: string,
+    usePageName?: boolean,
+  ) => void;
   onParse: (url: string) => Promise<VideoParseItem[]>;
   scriptsReady: boolean;
   parseItems: VideoParseItem[];
@@ -310,7 +315,12 @@ export function DownloadPage({
   function handleDownloadSelected() {
     for (const item of allParseItems) {
       if (parseSelected.has(item.index)) {
-        onDownload(item.url, item.title, item.dir || undefined);
+        onDownload(
+          item.url,
+          item.title,
+          item.dir || undefined,
+          item.usePageName,
+        );
       }
     }
   }

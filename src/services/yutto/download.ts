@@ -50,6 +50,7 @@ export interface StartDownloadArgs {
   label: string;
   /** Item directory relative to the downloads root ('' = root itself). */
   dir: string;
+  usePageName?: boolean;
   options: DownloadOptions;
   network?: NetworkPreferences;
   /** Receives translated download.* RuntimeEvents as the task progresses. */

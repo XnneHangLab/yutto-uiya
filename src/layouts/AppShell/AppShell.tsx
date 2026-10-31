@@ -532,6 +532,7 @@ export function AppShell() {
     url: string,
     label?: string,
     itemDir?: string,
+    usePageName?: boolean,
   ) {
     if (!isEnvironmentReady(environmentProbe)) {
       setLogs((current) => [
@@ -552,6 +553,7 @@ export function AppShell() {
         target: url,
         label: label || url,
         dir: itemDir || parseDirOverride || '',
+        usePageName,
         options: downloadOptions,
         network,
         onEvent: processDownloadRuntimeEvent,

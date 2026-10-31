@@ -17,6 +17,22 @@ function audioOnlyRequest(audioFormat: string) {
 }
 
 describe('buildDownloadRequest audio-only formats', () => {
+  it.each([
+    true,
+    false,
+  ])('uses the page-name template only for multi-P items (%s)', (usePageName) => {
+    const request = buildDownloadRequest({
+      target: TARGET,
+      dir: '课程',
+      usePageName,
+      options: DEFAULT_DOWNLOAD_OPTIONS,
+    });
+    expect(request.scope).toEqual({ batch: false });
+    expect(request.output).toEqual({
+      directory: '课程',
+      ...(usePageName ? { subpath_template: '{name}' } : {}),
+    });
+  });
   it('sets audio_only_format without overriding codec (backend auto-infers)', () => {
     const mp3 = audioOnlyRequest('mp3');
     expect(mp3.output).toEqual({ audio_only_format: 'mp3' });
