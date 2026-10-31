@@ -53,6 +53,7 @@ export interface DownloadRequestArgs {
   target: string;
   /** Item directory relative to the downloads root ('' = root itself). */
   dir: string;
+  usePageName?: boolean;
   options: DownloadOptions;
   network?: NetworkPreferences;
 }
@@ -82,6 +83,9 @@ export function buildDownloadRequest(
   };
 
   const output: Record<string, unknown> = {};
+  if (args.usePageName) {
+    output.subpath_template = '{name}';
+  }
   if (args.dir) {
     output.directory = args.dir;
   }

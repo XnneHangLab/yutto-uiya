@@ -303,6 +303,14 @@ describe('resolveParseTarget', () => {
       single.title,
       single.title,
     ]);
+    expect(parsed?.map((item) => item.usePageName ?? false)).toEqual([
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+    ]);
   });
 
   it('uses video titles for groups of distinct videos (收藏夹)', async () => {

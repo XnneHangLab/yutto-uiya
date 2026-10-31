@@ -156,7 +156,15 @@ function buildParseResult(
   >();
 
   wireItems.forEach((wireItem, position) => {
-    const item = wireItemToParseItem(wireItem, position + 1, outputDirectory);
+    const parsedItem = wireItemToParseItem(
+      wireItem,
+      position + 1,
+      outputDirectory,
+    );
+    const multiPage = (pagesByAvid.get(wireItem.avid)?.size ?? 0) > 1;
+    const item: VideoParseItem = multiPage
+      ? { ...parsedItem, usePageName: true }
+      : parsedItem;
     const groupTitle =
       typeof wireItem.display_group === 'string' && wireItem.display_group
         ? wireItem.display_group

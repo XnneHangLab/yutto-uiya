@@ -137,6 +137,8 @@ export interface VideoParseItem {
   url: string;
   /** Per-video output directory relative to downloads root. Empty for single videos. */
   dir: string;
+  /** Use the page name when downloading an individually selected UGC part. */
+  usePageName?: boolean;
   uploader?: string;
   description?: string;
   pubdate?: number;

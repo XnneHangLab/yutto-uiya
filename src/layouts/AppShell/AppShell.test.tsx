@@ -510,12 +510,14 @@ describe('AppShell', () => {
             {
               index: 1,
               title: '合集视频 1',
+              usePageName: true,
               url: 'https://www.bilibili.com/video/BV1xx411c7mD?p=1',
               dir: '',
             },
             {
               index: 2,
               title: '合集视频 2',
+              usePageName: true,
               url: 'https://www.bilibili.com/video/BV1xx411c7mD?p=2',
               dir: '',
             },
@@ -551,6 +553,7 @@ describe('AppShell', () => {
         expect.objectContaining({
           target: 'https://www.bilibili.com/video/BV1xx411c7mD?p=1',
           label: '合集视频 1',
+          usePageName: true,
           dir: '合集目录',
         }),
       ),
@@ -560,6 +563,7 @@ describe('AppShell', () => {
       expect.objectContaining({
         target: 'https://www.bilibili.com/video/BV1xx411c7mD?p=2',
         label: '合集视频 2',
+        usePageName: true,
         dir: '合集目录',
       }),
     );

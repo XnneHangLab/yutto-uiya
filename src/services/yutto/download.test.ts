@@ -89,6 +89,7 @@ describe('startDownload', () => {
       target: TARGET,
       label: 'EP01',
       dir: '某合集',
+      usePageName: true,
       options: DEFAULT_DOWNLOAD_OPTIONS,
       network: { proxy: 'no' },
       onEvent: (event) => {
@@ -119,7 +120,7 @@ describe('startDownload', () => {
           video_download_codec: 'avc',
           video_save_codec: 'copy',
         },
-        output: { directory: '某合集' },
+        output: { directory: '某合集', subpath_template: '{name}' },
         network: { proxy: 'no' },
       },
     });

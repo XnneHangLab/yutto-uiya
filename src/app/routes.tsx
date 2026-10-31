@@ -51,7 +51,12 @@ interface RenderPageOptions {
   wrapLines: boolean;
   latestMessage: string;
   onOpenModels: () => void;
-  onDownload: (url: string, label?: string, itemDir?: string) => void;
+  onDownload: (
+    url: string,
+    label?: string,
+    itemDir?: string,
+    usePageName?: boolean,
+  ) => void;
   onParse: (url: string) => Promise<VideoParseItem[]>;
   parseItems: VideoParseItem[];
   parseGroups: VideoParseGroup[];
