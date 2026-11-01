@@ -2,6 +2,12 @@
 
 各版本的下载地址见 [GitHub Releases](https://github.com/XnneHangLab/yutto-uiya/releases)。
 
+## 待发布
+
+- 内核升级至 uiya-yutto 0.3.4，同步上游更新；
+- 支持直接从合集成员的 BV 播放地址解析所属合集，并展开成员视频内的各个分 P；没有合集信息的多 P 投稿继续按当前 BV 解析；
+- 更新合集解析排查说明，补充内核升级、重启 server 和合集入口排查步骤。
+
 ## v2.3.2（2026-10-17）
 
 **多 P 标题与编码偏好修复**
