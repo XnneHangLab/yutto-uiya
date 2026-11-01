@@ -7,17 +7,28 @@ export interface VersionEntry {
 }
 
 export const CURRENT_VERSION = {
-  version: 'v2.3.2',
-  date: '2026-10-17',
+  version: 'v2.3.3',
+  date: '2026-11-01',
   channel: '稳定版',
-  summary: '修复多 P 标题显示，明确编码偏好，提供完整便携包',
+  summary: '修复多 P 下载覆盖，支持从播放地址解析所属合集',
 };
 
 export const VERSION_TIMELINE: VersionEntry[] = [
   {
+    date: '2026-11-01',
+    version: 'v2.3.3',
+    badge: '当前',
+    title: '多 P 下载覆盖修复与合集解析',
+    highlights: [
+      '多 P 下载按分 P 名称保存，修复列表标题正确但下载仍同名的问题（#109）',
+      '内核升级至 uiya-yutto 0.3.4，可从 BV 播放地址展开所属合集及成员内的分 P（#110）',
+      '2.3.2 安装附件因多 P 覆盖风险撤下，请升级并核对此前下载的文件',
+    ],
+  },
+  {
     date: '2026-10-17',
     version: 'v2.3.2',
-    badge: '当前',
+    badge: '已撤回',
     title: '多 P 标题与编码偏好修复',
     highlights: [
       '修复普通多 P、混合列表及同名分组中的分 P 标题显示（#103）',

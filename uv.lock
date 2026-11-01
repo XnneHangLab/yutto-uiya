@@ -696,7 +696,7 @@ wheels = [
 
 [[package]]
 name = "yutto-uiya"
-version = "2.3.2"
+version = "2.3.3"
 source = { editable = "." }
 dependencies = [
     { name = "httpx", extra = ["http2", "socks"] },
