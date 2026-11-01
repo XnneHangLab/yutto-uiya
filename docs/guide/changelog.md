@@ -2,13 +2,20 @@
 
 各版本的下载地址见 [GitHub Releases](https://github.com/XnneHangLab/yutto-uiya/releases)。
 
-## 待发布
+## v2.3.3（2026-11-01）
 
-- 内核升级至 uiya-yutto 0.3.4，同步上游更新；
+**修复多 P 下载覆盖，支持播放地址展开合集**
+
+- 修复多 P 视频列表显示正确但下载仍使用同一文件名的问题，下载时按分 P 名称保存（[#109](https://github.com/XnneHangLab/yutto-uiya/pull/109)）；
+- 内核升级至 uiya-yutto 0.3.4，同步上游更新（[#110](https://github.com/XnneHangLab/yutto-uiya/pull/110)）；
 - 支持直接从合集成员的 BV 播放地址解析所属合集，并展开成员视频内的各个分 P；没有合集信息的多 P 投稿继续按当前 BV 解析；
 - 更新合集解析排查说明，补充内核升级、重启 server 和合集入口排查步骤。
 
 ## v2.3.2（2026-10-17）
+
+::: danger 多 P 下载覆盖风险
+此版本仅修复了解析列表的标题显示，下载时仍可能因同名覆盖其他分 P。安装附件已撤下，请升级至 2.3.3，并核对此前下载的多 P 文件数量和内容。
+:::
 
 **多 P 标题与编码偏好修复**
 
