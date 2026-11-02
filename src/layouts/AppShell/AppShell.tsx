@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { renderPage } from '../../app/routes';
+import { CollectionChoiceDialog } from '../../components/home/CollectionChoiceDialog';
 import { Sidebar } from '../../components/navigation/Sidebar/Sidebar';
 import { Topbar } from '../../components/window/Topbar/Topbar';
 import { navItems, type PageId } from '../../data/nav';
@@ -13,6 +14,7 @@ import {
   chooseWorkspaceRoot,
   convertWavAudio,
   detectFfmpegPath,
+  discoverVideoCollection,
   exportConsoleLogs,
   getHotkey,
   getServeStatus,
@@ -114,6 +116,10 @@ export function AppShell() {
   const [noProxy, setNoProxy] = useState(true);
   const [fetchWorkers, setFetchWorkers] = useState(8);
   // 有解析在跑（下载看 tasks 队列）——设置页据此提示「保存会中断任务」。
+  const [collectionChoice, setCollectionChoice] = useState<{
+    title: string;
+    resolve: (choice: 'video' | 'collection' | null) => void;
+  } | null>(null);
   const [parseBusy, setParseBusy] = useState(false);
   const [downloadDirSetting, setDownloadDirSetting] = useState('./downloads');
   const [parseItems, setParseItems] = useState<VideoParseItem[]>([]);
@@ -701,10 +707,39 @@ export function AppShell() {
             : '[解析] 网络：自动（跟随系统/环境代理）',
         ),
       ]);
-      parsingTargetRef.current = url;
+      let parseTarget = url;
+      if (
+        /^(?:BV[0-9a-z]{10}|av\d+)(?:\?|$)|^https?:\/\/(?:www\.)?bilibili\.com\/video\//i.test(
+          url,
+        )
+      ) {
+        let collection = null;
+        try {
+          collection = await discoverVideoCollection(url, network.proxy);
+        } catch (error) {
+          setLogs((current) => [
+            ...current,
+            createConsoleLog(
+              'stderr',
+              `合集检测失败，将解析当前视频：${toErrorMessage(error)}`,
+            ),
+          ]);
+        }
+        if (collection) {
+          const choice = await new Promise<'video' | 'collection' | null>(
+            (resolve) => {
+              setCollectionChoice({ title: collection.title, resolve });
+            },
+          );
+          setCollectionChoice(null);
+          if (choice === null) return [];
+          if (choice === 'collection') parseTarget = collection.url;
+        }
+      }
+      parsingTargetRef.current = parseTarget;
       const result = await resolveParseTarget({
         serve: serveInfo,
-        target: url,
+        target: parseTarget,
         network,
         onEvent: processParseRuntimeEvent,
       });
@@ -753,9 +788,7 @@ export function AppShell() {
       return [];
     } finally {
       setParseBusy(false);
-      if (parsingTargetRef.current === url) {
-        parsingTargetRef.current = null;
-      }
+      parsingTargetRef.current = null;
     }
   }
 
@@ -1075,6 +1108,12 @@ export function AppShell() {
 
   return (
     <div className="launcher-root" data-theme={theme}>
+      {collectionChoice ? (
+        <CollectionChoiceDialog
+          title={collectionChoice.title}
+          onChoose={collectionChoice.resolve}
+        />
+      ) : null}
       <div className="app-shell">
         <Sidebar
           items={navItems}

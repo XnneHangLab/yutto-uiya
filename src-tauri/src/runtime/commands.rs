@@ -148,6 +148,41 @@ pub async fn probe_environment(
 }
 
 #[tauri::command]
+pub async fn discover_video_collection(
+    state: State<'_, RuntimeState>,
+    url: String,
+    proxy: String,
+) -> Result<serde_json::Value, String> {
+    let repo_root = state.repo_root.clone();
+    let workspace_root = state.current_workspace_root();
+    let driver = state.current_driver_config();
+    run_blocking_runtime_action(move || {
+        let output = super::process::build_python_command_for_driver(
+            &repo_root,
+            &workspace_root,
+            &driver,
+            [
+                "-m",
+                "uiya.cli",
+                "discover-collection",
+                &url,
+                "--proxy",
+                &proxy,
+            ],
+        )
+        .output()
+        .map_err(|error| error.to_string())?;
+        if !output.status.success() {
+            return Err(String::from_utf8_lossy(&output.stderr).trim().to_string());
+        }
+        let envelope: serde_json::Value =
+            serde_json::from_slice(&output.stdout).map_err(|error| error.to_string())?;
+        Ok(envelope["payload"]["collection"].clone())
+    })
+    .await
+}
+
+#[tauri::command]
 pub async fn fetch_cover_image(
     app: AppHandle,
     state: State<'_, RuntimeState>,

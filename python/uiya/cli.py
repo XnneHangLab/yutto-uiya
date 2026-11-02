@@ -7,6 +7,7 @@ serve 之外的职责：
 Commands:
   inspect-runtime   Return runtime info as a JSON PythonEnvelope (kind=payload).
   convert-wav       wav 转码（wire 不支持 wav，下载 m4a 后本地转）。
+  discover-collection  Detect the collection of a BV/AV playback URL for GUI scope selection.
   fetch-cover       前端封面取图（webview 防盗链）。
   save-settings     Persist settings to uiya.toml.
   auth-login / auth-logout   扫码登录，读写 yutto auth.toml（等上游 auth.* RPC）。
@@ -29,7 +30,7 @@ if TYPE_CHECKING:
     import pathlib
     from collections.abc import Callable
 
-_BILIBILI_HEADERS = {
+BILIBILI_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Referer": "https://www.bilibili.com",
     "Accept": "application/json, text/plain, */*",
@@ -81,7 +82,7 @@ def _fetch_image_as_data_url(url: str, no_proxy: bool = False) -> str:
     req = urllib.request.Request(
         url,
         headers={
-            **_BILIBILI_HEADERS,
+            **BILIBILI_HEADERS,
             "Referer": "https://www.bilibili.com",
         },
     )
@@ -451,6 +452,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(prog="uiya.cli")
     subparsers = parser.add_subparsers(dest="command")
 
+    collection_parser = subparsers.add_parser("discover-collection")
+    collection_parser.add_argument("url")
+    collection_parser.add_argument("--proxy", default="auto")
+
     subparsers.add_parser("inspect-runtime")
 
     convert_wav_parser = subparsers.add_parser("convert-wav")
@@ -474,6 +479,15 @@ def main() -> None:
         cmd_inspect_runtime()
     elif args.command == "convert-wav":
         cmd_convert_wav(args.dir)
+    elif args.command == "discover-collection":
+        from uiya.collection import discover_collection
+
+        try:
+            payload = {"collection": discover_collection(args.url, args.proxy)}
+            print(json.dumps({"kind": "payload", "payload": payload}, ensure_ascii=False), flush=True)
+        except Exception as error:
+            print(str(error), file=sys.stderr, flush=True)
+            raise SystemExit(1) from error
     elif args.command == "fetch-cover":
         cmd_fetch_cover(args.url)
     elif args.command == "save-settings":
