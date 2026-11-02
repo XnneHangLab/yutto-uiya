@@ -57,6 +57,7 @@ pub fn run() {
             runtime::commands::pick_ffmpeg_path_command,
             runtime::commands::detect_ffmpeg_path,
             runtime::commands::pick_download_dir_command,
+            runtime::commands::discover_video_collection,
             runtime::commands::fetch_cover_image,
             runtime::commands::start_auth_login,
             runtime::commands::cancel_auth_login,

@@ -233,6 +233,33 @@
   line-height: 1.8;
 }
 
+.collection-choice-dialog {
+  max-width: min(560px, 90vw);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 24px;
+  background: var(--panel);
+  color: var(--text);
+}
+
+.collection-choice-dialog::backdrop {
+  background: #0008;
+}
+
+.collection-choice-dialog button {
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+.collection-choice-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 @media (max-width: 900px) {
   .app-shell {
     grid-template-columns: 72px 1fr;

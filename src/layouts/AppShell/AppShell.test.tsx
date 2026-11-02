@@ -88,6 +88,7 @@ vi.mock('../../services/runtime/bridge', async () => {
     openManagedPath: vi.fn().mockResolvedValue(undefined),
     openPath: vi.fn().mockResolvedValue(undefined),
     exportConsoleLogs: vi.fn().mockResolvedValue('/repo/logs/launcher.log'),
+    discoverVideoCollection: vi.fn().mockResolvedValue(null),
     startServe: vi
       .fn()
       .mockResolvedValue({ url: 'ws://127.0.0.1:1', token: 'test-token' }),
@@ -131,6 +132,84 @@ describe('AppShell', () => {
     runtimeListeners.clear();
     rawLogListeners.clear();
     vi.clearAllMocks();
+  });
+
+  it.each([
+    [
+      '当前视频（全部分 P）',
+      'https://www.bilibili.com/video/BV17zDWYwEj8/?p=2',
+    ],
+    [
+      '整个合集',
+      'https://space.bilibili.com/556737824/lists/9471279?type=season',
+    ],
+    ['取消', null],
+  ])('lets the user choose collection scope: %s', async (button, target) => {
+    Object.defineProperty(HTMLDialogElement.prototype, 'showModal', {
+      configurable: true,
+      value(this: HTMLDialogElement) {
+        this.setAttribute('open', '');
+      },
+    });
+    vi.mocked(runtimeBridge.discoverVideoCollection).mockResolvedValueOnce({
+      title: '测试',
+      url: 'https://space.bilibili.com/556737824/lists/9471279?type=season',
+    });
+    vi.mocked(resolveParseTarget).mockResolvedValue({
+      dir: '',
+      items: [],
+      groups: [],
+      videoQualities: [],
+      audioQualities: [],
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: '下载管理' }));
+    await user.type(
+      await screen.findByLabelText('Bilibili 视频链接'),
+      'https://www.bilibili.com/video/BV17zDWYwEj8/?p=2',
+    );
+    await user.click(screen.getByRole('button', { name: '解析' }));
+    expect(await screen.findByRole('dialog')).toHaveTextContent('测试');
+    expect(resolveParseTarget).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: button }));
+    if (target) {
+      await waitFor(() =>
+        expect(resolveParseTarget).toHaveBeenCalledWith(
+          expect.objectContaining({ target }),
+        ),
+      );
+    } else {
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+      );
+      expect(resolveParseTarget).not.toHaveBeenCalled();
+    }
+  });
+
+  it('continues with the current video when collection discovery fails', async () => {
+    vi.mocked(runtimeBridge.discoverVideoCollection).mockRejectedValueOnce(
+      new Error('network unavailable'),
+    );
+    vi.mocked(resolveParseTarget).mockResolvedValue({
+      dir: '',
+      items: [],
+      groups: [],
+      videoQualities: [],
+      audioQualities: [],
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: '下载管理' }));
+    const target = 'https://www.bilibili.com/video/BV17zDWYwEj8/?p=2';
+    await user.type(await screen.findByLabelText('Bilibili 视频链接'), target);
+    await user.click(screen.getByRole('button', { name: '解析' }));
+    await waitFor(() =>
+      expect(resolveParseTarget).toHaveBeenCalledWith(
+        expect.objectContaining({ target }),
+      ),
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('loads managed folders and shows them on the home page', async () => {

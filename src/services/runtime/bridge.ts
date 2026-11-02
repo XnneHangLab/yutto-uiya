@@ -120,6 +120,18 @@ export function openUrl(url: string) {
   return invoke<void>('open_url_command', { url });
 }
 
+export interface VideoCollection {
+  title: string;
+  url: string;
+}
+
+export function discoverVideoCollection(url: string, proxy = 'auto') {
+  return invoke<VideoCollection | null>('discover_video_collection', {
+    url,
+    proxy,
+  });
+}
+
 export function fetchCoverImage(url: string) {
   return invoke<string>('fetch_cover_image', { url });
 }
