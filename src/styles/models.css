@@ -529,7 +529,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 0 10px 20px;
+  padding: 10px 0 10px 40px;
   cursor: pointer;
 }
 
@@ -704,7 +704,7 @@
 }
 
 .parse-item--nested .parse-item__label {
-  padding-left: 40px;
+  padding-left: 68px;
 }
 
 .parse-results__actions {

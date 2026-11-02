@@ -566,6 +566,10 @@ export function DownloadPage({
                           aria-label={`选择分组 ${group.title}`}
                           onChange={() => handleToggleGroup(group)}
                         />
+                        <span
+                          className="parse-item__index"
+                          aria-hidden="true"
+                        />
                         <span className="parse-group__title">
                           {group.title}
                         </span>
