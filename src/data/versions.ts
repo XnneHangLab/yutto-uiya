@@ -7,17 +7,28 @@ export interface VersionEntry {
 }
 
 export const CURRENT_VERSION = {
-  version: 'v2.3.3',
-  date: '2026-11-01',
+  version: 'v2.3.4',
+  date: '2026-11-02',
   channel: '稳定版',
-  summary: '修复多 P 下载覆盖，支持从播放地址解析所属合集',
+  summary: '解析时选择当前视频或整个合集，内核升级至 0.3.5',
 };
 
 export const VERSION_TIMELINE: VersionEntry[] = [
   {
+    date: '2026-11-02',
+    version: 'v2.3.4',
+    badge: '当前',
+    title: '视频与合集解析范围选择',
+    highlights: [
+      '检测 BV / AV 播放地址所属合集，可选择当前视频全部分 P、整个合集或取消',
+      '内核升级至 uiya-yutto 0.3.5，批量 BV 请求只解析当前投稿的分 P',
+      '合集检测失败时记录提示并继续解析当前视频',
+    ],
+  },
+  {
     date: '2026-11-01',
     version: 'v2.3.3',
-    badge: '当前',
+    badge: '',
     title: '多 P 下载覆盖修复与合集解析',
     highlights: [
       '多 P 下载按分 P 名称保存，修复列表标题正确但下载仍同名的问题（#109）',

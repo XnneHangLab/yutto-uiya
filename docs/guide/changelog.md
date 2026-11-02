@@ -2,7 +2,7 @@
 
 各版本的下载地址见 [GitHub Releases](https://github.com/XnneHangLab/yutto-uiya/releases)。
 
-## 待发布
+## v2.3.4（2026-11-02）
 
 - 在应用中检测 BV / AV 播放地址所属合集，提供「当前视频（全部分 P）」「整个合集」和取消选项；
 - 内核升级至 uiya-yutto 0.3.5，恢复 BV 批量请求只处理当前投稿分 P 的语义；合集范围由应用提交明确的合集入口地址选择；
