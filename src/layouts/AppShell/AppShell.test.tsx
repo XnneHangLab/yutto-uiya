@@ -134,31 +134,34 @@ describe('AppShell', () => {
     vi.clearAllMocks();
   });
 
-  it.each([
-    [
-      '当前视频（全部分 P）',
-      'https://www.bilibili.com/video/BV17zDWYwEj8/?p=2',
-    ],
-    [
-      '整个合集',
-      'https://space.bilibili.com/556737824/lists/9471279?type=season',
-    ],
-    ['取消', null],
-  ])('lets the user choose collection scope: %s', async (button, target) => {
-    Object.defineProperty(HTMLDialogElement.prototype, 'showModal', {
-      configurable: true,
-      value(this: HTMLDialogElement) {
-        this.setAttribute('open', '');
-      },
-    });
+  it('automatically resolves the collection and lets users select a multi-P group', async () => {
+    const target =
+      'https://space.bilibili.com/556737824/lists/9471279?type=season';
     vi.mocked(runtimeBridge.discoverVideoCollection).mockResolvedValueOnce({
       title: '测试',
-      url: 'https://space.bilibili.com/556737824/lists/9471279?type=season',
+      url: target,
     });
     vi.mocked(resolveParseTarget).mockResolvedValue({
       dir: '',
-      items: [],
-      groups: [],
+      items: [
+        {
+          index: 5,
+          title: '单 P 投稿',
+          url: 'https://www.bilibili.com/video/BV1MG411Y7uB',
+          dir: '',
+        },
+      ],
+      groups: ['投稿 A', '投稿 B'].map((title, groupIndex) => ({
+        title,
+        dir: '',
+        items: [1, 2].map((page) => ({
+          index: groupIndex * 2 + page,
+          title: `${title} 第 ${page} P`,
+          url: `https://www.bilibili.com/video/BV17zDWYwEj${groupIndex + 1}?p=${page}`,
+          dir: '',
+          usePageName: true,
+        })),
+      })),
       videoQualities: [],
       audioQualities: [],
     });
@@ -170,21 +173,26 @@ describe('AppShell', () => {
       'https://www.bilibili.com/video/BV17zDWYwEj8/?p=2',
     );
     await user.click(screen.getByRole('button', { name: '解析' }));
-    expect(await screen.findByRole('dialog')).toHaveTextContent('测试');
-    expect(resolveParseTarget).not.toHaveBeenCalled();
-    await user.click(screen.getByRole('button', { name: button }));
-    if (target) {
-      await waitFor(() =>
-        expect(resolveParseTarget).toHaveBeenCalledWith(
-          expect.objectContaining({ target }),
-        ),
-      );
-    } else {
-      await waitFor(() =>
-        expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
-      );
-      expect(resolveParseTarget).not.toHaveBeenCalled();
-    }
+    await waitFor(() =>
+      expect(resolveParseTarget).toHaveBeenCalledWith(
+        expect.objectContaining({ target }),
+      ),
+    );
+    await screen.findByText('单 P 投稿');
+    expect(startDownload).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole('button', { name: '展开分组 投稿 B' }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '展开分组 投稿 A' }));
+    expect(
+      screen.getByRole('checkbox', { name: '选择视频 投稿 A 第 1 P' }),
+    ).toBeChecked();
+    await user.click(screen.getByRole('button', { name: '取消全选' }));
+    await user.click(screen.getByRole('checkbox', { name: '选择分组 投稿 A' }));
+    expect(screen.getByRole('button', { name: '下载所选 (2)' })).toBeEnabled();
+    expect(
+      screen.getByRole('checkbox', { name: '选择分组 投稿 B' }),
+    ).not.toBeChecked();
   });
 
   it('continues with the current video when collection discovery fails', async () => {

@@ -9,19 +9,19 @@ export interface VersionEntry {
 export const CURRENT_VERSION = {
   version: 'v2.3.4',
   date: '2026-11-02',
-  channel: '稳定版',
-  summary: '解析时选择当前视频或整个合集，内核升级至 0.3.5',
+  channel: '开发版',
+  summary: '完整解析所属合集，按多 P 投稿分组选择下载',
 };
 
 export const VERSION_TIMELINE: VersionEntry[] = [
   {
     date: '2026-11-02',
     version: 'v2.3.4',
-    badge: '当前',
-    title: '视频与合集解析范围选择',
+    badge: '开发中',
+    title: '合集解析与多 P 投稿分组',
     highlights: [
-      '检测 BV / AV 播放地址所属合集，可选择当前视频全部分 P、整个合集或取消',
-      '内核升级至 uiya-yutto 0.3.5，批量 BV 请求只解析当前投稿的分 P',
+      '检测 BV / AV 播放地址所属合集，自动解析并列出全部成员',
+      '每个多 P 投稿显示为独立的可展开分组，支持整组或逐分 P 勾选后下载',
       '合集检测失败时记录提示并继续解析当前视频',
     ],
   },
