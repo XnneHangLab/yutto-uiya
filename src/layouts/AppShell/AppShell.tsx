@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { renderPage } from '../../app/routes';
-import { CollectionChoiceDialog } from '../../components/home/CollectionChoiceDialog';
 import { Sidebar } from '../../components/navigation/Sidebar/Sidebar';
 import { Topbar } from '../../components/window/Topbar/Topbar';
 import { navItems, type PageId } from '../../data/nav';
@@ -116,10 +115,6 @@ export function AppShell() {
   const [noProxy, setNoProxy] = useState(true);
   const [fetchWorkers, setFetchWorkers] = useState(8);
   // 有解析在跑（下载看 tasks 队列）——设置页据此提示「保存会中断任务」。
-  const [collectionChoice, setCollectionChoice] = useState<{
-    title: string;
-    resolve: (choice: 'video' | 'collection' | null) => void;
-  } | null>(null);
   const [parseBusy, setParseBusy] = useState(false);
   const [downloadDirSetting, setDownloadDirSetting] = useState('./downloads');
   const [parseItems, setParseItems] = useState<VideoParseItem[]>([]);
@@ -726,14 +721,14 @@ export function AppShell() {
           ]);
         }
         if (collection) {
-          const choice = await new Promise<'video' | 'collection' | null>(
-            (resolve) => {
-              setCollectionChoice({ title: collection.title, resolve });
-            },
-          );
-          setCollectionChoice(null);
-          if (choice === null) return [];
-          if (choice === 'collection') parseTarget = collection.url;
+          parseTarget = collection.url;
+          setLogs((current) => [
+            ...current,
+            createConsoleLog(
+              'system',
+              `检测到合集「${collection.title}」，正在解析全部成员`,
+            ),
+          ]);
         }
       }
       parsingTargetRef.current = parseTarget;
@@ -1108,12 +1103,6 @@ export function AppShell() {
 
   return (
     <div className="launcher-root" data-theme={theme}>
-      {collectionChoice ? (
-        <CollectionChoiceDialog
-          title={collectionChoice.title}
-          onChoose={collectionChoice.resolve}
-        />
-      ) : null}
       <div className="app-shell">
         <Sidebar
           items={navItems}

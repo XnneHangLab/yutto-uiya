@@ -128,12 +128,7 @@ export async function resolveParseTarget(
   }
 }
 
-/**
- * Rebuild the VideoParseResult from ResolveResult.items. Root items carry an
- * empty display_group; grouped items (合集/多P) land in groups keyed by
- * display_group, mirroring the old ParseResult contract where
- * `items` holds root entries and groups hold the rest.
- */
+/** Rebuild the final list, keeping each multi-P submission in its own group. */
 function buildParseResult(
   result: unknown,
   outputDirectory?: string,
@@ -149,11 +144,7 @@ function buildParseResult(
     }
   }
   const rootItems: VideoParseItem[] = [];
-  const groupOrder: string[] = [];
-  const groupedItems = new Map<
-    string,
-    { item: VideoParseItem; wire: WireResolvedItem }[]
-  >();
+  const groupedItems = new Map<string, VideoParseGroup>();
 
   wireItems.forEach((wireItem, position) => {
     const parsedItem = wireItemToParseItem(
@@ -162,44 +153,44 @@ function buildParseResult(
       outputDirectory,
     );
     const multiPage = (pagesByAvid.get(wireItem.avid)?.size ?? 0) > 1;
-    const item: VideoParseItem = multiPage
-      ? { ...parsedItem, usePageName: true }
-      : parsedItem;
-    const groupTitle =
-      typeof wireItem.display_group === 'string' && wireItem.display_group
+    const groupTitle = multiPage
+      ? String(wireItem.title || wireItem.display_group || '多 P 视频')
+      : typeof wireItem.display_group === 'string' && wireItem.display_group
         ? wireItem.display_group
         : null;
+    const videoTitle = typeof wireItem.title === 'string' ? wireItem.title : '';
+    const item: VideoParseItem = multiPage
+      ? {
+          ...parsedItem,
+          title: String(wireItem.name ?? parsedItem.title),
+          usePageName: true,
+        }
+      : groupTitle && videoTitle
+        ? { ...parsedItem, title: videoTitle }
+        : parsedItem;
     if (groupTitle === null) {
-      // Ordinary multi-P videos have no display_group in yutto's result.
-      rootItems.push(
-        (pagesByAvid.get(wireItem.avid)?.size ?? 0) > 1
-          ? { ...item, title: String(wireItem.name ?? item.title) }
-          : item,
-      );
+      rootItems.push(item);
       return;
     }
-    const bucket = groupedItems.get(groupTitle);
+    // Include the video identity so distinct submissions with the same title stay separate.
+    const groupKey = JSON.stringify([
+      wireItem.display_group ?? null,
+      multiPage ? wireItem.avid : null,
+      groupTitle,
+    ]);
+    const bucket = groupedItems.get(groupKey);
     if (bucket) {
-      bucket.push({ item, wire: wireItem });
+      bucket.items.push(item);
     } else {
-      groupOrder.push(groupTitle);
-      groupedItems.set(groupTitle, [{ item, wire: wireItem }]);
+      groupedItems.set(groupKey, {
+        title: groupTitle,
+        dir: item.dir,
+        items: [item],
+      });
     }
   });
 
-  const groups: VideoParseGroup[] = groupOrder.map((title) => {
-    const entries = groupedItems.get(title) ?? [];
-    // Same-titled multi-P videos can share a display group. Decide per video,
-    // not per group, so their individual page names survive the merge.
-    const items = entries.map(({ item, wire }) => {
-      if ((pagesByAvid.get(wire.avid)?.size ?? 0) > 1) {
-        return item;
-      }
-      const videoTitle = typeof wire.title === 'string' ? wire.title : '';
-      return videoTitle ? { ...item, title: videoTitle } : item;
-    });
-    return { title, dir: items[0]?.dir ?? '', items };
-  });
+  const groups = [...groupedItems.values()];
 
   return {
     dir: commonDirPrefix([

@@ -257,11 +257,13 @@ describe('resolveParseTarget', () => {
     });
 
     const result = await parsePromise;
-    expect(result.items.map((item) => item.title)).toEqual([
-      ...names,
-      '单 P 视频标题',
-    ]);
-    expect(result.groups).toEqual([]);
+    expect(result.items.map((item) => item.title)).toEqual(['单 P 视频标题']);
+    expect(result.groups).toHaveLength(1);
+    expect(result.groups?.[0].title).toBe('电子元器件+模拟电路硬件零基础入门');
+    expect(result.groups?.[0].items.map((item) => item.title)).toEqual(names);
+    expect(result.groups?.[0].items.every((item) => item.usePageName)).toBe(
+      true,
+    );
   });
 
   it.each([
@@ -297,7 +299,20 @@ describe('resolveParseTarget', () => {
     });
 
     const result = await parsePromise;
-    const parsed = displayGroup ? result.groups?.[0].items : result.items;
+    expect(result.groups).toHaveLength(displayGroup ? 3 : 2);
+    expect(
+      result.groups?.slice(0, 2).map((group) => ({
+        title: group.title,
+        indexes: group.items.map((item) => item.index),
+      })),
+    ).toEqual([
+      { title: '同名视频', indexes: [1, 2] },
+      { title: '同名视频', indexes: [3, 4] },
+    ]);
+    const parsed = [
+      ...result.items,
+      ...(result.groups ?? []).flatMap((group) => group.items),
+    ].sort((a, b) => a.index - b.index);
     expect(parsed?.map((item) => item.title)).toEqual([
       ...items.map((item) => item.name),
       single.title,
