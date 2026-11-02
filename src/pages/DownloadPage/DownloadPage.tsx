@@ -211,8 +211,12 @@ export function DownloadPage({
     coversRef.current = covers;
   }, [covers]);
 
-  // Auto-expand the latest item and scroll it into view as it arrives during parsing.
+  // Keep grouped results as a compact list; standalone results retain their preview.
   useEffect(() => {
+    if (parseGroups.length > 0) {
+      setExpandedIndex(null);
+      return;
+    }
     if (allParseItems.length > 0) {
       setExpandedIndex(allParseItems[allParseItems.length - 1].index);
       if (listRef.current) {
@@ -220,7 +224,7 @@ export function DownloadPage({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allParseItems.length]);
+  }, [allParseItems.length, parseGroups.length]);
 
   // Auto-fetch the LAST item's cover (single fetch, looks great for single-
   // video parses and gives a nice preview for the end of a playlist) — but
@@ -231,7 +235,7 @@ export function DownloadPage({
   // (no cover, no loading/retry state — nothing). The extra delay lets the
   // freshly rendered list settle before the subprocess-backed fetch starts.
   useEffect(() => {
-    if (parsing || allParseItems.length === 0) return;
+    if (parsing || parseGroups.length > 0 || allParseItems.length === 0) return;
     const lastItem = allParseItems[allParseItems.length - 1];
     if (!lastItem.cover?.startsWith('http') || covers.has(lastItem.index)) {
       return;
@@ -544,6 +548,16 @@ export function DownloadPage({
                 return (
                   <li key={groupKey} className="parse-group">
                     <div className="parse-group__header">
+                      <button
+                        type="button"
+                        className="parse-group__toggle"
+                        aria-label={`${expanded ? '收起' : '展开'}分组 ${group.title}`}
+                        aria-expanded={expanded}
+                        aria-controls={`parse-group-items-${groupIndex}`}
+                        onClick={() => handleToggleGroupExpanded(groupKey)}
+                      >
+                        <span aria-hidden="true">{expanded ? '▾' : '▸'}</span>
+                      </button>
                       <label className="parse-group__label">
                         <input
                           type="checkbox"
@@ -559,17 +573,12 @@ export function DownloadPage({
                           {group.items.length} 个视频
                         </span>
                       </label>
-                      <button
-                        type="button"
-                        className={`parse-group__toggle${expanded ? ' parse-group__toggle--expanded' : ''}`}
-                        aria-label={`${expanded ? '收起' : '展开'}分组 ${group.title}`}
-                        onClick={() => handleToggleGroupExpanded(groupKey)}
-                      >
-                        {expanded ? '收起' : '展开'}
-                      </button>
                     </div>
                     {expanded ? (
-                      <ul className="parse-group__items">
+                      <ul
+                        className="parse-group__items"
+                        id={`parse-group-items-${groupIndex}`}
+                      >
                         {group.items.map((item) => renderParseItem(item, true))}
                       </ul>
                     ) : null}

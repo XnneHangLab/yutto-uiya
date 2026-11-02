@@ -129,11 +129,18 @@ describe('DownloadPage', () => {
     expect(screen.getByText('2 个视频')).toBeInTheDocument();
     expect(screen.queryByText('合集视频 1')).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: '展开分组 分组合集' }));
+    const toggle = screen.getByRole('button', { name: '展开分组 分组合集' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(toggle).toHaveTextContent('▸');
+    await user.click(toggle);
 
     expect(screen.getByText('合集视频 1')).toBeInTheDocument();
-    // 合集视频 2 appears in both the list row and its auto-expanded detail panel
-    expect(screen.getAllByText('合集视频 2')[0]).toBeInTheDocument();
+    expect(screen.getByText('合集视频 2')).toBeInTheDocument();
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(toggle).toHaveTextContent('▾');
+    expect(document.querySelector('.parse-item__detail')).toBeNull();
+    await user.click(toggle);
+    expect(screen.queryByText('合集视频 1')).not.toBeInTheDocument();
   });
 
   it('selects the whole group from the group checkbox', async () => {
