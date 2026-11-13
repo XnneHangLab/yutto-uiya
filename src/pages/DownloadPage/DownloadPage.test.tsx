@@ -5,6 +5,7 @@ import { vi } from 'vitest';
 import { fetchCoverImage } from '../../services/runtime/bridge';
 import {
   DEFAULT_DOWNLOAD_OPTIONS,
+  type VideoParseGroup,
   type VideoParseItem,
 } from '../../services/runtime/runtime';
 import { DownloadPage } from './DownloadPage';
@@ -28,19 +29,29 @@ function deferred() {
  * link already known), then — once the gate opens — the authoritative rebuild
  * REPLACES the item array before the onParse promise resolves.
  */
-function AutoFetchHarness({ gate }: { gate: Promise<void> }) {
+function AutoFetchHarness({
+  gate,
+  grouped = false,
+}: {
+  gate: Promise<void>;
+  grouped?: boolean;
+}) {
   const [parseItems, setParseItems] = useState<VideoParseItem[]>([]);
+  const [parseGroups, setParseGroups] = useState<VideoParseGroup[]>([]);
   const [parseSelected, setParseSelected] = useState<Set<number>>(new Set());
 
   async function onParse(url: string): Promise<VideoParseItem[]> {
     setParseItems([
-      { index: 1, title: '测试视频', url, dir: '', cover: COVER_URL },
+      { index: 0, title: '解析中的视频', url, dir: '', cover: COVER_URL },
     ]);
     await gate;
     const rebuilt = [
       { index: 1, title: '测试视频', url, dir: '', cover: COVER_URL },
     ];
-    setParseItems(rebuilt);
+    setParseItems(grouped ? [] : rebuilt);
+    setParseGroups(
+      grouped ? [{ title: '预览分组', dir: '', items: rebuilt }] : [],
+    );
     return rebuilt;
   }
 
@@ -51,7 +62,7 @@ function AutoFetchHarness({ gate }: { gate: Promise<void> }) {
       onParse={onParse}
       scriptsReady
       parseItems={parseItems}
-      parseGroups={[]}
+      parseGroups={parseGroups}
       parseSelected={parseSelected}
       onParseSelectedChange={setParseSelected}
       onClearParseItems={() => setParseItems([])}
@@ -73,7 +84,7 @@ describe('DownloadPage', () => {
     vi.clearAllMocks();
   });
 
-  it('renders grouped parse results collapsed by default and expands on demand', async () => {
+  it('automatically expands the last item and its group, and allows collapsing it', async () => {
     const user = userEvent.setup();
 
     render(
@@ -127,13 +138,21 @@ describe('DownloadPage', () => {
     expect(screen.getByText('单个视频')).toBeInTheDocument();
     expect(screen.getByText('分组合集')).toBeInTheDocument();
     expect(screen.getByText('2 个视频')).toBeInTheDocument();
-    expect(screen.queryByText('合集视频 1')).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: '展开分组 分组合集' }));
-
     expect(screen.getByText('合集视频 1')).toBeInTheDocument();
-    // 合集视频 2 appears in both the list row and its auto-expanded detail panel
-    expect(screen.getAllByText('合集视频 2')[0]).toBeInTheDocument();
+
+    const toggle = screen.getByRole('button', { name: '收起分组 分组合集' });
+    expect(screen.getAllByText('合集视频 2')).toHaveLength(2);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(toggle).toHaveTextContent('▾');
+    expect(document.querySelector('.parse-item__detail')).toHaveTextContent(
+      '合集视频 2',
+    );
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(toggle).toHaveTextContent('▸');
+    expect(screen.queryByText('合集视频 1')).not.toBeInTheDocument();
+    await user.click(toggle);
+    expect(screen.getByText('合集视频 1')).toBeInTheDocument();
   });
 
   it('selects the whole group from the group checkbox', async () => {
@@ -191,7 +210,9 @@ describe('DownloadPage', () => {
     await user.click(
       screen.getByRole('checkbox', { name: '选择分组 分组合集' }),
     );
-    await user.click(screen.getByRole('button', { name: '展开分组 分组合集' }));
+    expect(
+      screen.getByRole('button', { name: '收起分组 分组合集' }),
+    ).toHaveAttribute('aria-expanded', 'true');
 
     expect(
       screen.getByRole('checkbox', { name: '选择视频 合集视频 1' }),
@@ -200,6 +221,14 @@ describe('DownloadPage', () => {
       screen.getByRole('checkbox', { name: '选择视频 合集视频 2' }),
     ).toBeChecked();
     expect(screen.getByRole('button', { name: '下载所选 (2)' })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: '收起分组 分组合集' }));
+    await user.click(
+      screen.getByRole('checkbox', { name: '选择分组 分组合集' }),
+    );
+    expect(
+      screen.getByRole('button', { name: '展开分组 分组合集' }),
+    ).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('shows PGC episode metadata in the existing detail panel', () => {
@@ -609,12 +638,15 @@ describe('DownloadPage', () => {
     expect(fill).toHaveStyle({ width: '45%' });
   });
 
-  it('auto-fetches the cover only after parsing is over plus a settle delay', async () => {
+  it.each([
+    false,
+    true,
+  ])('auto-fetches the cover only after parsing and a settle delay (grouped=%s)', async (grouped) => {
     vi.useFakeTimers();
     vi.mocked(fetchCoverImage).mockResolvedValue('data:image/jpeg;base64,Zm9v');
 
     const gate = deferred();
-    render(<AutoFetchHarness gate={gate.promise} />);
+    render(<AutoFetchHarness gate={gate.promise} grouped={grouped} />);
 
     fireEvent.click(screen.getByRole('button', { name: '解析' }));
 
@@ -631,9 +663,21 @@ describe('DownloadPage', () => {
       gate.resolve();
     });
     expect(fetchCoverImage).not.toHaveBeenCalled();
+    expect(document.querySelector('.parse-item__detail')).toHaveTextContent(
+      '测试视频',
+    );
+    if (grouped) {
+      expect(
+        screen.getByRole('button', { name: '收起分组 预览分组' }),
+      ).toHaveAttribute('aria-expanded', 'true');
+    }
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(1000);
+      await vi.advanceTimersByTimeAsync(999);
+    });
+    expect(fetchCoverImage).not.toHaveBeenCalled();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
     });
     expect(fetchCoverImage).toHaveBeenCalledTimes(1);
     expect(fetchCoverImage).toHaveBeenCalledWith(COVER_URL);
