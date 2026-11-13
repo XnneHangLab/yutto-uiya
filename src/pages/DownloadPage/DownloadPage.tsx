@@ -206,25 +206,31 @@ export function DownloadPage({
 
   const allParseItems = collectParseItems(parseItems, parseGroups);
   const hasParseResults = allParseItems.length > 0;
+  const lastItemIndex = allParseItems[allParseItems.length - 1]?.index;
+  const lastGroupIndex = parseGroups.findIndex((group) =>
+    group.items.some((item) => item.index === lastItemIndex),
+  );
+  const lastGroup = parseGroups[lastGroupIndex];
+  const lastGroupKey = lastGroup
+    ? `${lastGroup.dir || lastGroup.title}-${lastGroupIndex}`
+    : null;
 
   useEffect(() => {
     coversRef.current = covers;
   }, [covers]);
 
-  // Keep grouped results as a compact list; standalone results retain their preview.
+  // Reveal the latest item's group as well as its detail preview.
   useEffect(() => {
-    if (parseGroups.length > 0) {
-      setExpandedIndex(null);
-      return;
-    }
-    if (allParseItems.length > 0) {
-      setExpandedIndex(allParseItems[allParseItems.length - 1].index);
+    if (lastItemIndex !== undefined) {
+      if (lastGroupKey !== null) {
+        setExpandedGroups((current) => new Set(current).add(lastGroupKey));
+      }
+      setExpandedIndex(lastItemIndex);
       if (listRef.current) {
         listRef.current.scrollTop = listRef.current.scrollHeight;
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allParseItems.length, parseGroups.length]);
+  }, [lastItemIndex, lastGroupKey]);
 
   // Auto-fetch the LAST item's cover (single fetch, looks great for single-
   // video parses and gives a nice preview for the end of a playlist) — but
@@ -235,7 +241,7 @@ export function DownloadPage({
   // (no cover, no loading/retry state — nothing). The extra delay lets the
   // freshly rendered list settle before the subprocess-backed fetch starts.
   useEffect(() => {
-    if (parsing || parseGroups.length > 0 || allParseItems.length === 0) return;
+    if (parsing || allParseItems.length === 0) return;
     const lastItem = allParseItems[allParseItems.length - 1];
     if (!lastItem.cover?.startsWith('http') || covers.has(lastItem.index)) {
       return;

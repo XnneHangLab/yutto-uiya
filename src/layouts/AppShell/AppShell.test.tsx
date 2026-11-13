@@ -181,7 +181,7 @@ describe('AppShell', () => {
     await screen.findByText('单 P 投稿');
     expect(startDownload).not.toHaveBeenCalled();
     expect(
-      screen.getByRole('button', { name: '展开分组 投稿 B' }),
+      screen.getByRole('button', { name: '收起分组 投稿 B' }),
     ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '展开分组 投稿 A' }));
     expect(
@@ -629,9 +629,9 @@ describe('AppShell', () => {
         queuedRecord(`task-${args.label}`, args.target, args.label),
       ),
     );
-    await user.click(
-      await screen.findByRole('button', { name: '展开分组 合集' }),
-    );
+    expect(
+      await screen.findByRole('button', { name: '收起分组 合集' }),
+    ).toHaveAttribute('aria-expanded', 'true');
     await user.click(screen.getByRole('button', { name: '下载所选 (2)' }));
 
     await waitFor(() =>
