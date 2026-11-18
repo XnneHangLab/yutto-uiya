@@ -53,14 +53,17 @@ describe('buildDownloadRequest audio-only formats', () => {
     expect(wav.stream).not.toHaveProperty('audio_save_codec');
   });
 
-  it('prefers AV1 without disabling the backend codec fallback', () => {
+  it.each([
+    'hevc',
+    'av1',
+  ] as const)('prefers %s without disabling the backend codec fallback', (videoCodec) => {
     const request = buildDownloadRequest({
       target: TARGET,
       dir: '',
-      options: { ...DEFAULT_DOWNLOAD_OPTIONS, videoCodec: 'av1' },
+      options: { ...DEFAULT_DOWNLOAD_OPTIONS, videoCodec },
     });
     expect(request.stream).toMatchObject({
-      video_download_codec: 'av1',
+      video_download_codec: videoCodec,
       video_save_codec: 'copy',
     });
     expect(request.stream).not.toHaveProperty('video_download_codec_priority');

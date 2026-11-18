@@ -176,7 +176,7 @@ export interface DownloadOptions {
   requireDanmaku: boolean;
   videoQuality: number;
   audioQuality: number;
-  videoCodec: 'avc' | 'av1';
+  videoCodec: 'avc' | 'hevc' | 'av1';
   audioFormat: string;
 }
 
