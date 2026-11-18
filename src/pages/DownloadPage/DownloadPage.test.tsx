@@ -281,7 +281,7 @@ describe('DownloadPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('offers AV1 as an explicit non-default codec choice', async () => {
+  it('offers H.265 and AV1 as explicit non-default codec choices', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
 
@@ -325,6 +325,14 @@ describe('DownloadPage', () => {
     expect(
       screen.getByRole('option', { name: 'AV1（体积优先）' }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', { name: 'H.265（HEVC）' }),
+    ).toBeInTheDocument();
+    await user.selectOptions(codec, 'hevc');
+    expect(onChange).toHaveBeenLastCalledWith({
+      ...DEFAULT_DOWNLOAD_OPTIONS,
+      videoCodec: 'hevc',
+    });
     await user.selectOptions(codec, 'av1');
     expect(onChange).toHaveBeenCalledWith({
       ...DEFAULT_DOWNLOAD_OPTIONS,
