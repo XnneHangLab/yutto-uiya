@@ -133,6 +133,8 @@ export interface RuntimeEvent {
 
 export interface VideoParseItem {
   index: number;
+  /** Extra episodes are listed for opt-in selection. Omitted means selected. */
+  defaultSelected?: boolean;
   title: string;
   url: string;
   /** Per-video output directory relative to downloads root. Empty for single videos. */

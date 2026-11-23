@@ -84,42 +84,33 @@ describe('DownloadPage', () => {
     vi.clearAllMocks();
   });
 
-  it('automatically expands the last item and its group, and allows collapsing it', async () => {
-    const user = userEvent.setup();
-
+  it('expands each list’s last item and fetches its cover independently', async () => {
+    vi.useFakeTimers();
+    vi.mocked(fetchCoverImage).mockResolvedValue(
+      'data:image/png;base64,preview',
+    );
+    const item = (index: number, title: string) => ({
+      index,
+      title,
+      url: `https://www.bilibili.com/bangumi/play/ep${index}`,
+      dir: '番剧',
+      cover: `${COVER_URL}?${index}`,
+    });
     render(
       <DownloadPage
         tasks={[]}
         onDownload={() => undefined}
         onParse={vi.fn()}
         scriptsReady
-        parseItems={[
-          {
-            index: 1,
-            title: '单个视频',
-            url: 'https://www.bilibili.com/video/BV1xx411c7mD',
-            dir: '',
-          },
-        ]}
+        parseItems={[item(1, '单个视频')]}
         parseGroups={[
           {
-            title: '分组合集',
-            dir: '分组合集',
-            items: [
-              {
-                index: 2,
-                title: '合集视频 1',
-                url: 'https://www.bilibili.com/video/BV1xx411c7mD?p=1',
-                dir: '分组合集',
-              },
-              {
-                index: 3,
-                title: '合集视频 2',
-                url: 'https://www.bilibili.com/video/BV1xx411c7mD?p=2',
-                dir: '分组合集',
-              },
-            ],
+            title: '正片',
+            dir: '番剧',
+            items: [item(2, '第1话'), item(3, '第2话')],
           },
+          { title: '附加内容', dir: '番剧', items: [item(4, '制作花絮')] },
+          { title: '空分组', dir: '', items: [] },
         ]}
         parseSelected={new Set([1])}
         onParseSelectedChange={() => undefined}
@@ -134,25 +125,49 @@ describe('DownloadPage', () => {
         onOpenDownloadsFolder={() => undefined}
       />,
     );
-
-    expect(screen.getByText('单个视频')).toBeInTheDocument();
-    expect(screen.getByText('分组合集')).toBeInTheDocument();
-    expect(screen.getByText('2 个视频')).toBeInTheDocument();
-    expect(screen.getByText('合集视频 1')).toBeInTheDocument();
-
-    const toggle = screen.getByRole('button', { name: '收起分组 分组合集' });
-    expect(screen.getAllByText('合集视频 2')).toHaveLength(2);
+    expect(
+      Array.from(document.querySelectorAll('.parse-item__detail')).map(
+        (node) => node.textContent,
+      ),
+    ).toEqual(['单个视频', '第2话', '制作花絮']);
+    const toggle = screen.getByRole('button', { name: '收起分组 正片' });
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    expect(toggle).toHaveTextContent('▾');
-    expect(document.querySelector('.parse-item__detail')).toHaveTextContent(
-      '合集视频 2',
-    );
-    await user.click(toggle);
+    expect(
+      screen.getByRole('button', { name: '收起分组 附加内容' }),
+    ).toHaveAttribute('aria-expanded', 'true');
+    expect(
+      screen.getByRole('button', { name: '展开分组 空分组' }),
+    ).toHaveAttribute('aria-expanded', 'false');
+    expect(fetchCoverImage).not.toHaveBeenCalled();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(fetchCoverImage).toHaveBeenCalledTimes(3);
+    for (const index of [1, 3, 4])
+      expect(fetchCoverImage).toHaveBeenCalledWith(`${COVER_URL}?${index}`);
+    expect(screen.getAllByRole('img')).toHaveLength(3);
+    fireEvent.click(toggle);
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    expect(toggle).toHaveTextContent('▸');
-    expect(screen.queryByText('合集视频 1')).not.toBeInTheDocument();
-    await user.click(toggle);
-    expect(screen.getByText('合集视频 1')).toBeInTheDocument();
+    expect(screen.queryByText('第1话')).not.toBeInTheDocument();
+    expect(screen.getByRole('img', { name: '制作花絮' })).toBeInTheDocument();
+    fireEvent.click(toggle);
+    expect(screen.getByText('第1话')).toBeInTheDocument();
+    const mainItem = screen
+      .getByRole('checkbox', { name: '选择视频 第2话' })
+      .closest('li');
+    const detailButton = mainItem?.querySelector<HTMLButtonElement>(
+      '.parse-item__detail-btn',
+    );
+    expect(detailButton).toBeTruthy();
+    fireEvent.click(detailButton as HTMLButtonElement);
+    expect(
+      screen.queryByRole('img', { name: '第2话' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('img', { name: '制作花絮' })).toBeInTheDocument();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(fetchCoverImage).toHaveBeenCalledTimes(3);
   });
 
   it('selects the whole group from the group checkbox', async () => {

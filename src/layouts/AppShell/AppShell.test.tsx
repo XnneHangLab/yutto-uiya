@@ -178,12 +178,14 @@ describe('AppShell', () => {
         expect.objectContaining({ target }),
       ),
     );
-    await screen.findByText('单 P 投稿');
+    expect(await screen.findAllByText('单 P 投稿')).toHaveLength(2);
     expect(startDownload).not.toHaveBeenCalled();
     expect(
       screen.getByRole('button', { name: '收起分组 投稿 B' }),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: '展开分组 投稿 A' }));
+    expect(
+      screen.getByRole('button', { name: '收起分组 投稿 A' }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('checkbox', { name: '选择视频 投稿 A 第 1 P' }),
     ).toBeChecked();
@@ -193,6 +195,77 @@ describe('AppShell', () => {
     expect(
       screen.getByRole('checkbox', { name: '选择分组 投稿 B' }),
     ).not.toBeChecked();
+  });
+
+  it('selects only bangumi main episodes by default and downloads extras on request', async () => {
+    vi.mocked(startDownload).mockImplementation(async (options) =>
+      queuedRecord(
+        options.target,
+        options.target,
+        options.label ?? options.target,
+      ),
+    );
+    const episode = (
+      index: number,
+      title: string,
+      defaultSelected: boolean,
+    ) => ({
+      index,
+      title,
+      defaultSelected,
+      url: `https://www.bilibili.com/bangumi/play/ep${index}`,
+      dir: '某部番剧',
+    });
+    vi.mocked(resolveParseTarget).mockResolvedValue({
+      dir: '某部番剧',
+      items: [],
+      videoQualities: [],
+      audioQualities: [],
+      groups: [
+        {
+          title: '某部番剧 · 正片',
+          dir: '某部番剧',
+          items: [episode(1, '第1话', true)],
+        },
+        {
+          title: '某部番剧 · 附加内容',
+          dir: '某部番剧',
+          items: [episode(2, '制作特辑', false)],
+        },
+      ],
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: '下载管理' }));
+    await user.type(
+      await screen.findByLabelText('Bilibili 视频链接'),
+      'https://www.bilibili.com/bangumi/play/ss123',
+    );
+    await user.click(screen.getByRole('button', { name: '解析' }));
+    expect(
+      await screen.findByRole('checkbox', { name: '选择分组 某部番剧 · 正片' }),
+    ).toBeChecked();
+    expect(
+      screen.getByRole('checkbox', { name: '选择分组 某部番剧 · 附加内容' }),
+    ).not.toBeChecked();
+    await user.click(screen.getByRole('button', { name: '下载所选 (1)' }));
+    await waitFor(() => expect(startDownload).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(startDownload).mock.calls[0][0]).toMatchObject({
+      target: 'https://www.bilibili.com/bangumi/play/ep1',
+    });
+    await user.click(
+      screen.getByRole('checkbox', { name: '选择分组 某部番剧 · 正片' }),
+    );
+    await user.click(
+      screen.getByRole('checkbox', { name: '选择分组 某部番剧 · 附加内容' }),
+    );
+    await user.click(screen.getByRole('button', { name: '下载所选 (1)' }));
+    // The queue is serial; the extra is queued while the main episode is running.
+    expect(
+      await screen.findByText('制作特辑', {
+        selector: '.models-page__task-label',
+      }),
+    ).toBeInTheDocument();
   });
 
   it('continues with the current video when collection discovery fails', async () => {

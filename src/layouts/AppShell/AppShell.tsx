@@ -744,7 +744,13 @@ export function AppShell() {
       const nextItems = collectParseItems(result.items, nextGroups);
       setParseItems(result.items);
       setParseGroups(nextGroups);
-      setParseSelected(new Set(nextItems.map((item) => item.index)));
+      setParseSelected(
+        new Set(
+          nextItems
+            .filter((item) => item.defaultSelected !== false)
+            .map((item) => item.index),
+        ),
+      );
       setParseDirOverride(result.dir ?? '');
       setParseVideoQualities(result.videoQualities);
       if (result.videoQualities.length > 0) {

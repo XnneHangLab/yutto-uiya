@@ -75,11 +75,18 @@ async function startParse(options: HarnessOptions = {}) {
   return { socket, events, parsePromise, guarded };
 }
 
-async function answerResolveStart(socket: FakeSocket) {
+async function answerResolveStart(
+  socket: FakeSocket,
+  withExtraEpisodes = true,
+) {
   const request = socket.lastRequest();
   expect(request.method).toBe('resolve.start');
   expect(request.params).toEqual({
-    request: { source: { url: TARGET }, scope: { batch: true } },
+    request: {
+      source: { url: TARGET },
+      scope: { batch: true, with_extra_episodes: withExtraEpisodes },
+      selection: { skip_preview: !withExtraEpisodes },
+    },
   });
   socket.receive({
     jsonrpc: '2.0',
@@ -377,53 +384,129 @@ describe('resolveParseTarget', () => {
     ]);
   });
 
-  it('uses episode names for a bangumi list', async () => {
-    const { socket, parsePromise } = await startParse();
+  it.each([
+    true,
+    false,
+  ])('separates bangumi extras with main episodes present=%s', async (hasMain) => {
+    const { socket, events, parsePromise } = await startParse();
+    const main = {
+      avid: 'av100',
+      cid: '1',
+      url: 'https://www.bilibili.com/bangumi/play/ep1001',
+      name: '第1话 初次见面',
+      title: '某部番剧',
+      planned_path: '/dl/root/某部番剧/第1话.mp4',
+    };
+    const extras = [
+      {
+        ...main,
+        avid: 'av200',
+        cid: '2',
+        url: 'https://www.bilibili.com/bangumi/play/ep1002',
+        name: '制作特辑',
+      },
+      {
+        ...main,
+        avid: 'av300',
+        cid: '3',
+        url: 'https://www.bilibili.com/bangumi/play/ep1003',
+        name: '【预告】第2话',
+      },
+    ];
     await answerResolveStart(socket);
     await answerSubscribe(socket, [
       stateEvent(1, 'running'),
-      stateEvent(2, 'completed'),
+      itemListedEvent(2, extras[0]),
+      stateEvent(3, 'completed'),
     ]);
     await answerTaskGet(socket, {
       task_id: 'task-1',
       state: 'completed',
-      error: null,
-      created_at: '',
-      started_at: '',
-      finished_at: '',
-      last_event_seq: 2,
-      payload: { output: { directory: '/dl/root' } },
-      result: {
-        items: [
-          {
-            avid: 'av100',
-            cid: '1',
-            url: 'https://www.bilibili.com/bangumi/play/ep1001',
-            name: '第1话 初次见面',
-            title: '某部番剧',
-            cover_url: '',
-            planned_path: '/dl/root/某部番剧/第1话 初次见面.mp4',
-            display_group: null,
-          },
-          {
-            avid: 'av200',
-            cid: '2',
-            url: 'https://www.bilibili.com/bangumi/play/ep1002',
-            name: '第2话 再次相遇',
-            title: '某部番剧',
-            cover_url: '',
-            planned_path: '/dl/root/某部番剧/第2话 再次相遇.mp4',
-            display_group: null,
-          },
-        ],
-      },
+      result: { items: [...extras, ...(hasMain ? [main] : [])] },
+    });
+    // A short/redirect URL is recognized by canonical URLs in the result.
+    expect(events.map((event) => event.event)).toEqual(['parse.started']);
+    await answerResolveStart(socket, false);
+    await answerSubscribe(socket, [stateEvent(1, 'completed')]);
+    await answerTaskGet(socket, {
+      task_id: 'task-1',
+      state: 'completed',
+      result: { items: hasMain ? [main] : [] },
     });
 
     const result = await parsePromise;
-    expect(result.items.map((item) => item.title)).toEqual([
-      '第1话 初次见面',
-      '第2话 再次相遇',
+    expect(result.items).toEqual([]);
+    expect(result.groups?.map((group) => group.title)).toEqual(
+      hasMain
+        ? ['某部番剧 · 正片', '某部番剧 · 附加内容']
+        : ['某部番剧 · 附加内容'],
+    );
+    if (hasMain) {
+      expect(result.groups?.[0].items).toMatchObject([
+        { index: 3, title: '第1话 初次见面', defaultSelected: true },
+      ]);
+    }
+    expect(result.groups?.at(-1)?.items).toMatchObject([
+      {
+        index: 1,
+        title: '制作特辑',
+        defaultSelected: false,
+        url: extras[0].url,
+        dir: '某部番剧',
+      },
+      { index: 2, title: '【预告】第2话', defaultSelected: false },
     ]);
+    expect(events.map((event) => event.event)).toEqual([
+      'parse.started',
+      'parse.completed',
+    ]);
+  });
+
+  it('groups a bangumi with no extras and rejects a failed classification', async () => {
+    const main = {
+      url: 'https://www.bilibili.com/bangumi/play/ep1001',
+      name: '第1话',
+      title: '某部番剧',
+      planned_path: '/dl/root/某部番剧/第1话.mp4',
+    };
+    for (const failClassification of [false, true]) {
+      resetRpcConnection();
+      const { socket, guarded, events } = await startParse();
+      await answerResolveStart(socket);
+      await answerSubscribe(socket, [stateEvent(1, 'completed')]);
+      await answerTaskGet(socket, {
+        task_id: 'task-1',
+        state: 'completed',
+        result: { items: [main] },
+      });
+      await answerResolveStart(socket, false);
+      await answerSubscribe(socket, [
+        stateEvent(1, failClassification ? 'failed' : 'completed'),
+      ]);
+      await answerTaskGet(socket, {
+        task_id: 'task-1',
+        state: failClassification ? 'failed' : 'completed',
+        error: failClassification ? { message: '分类请求失败' } : null,
+        result: { items: [main] },
+      });
+      const result = await guarded;
+      if (failClassification) {
+        expect(String(result)).toContain('分类请求失败');
+        expect(events.some((event) => event.event === 'parse.completed')).toBe(
+          false,
+        );
+      } else {
+        expect(result).toMatchObject({
+          items: [],
+          groups: [
+            {
+              title: '某部番剧 · 正片',
+              items: [{ title: '第1话', defaultSelected: true }],
+            },
+          ],
+        });
+      }
+    }
   });
 
   it('places ungrouped items into root items', async () => {
@@ -528,7 +611,8 @@ describe('resolveParseTarget', () => {
     expect(request.params).toEqual({
       request: {
         source: { url: TARGET },
-        scope: { batch: true },
+        scope: { batch: true, with_extra_episodes: true },
+        selection: { skip_preview: false },
         // fetch workers clamp to the server policy ceiling
         network: { proxy: 'no', fetch_workers: 16 },
       },

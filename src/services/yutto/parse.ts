@@ -57,6 +57,50 @@ const TERMINAL_EVENTS: Record<string, TaskState> = {
 export async function resolveParseTarget(
   options: ResolveParseOptions,
 ): Promise<VideoParseResult> {
+  let completedEvent: RuntimeEvent | undefined;
+  const all = await resolveItems(
+    {
+      ...options,
+      onEvent: (event) => {
+        if (event.event === 'parse.completed') {
+          completedEvent = event;
+        } else if (!event.parseItem || !isBangumiEpisode(event.parseItem.url)) {
+          options.onEvent?.(event);
+        }
+      },
+    },
+    true,
+  );
+  const items = extractResolvedItems(all.result);
+  let mainEpisodeUrls: Set<unknown> | undefined;
+  if (items.some((item) => isBangumiEpisode(String(item.url ?? '')))) {
+    // ponytail: compare filtered listings until the engine exposes section metadata.
+    const main = await resolveItems({ ...options, onEvent: undefined }, false);
+    mainEpisodeUrls = new Set(
+      extractResolvedItems(main.result).map((item) => item.url),
+    );
+  }
+  const result = buildParseResult(
+    all.result,
+    all.outputDirectory,
+    mainEpisodeUrls,
+  );
+  if (completedEvent) {
+    options.onEvent?.(completedEvent);
+  }
+  return result;
+}
+
+function isBangumiEpisode(url: string): boolean {
+  return /^https?:\/\/(?:www\.)?bilibili\.com\/bangumi\/play\/ep\d+(?:[/?#]|$)/.test(
+    url,
+  );
+}
+
+async function resolveItems(
+  options: ResolveParseOptions,
+  withExtraEpisodes: boolean,
+) {
   const client = await getRpcClient(options.serve, options.socketFactory);
   {
     if (!client.hasCapability('resolve.start')) {
@@ -67,7 +111,8 @@ export async function resolveParseTarget(
 
     const request: DownloadRequestPayload = {
       source: { url: options.target },
-      scope: { batch: true },
+      scope: { batch: true, with_extra_episodes: withExtraEpisodes },
+      selection: { skip_preview: !withExtraEpisodes },
     };
     const network = networkRequestOptions(options.network);
     if (network) {
@@ -124,7 +169,7 @@ export async function resolveParseTarget(
           `解析未完成（${final.state}）`,
       );
     }
-    return buildParseResult(final.result, outputDirectory);
+    return { result: final.result, outputDirectory };
   }
 }
 
@@ -132,6 +177,7 @@ export async function resolveParseTarget(
 function buildParseResult(
   result: unknown,
   outputDirectory?: string,
+  mainEpisodeUrls?: Set<unknown>,
 ): VideoParseResult {
   const wireItems = extractResolvedItems(result);
   const pagesByAvid = new Map<unknown, Set<unknown>>();
@@ -152,22 +198,30 @@ function buildParseResult(
       position + 1,
       outputDirectory,
     );
-    const multiPage = (pagesByAvid.get(wireItem.avid)?.size ?? 0) > 1;
-    const groupTitle = multiPage
-      ? String(wireItem.title || wireItem.display_group || '多 P 视频')
-      : typeof wireItem.display_group === 'string' && wireItem.display_group
-        ? wireItem.display_group
-        : null;
+    const bangumi =
+      mainEpisodeUrls !== undefined && isBangumiEpisode(parsedItem.url);
+    const extra = bangumi && !mainEpisodeUrls.has(wireItem.url);
+    const multiPage =
+      !bangumi && (pagesByAvid.get(wireItem.avid)?.size ?? 0) > 1;
+    const groupTitle = bangumi
+      ? `${String(wireItem.title || '剧集')} · ${extra ? '附加内容' : '正片'}`
+      : multiPage
+        ? String(wireItem.title || wireItem.display_group || '多 P 视频')
+        : typeof wireItem.display_group === 'string' && wireItem.display_group
+          ? wireItem.display_group
+          : null;
     const videoTitle = typeof wireItem.title === 'string' ? wireItem.title : '';
-    const item: VideoParseItem = multiPage
-      ? {
-          ...parsedItem,
-          title: String(wireItem.name ?? parsedItem.title),
-          usePageName: true,
-        }
-      : groupTitle && videoTitle
-        ? { ...parsedItem, title: videoTitle }
-        : parsedItem;
+    const item: VideoParseItem = bangumi
+      ? { ...parsedItem, defaultSelected: !extra }
+      : multiPage
+        ? {
+            ...parsedItem,
+            title: String(wireItem.name ?? parsedItem.title),
+            usePageName: true,
+          }
+        : groupTitle && videoTitle
+          ? { ...parsedItem, title: videoTitle }
+          : parsedItem;
     if (groupTitle === null) {
       rootItems.push(item);
       return;
@@ -191,6 +245,13 @@ function buildParseResult(
   });
 
   const groups = [...groupedItems.values()];
+  if (mainEpisodeUrls) {
+    groups.sort(
+      (a, b) =>
+        Number(a.items[0].defaultSelected === false) -
+        Number(b.items[0].defaultSelected === false),
+    );
+  }
 
   return {
     dir: commonDirPrefix([
