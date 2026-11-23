@@ -178,12 +178,14 @@ describe('AppShell', () => {
         expect.objectContaining({ target }),
       ),
     );
-    await screen.findByText('单 P 投稿');
+    expect(await screen.findAllByText('单 P 投稿')).toHaveLength(2);
     expect(startDownload).not.toHaveBeenCalled();
     expect(
       screen.getByRole('button', { name: '收起分组 投稿 B' }),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: '展开分组 投稿 A' }));
+    expect(
+      screen.getByRole('button', { name: '收起分组 投稿 A' }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('checkbox', { name: '选择视频 投稿 A 第 1 P' }),
     ).toBeChecked();

@@ -187,7 +187,9 @@ export function DownloadPage({
   onOpenDownloadsFolder,
 }: DownloadPageProps) {
   const [parsing, setParsing] = useState(false);
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const [expandedIndices, setExpandedIndices] = useState<Set<number>>(
+    new Set(),
+  );
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   // item.index → 'loading' | 'error' | data-URL string
   const [covers, setCovers] = useState<
@@ -195,9 +197,8 @@ export function DownloadPage({
   >(new Map());
 
   const listRef = useRef<HTMLUListElement>(null);
-  // `index:coverUrl` of the auto-fetch already scheduled for the current parse
-  // round — makes the every-render effect one-shot. Reset on re-parse / URL
-  // change / unmount so the next round (or a remount) fetches again.
+  const autoExpandKeyRef = useRef<string | null>(null);
+  // Preview targets already scheduled for the current parse round.
   const autoFetchKeyRef = useRef<string | null>(null);
   const autoFetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Latest covers map for callbacks that outlive their defining render (the
@@ -206,52 +207,56 @@ export function DownloadPage({
 
   const allParseItems = collectParseItems(parseItems, parseGroups);
   const hasParseResults = allParseItems.length > 0;
-  const lastItemIndex = allParseItems[allParseItems.length - 1]?.index;
-  const lastGroupIndex = parseGroups.findIndex((group) =>
-    group.items.some((item) => item.index === lastItemIndex),
+  const previewTargets = [
+    { item: parseItems[parseItems.length - 1], groupKey: null },
+    ...parseGroups.map((group, index) => ({
+      item: group.items[group.items.length - 1],
+      groupKey: `${group.dir || group.title}-${index}`,
+    })),
+  ].filter(
+    (target): target is { item: VideoParseItem; groupKey: string | null } =>
+      target.item !== undefined,
   );
-  const lastGroup = parseGroups[lastGroupIndex];
-  const lastGroupKey = lastGroup
-    ? `${lastGroup.dir || lastGroup.title}-${lastGroupIndex}`
-    : null;
 
   useEffect(() => {
     coversRef.current = covers;
   }, [covers]);
 
-  // Reveal the latest item's group as well as its detail preview.
+  // Expand each list's final item once when its preview targets change.
   useEffect(() => {
-    if (lastItemIndex !== undefined) {
-      if (lastGroupKey !== null) {
-        setExpandedGroups((current) => new Set(current).add(lastGroupKey));
-      }
-      setExpandedIndex(lastItemIndex);
-      if (listRef.current) {
-        listRef.current.scrollTop = listRef.current.scrollHeight;
-      }
+    const key = JSON.stringify(
+      previewTargets.map(({ item, groupKey }) => [item.index, groupKey]),
+    );
+    if (autoExpandKeyRef.current === key) return;
+    autoExpandKeyRef.current = key;
+    setExpandedIndices(new Set(previewTargets.map(({ item }) => item.index)));
+    setExpandedGroups(
+      (current) =>
+        new Set([
+          ...current,
+          ...previewTargets.flatMap(({ groupKey }) =>
+            groupKey === null ? [] : [groupKey],
+          ),
+        ]),
+    );
+    if (listRef.current) {
+      listRef.current.scrollTop = listRef.current.scrollHeight;
     }
-  }, [lastItemIndex, lastGroupKey]);
+  });
 
-  // Auto-fetch the LAST item's cover (single fetch, looks great for single-
-  // video parses and gives a nice preview for the end of a playlist) — but
-  // only once parsing is fully over AND the final rebuilt list has rendered.
-  // Condition-driven on every commit instead of edge-triggered on the parsing
-  // flip: the old one-shot effect could fire on a commit where the
-  // authoritative item rebuild hadn't landed yet, silently losing the fetch
-  // (no cover, no loading/retry state — nothing). The extra delay lets the
-  // freshly rendered list settle before the subprocess-backed fetch starts.
+  // Fetch each list's final cover after parsing and the final render settle.
   useEffect(() => {
-    if (parsing || allParseItems.length === 0) return;
-    const lastItem = allParseItems[allParseItems.length - 1];
-    if (!lastItem.cover?.startsWith('http') || covers.has(lastItem.index)) {
-      return;
-    }
-    const key = `${lastItem.index}:${lastItem.cover}`;
+    if (parsing || previewTargets.length === 0) return;
+    const items = previewTargets.map(({ item }) => item);
+    const key = JSON.stringify(items.map((item) => [item.index, item.cover]));
     if (autoFetchKeyRef.current === key) return;
     autoFetchKeyRef.current = key;
+    if (autoFetchTimerRef.current) clearTimeout(autoFetchTimerRef.current);
     autoFetchTimerRef.current = setTimeout(() => {
       autoFetchTimerRef.current = null;
-      void handleLoadCover(lastItem);
+      for (const item of items) {
+        if (item.cover?.startsWith('http')) void handleLoadCover(item);
+      }
     }, AUTO_COVER_FETCH_DELAY_MS);
   });
 
@@ -281,7 +286,7 @@ export function DownloadPage({
     if (next.trim() !== downloadUrl.trim()) {
       cancelPendingAutoFetch();
       onClearParseItems();
-      setExpandedIndex(null);
+      setExpandedIndices(new Set());
       setExpandedGroups(new Set());
       setCovers(new Map());
     }
@@ -294,7 +299,7 @@ export function DownloadPage({
     cancelPendingAutoFetch();
     setParsing(true);
     onClearParseItems();
-    setExpandedIndex(null);
+    setExpandedIndices(new Set());
     setExpandedGroups(new Set());
     setCovers(new Map());
     try {
@@ -364,7 +369,12 @@ export function DownloadPage({
   }
 
   function handleToggleDetail(item: VideoParseItem) {
-    setExpandedIndex(expandedIndex === item.index ? null : item.index);
+    setExpandedIndices((current) => {
+      const next = new Set(current);
+      if (next.has(item.index)) next.delete(item.index);
+      else next.add(item.index);
+      return next;
+    });
   }
 
   async function handleLoadCover(item: VideoParseItem) {
@@ -372,7 +382,7 @@ export function DownloadPage({
     const state = coversRef.current.get(item.index);
     // 'error' 状态允许再次点击重试；loading/已加载则不重复请求。
     if (!item.cover || (state !== undefined && state !== 'error')) return;
-    setExpandedIndex(item.index);
+    setExpandedIndices((current) => new Set(current).add(item.index));
     setCovers((prev) => new Map(prev).set(item.index, 'loading'));
     const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
     let dataUrl: string | null = null;
@@ -471,13 +481,13 @@ export function DownloadPage({
           ) : null}
           <button
             type="button"
-            className={`parse-item__detail-btn${expandedIndex === item.index ? ' parse-item__detail-btn--active' : ''}`}
+            className={`parse-item__detail-btn${expandedIndices.has(item.index) ? ' parse-item__detail-btn--active' : ''}`}
             onClick={() => handleToggleDetail(item)}
           >
             详情
           </button>
         </div>
-        {expandedIndex === item.index ? (
+        {expandedIndices.has(item.index) ? (
           <div className="parse-item__detail">{renderDetailPanel(item)}</div>
         ) : null}
       </li>
