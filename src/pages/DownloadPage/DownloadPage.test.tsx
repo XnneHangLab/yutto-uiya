@@ -360,6 +360,60 @@ describe('DownloadPage', () => {
     });
   });
 
+  it.each([
+    [true, false, '字幕'],
+    [false, true, '弹幕'],
+    [true, true, '字幕 + 弹幕'],
+    [false, false, '请至少选择一种资源类型'],
+  ])('allows standalone sidecars (subtitle=%s, danmaku=%s)', (requireSubtitle, requireDanmaku, hint) => {
+    const onDownload = vi.fn();
+    const url = 'https://www.bilibili.com/video/BV1xx411c7mD';
+    render(
+      <DownloadPage
+        tasks={[]}
+        onDownload={onDownload}
+        onParse={vi.fn()}
+        scriptsReady
+        parseItems={[{ index: 1, title: '测试视频', url, dir: '字幕目录' }]}
+        parseGroups={[]}
+        parseSelected={new Set([1])}
+        onParseSelectedChange={() => undefined}
+        onClearParseItems={() => undefined}
+        downloadUrl=""
+        onDownloadUrlChange={() => undefined}
+        parseVideoQualities={[]}
+        parseAudioQualities={[]}
+        downloadOptions={{
+          ...DEFAULT_DOWNLOAD_OPTIONS,
+          requireVideo: false,
+          requireAudio: false,
+          requireCover: false,
+          requireSubtitle,
+          requireDanmaku,
+        }}
+        onDownloadOptionsChange={() => undefined}
+        onCancelTask={() => undefined}
+        onOpenDownloadsFolder={() => undefined}
+      />,
+    );
+    expect(document.querySelector('.dl-opts-hint')).toHaveTextContent(hint);
+    const button = screen.getByRole('button', { name: '下载所选 (1)' });
+    if (requireSubtitle || requireDanmaku) {
+      expect(button).toBeEnabled();
+      fireEvent.click(button);
+      expect(onDownload).toHaveBeenCalledWith(
+        url,
+        '测试视频',
+        '字幕目录',
+        undefined,
+      );
+    } else {
+      expect(button).toBeDisabled();
+      fireEvent.click(button);
+      expect(onDownload).not.toHaveBeenCalled();
+    }
+  });
+
   it('describes selected covers as embedded and separately saved', () => {
     render(
       <DownloadPage

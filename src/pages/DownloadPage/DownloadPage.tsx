@@ -44,6 +44,10 @@ function downloadHint(opts: DownloadOptions): string {
   else if (requireVideo) hint = '仅视频流（无音频）';
   else if (requireAudio) hint = '仅音频流';
   else if (requireCover) hint = '仅封面图片';
+  else if (requireSubtitle || requireDanmaku)
+    return [requireSubtitle && '字幕', requireDanmaku && '弹幕']
+      .filter(Boolean)
+      .join(' + ');
   else hint = '请至少选择一种资源类型';
   if (requireSubtitle) hint += '；含字幕';
   if (requireDanmaku) hint += '；含弹幕';
@@ -499,7 +503,9 @@ export function DownloadPage({
   const noneChecked =
     !downloadOptions.requireVideo &&
     !downloadOptions.requireAudio &&
-    !downloadOptions.requireCover;
+    !downloadOptions.requireCover &&
+    !downloadOptions.requireSubtitle &&
+    !downloadOptions.requireDanmaku;
 
   return (
     <div className="models-page">

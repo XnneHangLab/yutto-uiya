@@ -82,6 +82,30 @@ describe('buildDownloadRequest audio-only formats', () => {
     expect(request.stream).not.toHaveProperty('video_download_codec_priority');
   });
 
+  it('requests subtitles without media, cover, or danmaku', () => {
+    const request = buildDownloadRequest({
+      target: TARGET,
+      dir: '',
+      options: {
+        ...DEFAULT_DOWNLOAD_OPTIONS,
+        requireVideo: false,
+        requireAudio: false,
+        requireCover: false,
+        requireDanmaku: false,
+        requireSubtitle: true,
+      },
+    });
+    expect(request.resources).toEqual({
+      video: false,
+      audio: false,
+      cover: false,
+      save_cover: false,
+      danmaku: false,
+      subtitle: true,
+    });
+    expect(request.output).toBeUndefined();
+  });
+
   it('never overrides the codec for video downloads', () => {
     const request = buildDownloadRequest({
       target: TARGET,
